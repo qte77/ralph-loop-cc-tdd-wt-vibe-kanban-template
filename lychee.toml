@@ -1,0 +1,19 @@
+# Lychee link checker configuration
+# Used by .github/workflows/links-fail-fast.yaml
+# https://lychee.cli.rs/usage/config/
+
+# Accept common "soft failure" status codes from bot-protected sites
+accept = [200, 204, 301, 403, 401, 429]
+
+# Skip archived sprint documentation
+exclude_path = [
+  "docs/sprints/archive",
+  "src_archive",
+]
+
+# Exclude URLs that commonly fail in CI (bot protection, rate limits, local dev)
+exclude = [
+  "^http://localhost",
+  "^http://127\\.0\\.0\\.1",
+  "^http://0\\.0\\.0\\.0",
+]

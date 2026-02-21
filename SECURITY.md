@@ -14,7 +14,8 @@ report it responsibly.
 ### How to Report
 
 1. **Do NOT** open a public issue
-2. Email security concerns to the project maintainers
+2. Use [GitHub Security Advisories](../../security/advisories) to report privately,
+   or email security concerns to the project maintainers
 3. Include:
    - Description of the vulnerability
    - Steps to reproduce
@@ -33,7 +34,9 @@ report it responsibly.
 
 ### Disclosure Policy
 
-- We follow coordinated disclosure
+- We follow a **90-day disclosure timeline**
+- If a fix is not available within 90 days of the initial report, the reporter
+  may disclose the vulnerability publicly
 - Credit will be given to reporters (unless anonymity requested)
 - Public disclosure after fix is released
 
