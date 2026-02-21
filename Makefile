@@ -6,40 +6,34 @@
 
 .SILENT:
 .ONESHELL:
-.PHONY: setup_dev setup_claude_code setup_markdownlint setup_npm_tools setup_sandbox setup_project run_markdownlint ruff complexity duplication lint_md lint_hardcoded_paths lint_links test_all test_quick test_coverage test_e2e type_check validate validate_quick quick_validate docs_serve docs_build ralph_validate_json ralph_create_userstory_md ralph_create_prd_md ralph_init_loop ralph_run ralph_run_worktree ralph_reorganize_prd ralph_status ralph_clean ralph_archive ralph_abort ralph_watch ralph_get_log vibe_start vibe_stop_all vibe_status vibe_cleanup help
+.PHONY: setup_dev setup_claude_code setup_npm_tools setup_lychee setup_project run_markdownlint ruff complexity duplication lint_md lint_hardcoded_paths lint_links test_all test_quick test_coverage test_e2e type_check validate validate_quick quick_validate docs_serve docs_build ralph_validate_json ralph_create_userstory_md ralph_create_prd_md ralph_init_loop ralph_run ralph_run_worktree ralph_init_and_run ralph_reorganize_prd ralph_status ralph_stop ralph_clean ralph_archive ralph_watch ralph_get_log vibe_start vibe_stop_all vibe_status vibe_cleanup help
 .DEFAULT_GOAL := help
 
 
 # MARK: setup
 
 
-setup_dev:  ## Install uv and deps, Download and start Ollama 
+setup_dev:  ## Install uv and deps, npm tools, lychee
 	echo "Setting up dev environment ..."
 	pip install uv -q
 	uv sync --all-groups
 	echo "npm version: $$(npm --version)"
 	$(MAKE) -s setup_claude_code
-	$(MAKE) -s setup_markdownlint
+	$(MAKE) -s setup_npm_tools
+	$(MAKE) -s setup_lychee
 
 setup_claude_code:  ## Setup claude code CLI, node.js and npm have to be present
 	echo "Setting up Claude Code CLI ..."
 	npm install -gs @anthropic-ai/claude-code
 	echo "Claude Code CLI version: $$(claude --version)"
 
-setup_markdownlint:  ## Setup markdownlint CLI, node.js and npm have to be present
-	echo "Setting up markdownlint CLI ..."
-	npm install -gs markdownlint-cli
-	echo "markdownlint version: $$(markdownlint --version)"
-
-setup_sandbox:  ## Setup isolation tools (jscpd for copy-paste detection)
-	echo "Setting up sandbox tools ..."
-	npm install -gs jscpd
-	echo "jscpd version: $$(jscpd --version)"
-
-setup_npm_tools:  ## Install all npm CLI tools (markdownlint, jscpd, lychee)
+setup_npm_tools:  ## Setup npm-based dev tools (markdownlint, jscpd)
 	echo "Setting up npm tools ..."
-	npm install -gs markdownlint-cli jscpd lychee
+	npm install -gs markdownlint-cli jscpd
 	echo "markdownlint: $$(markdownlint --version), jscpd: $$(jscpd --version)"
+
+setup_lychee:  ## Install lychee link checker (Rust binary, requires sudo)
+	curl -sL https://github.com/lycheeverse/lychee/releases/latest/download/lychee-x86_64-unknown-linux-gnu.tar.gz | sudo tar xz -C /usr/local/bin lychee
 	echo "lychee version: $$(lychee --version)"
 
 setup_project:  ## Customize template with your project details. Run with help: bash ralph/scripts/setup_project.sh help
@@ -81,10 +75,12 @@ lint_hardcoded_paths:  ## GHA safety: check for /workspaces/ in test files
 	fi
 	echo "No hardcoded paths found"
 
-lint_links:  ## Check for broken links in markdown files
-	echo "Checking for broken links..."
-	command -v lychee >/dev/null 2>&1 || { echo "lychee not found. Run: make setup_npm_tools"; exit 1; }
-	lychee $(or $(INPUT_FILES),.)
+lint_links:  ## Check for broken links with lychee. Usage: make lint_links [INPUT_FILES="docs/**/*.md"]
+	if command -v lychee > /dev/null 2>&1; then \
+		lychee $(or $(INPUT_FILES),.); \
+	else \
+		echo "lychee not installed — skipping link check (run 'make setup_lychee' to install)"; \
+	fi
 
 test_all:  ## Run all tests (excludes E2E tests by default)
 	uv run pytest

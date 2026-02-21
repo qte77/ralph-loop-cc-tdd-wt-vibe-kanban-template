@@ -54,7 +54,7 @@ make ralph_run N_WT=5 ITERATIONS=25         # 5 parallel loops
 make ralph_run DEBUG=1 N_WT=3               # Debug mode (watch, persist)
 ```
 
-See [TEMPLATE_USAGE.md](../../docs/TEMPLATE_USAGE.md) for full setup guide
+See [TEMPLATE_USAGE.md](../docs/TEMPLATE_USAGE.md) for full setup guide
 and [CONTRIBUTING.md](CONTRIBUTING.md) for command reference.
 
 ### Visual Monitoring with Vibe Kanban
