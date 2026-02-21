@@ -285,6 +285,7 @@ All status transitions verified working via direct API testing:
 
 - ✓ `todo` → `inprogress` → `inreview` → `done` → `cancelled` → `todo`
 
+<!-- TODO: Verify if these issues still exist with vibe-kanban v0.1.17+ -->
 **Known Issues:**
 
 1. **All tasks moved to cancelled**: During Ralph runs, all tasks end up

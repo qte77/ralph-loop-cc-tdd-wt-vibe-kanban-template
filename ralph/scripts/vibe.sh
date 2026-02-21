@@ -19,6 +19,7 @@ vibe_start() {
         echo "Port $port is already in use"
         echo "View at: $url"
     else
+        # TODO: Pin vibe-kanban version (e.g., npx vibe-kanban@0.1.17) for reproducibility
         PORT="$port" npx vibe-kanban > /tmp/vibe-kanban-"$port".log 2>&1 &
         echo "Vibe Kanban started on port $port"
         echo "View at: $url"
