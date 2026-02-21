@@ -138,6 +138,11 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 - `test`: Adding/updating tests
 - `chore`: Maintenance tasks
 
+## Ralph Loop Commands
+
+For Ralph-specific command reference (autonomous development loop),
+see [`ralph/CONTRIBUTING.md`](ralph/CONTRIBUTING.md).
+
 ## Pre-Commit Checklist
 
 Before submitting PR:

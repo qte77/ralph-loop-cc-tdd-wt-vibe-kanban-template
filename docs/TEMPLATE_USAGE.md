@@ -46,7 +46,7 @@ make ralph_status                 # Check progress (with timestamp)
 ```
 
 - To generate prd.json: Run `claude -p '/generating-prd-json-from-prd-md'` skill.
-- For DEBUG mode and advanced options see [Ralph README.md](../ralph/docs/README.md).
+- For DEBUG mode and advanced options see [Ralph README.md](../ralph/README.md).
 
 ### Starting New Product Iteration
 

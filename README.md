@@ -30,7 +30,7 @@ Out-of-the-box Python project template using Ralph Loop autonomous development
 - **VS Code** - Workspace settings, tasks, and extensions for optimal Python
   development
 - **Configurable Model routing** - Use different models for hard or easy tasks.
-  See [Ralph README.md](./ralph/docs/README.md#model-selection).
+  See [Ralph README.md](./ralph/README.md#configuration).
 
 ## Quick Start
 
@@ -61,7 +61,7 @@ make ralph_archive NEW_PRD=docs/PRD-v2.md [VERSION=2]
 
 For detailed setup and usage, see
 [docs/TEMPLATE_USAGE.md](docs/TEMPLATE_USAGE.md). For Ralph Loop details see
-[Ralph README.md](./ralph/docs/README.md).
+[Ralph README.md](./ralph/README.md).
 
 ## Workflow
 
