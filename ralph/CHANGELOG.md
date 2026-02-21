@@ -9,6 +9,19 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Status enum (`"pending"`, `"in_progress"`, `"passed"`, `"failed"`) replacing
+  `passes: boolean` in prd.json schema
+- Wave computation (`compute_waves()`) for dependency-frontier tracking —
+  assigns BFS wave numbers to stories based on dependency graph
+- Teammate story verification (`verify_teammate_stories()`) — detects
+  accidental modifications to other stories during execution
+- Legacy guard in `ralph.sh` — blocks execution if prd.json uses old
+  `passes` field, with migration instructions
+- `generate_prd_json.py` — standalone PRD parser ported from upstream with
+  status enum, wave fields, and `passes` -> `status` migration
+- `ralph-in-worktree.sh` — git worktree launcher with configurable symlinks
+  (`RALPH_WORKTREE_SYMLINKS`)
+- `ralph_run_worktree` Makefile recipe for worktree-based Ralph execution
 - Scoped linting/testing to prevent cross-story interference in teams mode
 - Wave checkpoint validation for dependency tracking at wave boundaries
 - Parallel worktree orchestration (`parallel_ralph.sh`) with scoring and

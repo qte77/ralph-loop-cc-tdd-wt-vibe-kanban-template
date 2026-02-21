@@ -290,9 +290,9 @@ All status transitions verified working via direct API testing:
 
 1. **All tasks moved to cancelled**: During Ralph runs, all tasks end up
    in `cancelled` status regardless of pass/fail. Completed stories
-   (e.g., STORY-000, STORY-001 with `.passes: true`) remain in `todo` or
+   (e.g., STORY-000, STORY-001 with `.status: "passed"`) remain in `todo` or
    move to `cancelled` instead of `done`.
-2. **Already-passing stories not synced**: Stories with `.passes: true`
+2. **Already-passing stories not synced**: Stories with `.status: "passed"`
    in prd.json are not synced to Vibe at Ralph startup.
 3. **Tracking fields not persisting**: `executor`, `has_in_progress_attempt`,
    `last_attempt_failed` return as defaults in API responses despite being

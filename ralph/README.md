@@ -14,11 +14,13 @@ iteratively improving until completion.
 
 ```text
 while stories remain:
-  1. Read prd.json, pick next story (passes: false)
-  2. Implement story (TDD: red -> green -> refactor)
+  1. Read prd.json, pick next story (status: "pending"/"failed")
+  2. Mark story "in_progress", implement (TDD: red → green → refactor)
   3. Run typecheck + tests
-  4. If passing: commit, mark done, log learnings
-  5. Repeat until all pass (or context limit)
+  4. If passing: mark "passed", commit, log learnings
+  5. On max retries: mark "failed"
+  6. In teams mode: verify teammate stories in same wave
+  7. Repeat until all pass (or context limit)
 ```
 
 **Memory persists only through:**
@@ -52,7 +54,7 @@ make ralph_run N_WT=5 ITERATIONS=25         # 5 parallel loops
 make ralph_run DEBUG=1 N_WT=3               # Debug mode (watch, persist)
 ```
 
-See [TEMPLATE_USAGE.md](TEMPLATE_USAGE.md) for full setup guide
+See [TEMPLATE_USAGE.md](../../docs/TEMPLATE_USAGE.md) for full setup guide
 and [CONTRIBUTING.md](CONTRIBUTING.md) for command reference.
 
 ### Visual Monitoring with Vibe Kanban
@@ -115,8 +117,9 @@ Follows [Anthropic's production harness patterns](https://www.anthropic.com/engi
 
 1. **Incremental Boundaries** — Story-by-story execution; one feature per
    session, commit before moving on
-2. **State Management** — prd.json (task status) + progress.txt (learnings)
-   + git history (code); each session reads prior context before acting
+2. **State Management** — prd.json (task status) + progress.txt
+   (learnings) + git history (code); each session reads prior context
+   before acting
 3. **Checkpointing** — Git commits per story enable resumption from
    known-good states
 4. **Error Recovery** — `git reset --hard` recovers failed stories without
@@ -207,7 +210,6 @@ ralph/
 ├── LEARNINGS.md               # Accumulated agent knowledge
 ├── README.md                  # This file
 ├── REQUESTS.md                # Human-to-agent communication
-├── TEMPLATE_USAGE.md          # Setup guide
 ├── docs/
 │   ├── prd.json               # Story definitions and status
 │   ├── progress.txt           # Execution log
@@ -223,6 +225,8 @@ ralph/
 └── scripts/
     ├── parallel_ralph.sh      # Orchestrator: worktree management, scoring
     ├── ralph.sh               # Worker: TDD loop execution
+    ├── ralph-in-worktree.sh   # Git worktree launcher
+    ├── generate_prd_json.py   # PRD.md -> prd.json parser
     ├── init.sh                # Environment initialization
     ├── archive.sh             # Archive current run state
     ├── abort.sh               # Terminate running loops
@@ -427,19 +431,88 @@ RALPH_JUDGE_ENABLED=true RALPH_MERGE_INTERACTIVE=true make ralph_run N_WT=2
 Each sprint gets its own PRD file. Ralph reads only `prd.json` — the PRD
 markdown is human-facing input to `generate_prd_json.py`.
 
+```text
+docs/PRD.md                    # Parser input (or symlink to active sprint)
+ralph/docs/prd.json            # Ralph reads this
+```
+
+Optionally, symlink `docs/PRD.md` to the active sprint file so the
+parser always reads the right one without arguments:
+
 ```bash
-# Switch to a new sprint
-cd docs && ln -sf sprints/PRD-SprintN.md PRD.md && cd ..
-make ralph_init_loop
+cd docs && ln -sf sprints/PRD-SprintN.md PRD.md
+```
+
+**Switching sprints:**
+
+```bash
+# Archive current sprint
+git tag sprint-N-complete -a -m "Sprint N complete"
+mkdir -p ralph/archive/sprintN/
+cp ralph/docs/{prd.json,progress.txt} ralph/archive/sprintN/
+
+# Point parser at next sprint and regenerate
+make ralph_prd_json
 make ralph_run
 ```
 
 **Why separate files?**
 
-- Single PRD with 50+ stories overwhelms Ralph's context
+- Single PRD with 50+ stories across sprints overwhelms Ralph's context
 - Completed sprint details pollute active sprint focus
 - Each sprint PRD stays at 10-20 stories (manageable scope)
 - Historical PRDs preserved as immutable records
+
+**Story IDs**: Sequential across sprints (STORY-001... STORY-011 in
+Sprint 2, STORY-012... in Sprint 3). Unique IDs across project lifetime.
+
+**prd.json**: Fresh start per sprint. Archive before transition.
+
+### Git Worktree Workflow
+
+Run Ralph in an isolated worktree to keep the source branch clean.
+
+**Setup and run:**
+
+```bash
+make ralph_worktree BRANCH=ralph/<branch-name>
+```
+
+This creates a sibling worktree at `../<branch-basename>`, symlinks
+`.venv` from the source repo, and starts Ralph. Reuses an existing
+branch and worktree if one exists.
+
+**Directory layout** (sibling pattern):
+
+```text
+parent-dir/
+├── your-project/                   # Source repo (working branch)
+│   ├── .venv/                      # Shared virtual environment
+│   └── ralph/docs/prd.json
+└── <branch-basename>/              # Worktree (ralph branch)
+    ├── .venv → ../your-project/.venv   # Symlinked, not copied
+    └── ralph/docs/prd.json
+```
+
+**Key practices:**
+
+- **One worktree per sprint branch** — keeps TDD noise off the source
+  branch
+- **`.venv` is symlinked**, not duplicated — never run `uv sync` in the
+  worktree
+- **Don't edit overlapping files** in the source repo while Ralph runs —
+  files listed in `prd.json` `files` arrays belong to the worktree
+- **Clean up when done** — use `git worktree remove`, not `rm -rf`
+
+**Configuration** (same env vars as `ralph_run`):
+
+```bash
+make ralph_worktree BRANCH=ralph/<name> TEAMS=true MAX_ITERATIONS=50 MODEL=opus
+```
+
+**Sandbox note:** If your environment restricts writes outside the repo
+directory (e.g., DevContainers), add the parent directory to the sandbox
+write allowlist so worktrees can be created as siblings.
 
 ### Merging Back
 
@@ -449,6 +522,63 @@ implementation noise — final state is what matters.
 ```bash
 git merge --squash ralph/<branch>
 git commit -m "feat(sprintN): implement stories via Ralph"
+git worktree remove ../<worktree-dir>
+git branch -d ralph/<branch>
+```
+
+**Conflict prevention**: Don't edit files in `prd.json` `files` arrays
+on the source branch while Ralph runs.
+
+**Conflict resolution**: Especially relevant for worktree branches that
+diverge from the source branch during long-running Ralph sessions.
+`-X ours`/`-X theirs` is relative to the checked-out branch
+(`ours` = branch you're on, `theirs` = branch being merged in):
+
+- On main, merging Ralph in: `-X theirs` keeps Ralph's version
+- On feat branch, merging main in: `-X ours` keeps feat's version
+
+**Protected main with conflicting PR** (only valid when feat branch is
+the single source of truth and main's conflicting changes are already
+incorporated or superseded):
+
+```bash
+# Merge main into feat, resolve conflicts keeping ours
+git fetch origin
+git checkout <branch>
+git merge -X ours origin/main
+git push origin <branch>
+gh pr merge <pr-number> --squash
+```
+
+If the feat branch itself is blocked, create a new one as fallback:
+
+```bash
+git checkout -b <branch>-v2 origin/<branch>
+git merge -X ours origin/main
+git push -u origin <branch>-v2
+gh pr close <old-number> -c "Superseded by new PR"
+gh pr create --title "feat: ..." --body "Supersedes #<old>."
+gh pr merge --squash
+```
+
+**`modify/delete` conflicts**: `-X ours` won't auto-resolve when ours
+deleted a file that theirs modified. Fix with `git rm <files>` then
+commit — ours (delete) wins. Untracked files blocking merge need
+`rm -rf` before `git merge`.
+
+**`-X ours` does NOT delete files added by theirs**: Files that exist
+only on the branch being merged in (e.g., `main` added files that
+`feat` never had) are not conflicts — git auto-merges them as
+additions. After `git merge -X ours origin/main`, diff against the
+pre-merge feat branch and `git rm` any files that shouldn't be there:
+
+```bash
+# After merge, find files main added that feat didn't have
+git diff HEAD <feat-branch-pre-merge-sha> --name-only --diff-filter=A
+# Delete them
+git diff HEAD <feat-branch-pre-merge-sha> --name-only --diff-filter=A \
+  | xargs git rm
+git commit --amend --no-edit
 ```
 
 ## Security
@@ -502,103 +632,247 @@ Runs without human approval:
 
 ## Known Failure Modes
 
-Documented from parallel worktree operation (Sprint 7 research):
+Root cause analysis from Sprint 7 log forensics. STORY-009/010/011
+implemented correctly but Ralph rejected them repeatedly.
 
 ### 1. TDD commit counter doesn't survive reset (Sisyphean loop)
 
 RED+GREEN commits made in iteration N pass TDD but fail complexity.
 Ralph runs `git reset --hard HEAD~N`, erasing them. In iteration N+1
-the agent sees work exists in reflog/history, makes only a REFACTOR
-commit. `check_tdd_commits` finds no RED+GREEN. Repeats until max
-retries.
+the agent sees work already exists in reflog/history, makes only a
+REFACTOR commit. `check_tdd_commits` searches
+`git log --grep="[RED]" --grep="STORY-ID" --all-match` but reset
+commits are gone from the log. Ralph rejects for missing RED+GREEN.
+Repeats until max retries.
+
+**Root cause in code**: `ralph.sh` resets commits on TDD failure and
+on quality failure. Neither persists which TDD phases passed. The
+`RETRY_CONTEXT_FILE` only works for quality retries after TDD already
+passed — not for TDD failures that require re-verification.
+
+**Solutions (pick one):**
+
+- **A. Persist verified phases to state file** (recommended): After
+  `check_tdd_commits` passes but quality fails, write
+  `RED=<hash> GREEN=<hash>` to a temp file. On retry, skip phase
+  requirements already satisfied.
+- **B. Don't reset on quality failure** (simpler): Keep commits when
+  only complexity/tests fail. Agent adds a REFACTOR commit on top.
+- **C. Cherry-pick surviving commits**: After reset, if prior RED+GREEN
+  are in reflog, `git cherry-pick` them back. More fragile.
 
 ### 2. Teams mode cross-contamination
 
 When Ralph delegates multiple stories in one batch, the agent combines
-work across stories. Commit message grep filters find nothing when
-commits cover multiple stories or use different ID formats.
+work across stories. `check_tdd_commits` filters by
+`grep "$story_id"` but if the agent makes a single commit covering
+multiple stories, or uses a different story ID in the message, the
+filter finds nothing.
+
+**Root cause in code**: Simple grep on commit messages. A commit like
+`feat(STORY-009,STORY-010): implement features [GREEN]` matches both
+stories, while `feat: implement paper selection and settings [GREEN]`
+matches neither.
+
+**Solutions (pick one):**
+
+- **A. File-scoped commit attribution** (recommended): Check which files
+  each commit touches against the story's `files` array from prd.json.
+- **B. Sequential execution with shared baseline**: Don't batch stories.
+  Execute one at a time. Slower but eliminates cross-contamination.
+- **C. Require story-scoped commits in prompt**: Fragile (depends on
+  agent compliance) but zero harness changes.
 
 ### 3. Complexity gate catches cross-story changes
 
 One story's complexity increase fails another story's quality gate.
-`run_quality_checks` checks the entire `src/` tree, not just
-story-scoped files.
+`run_quality_checks` runs `make complexity` against the entire `src/`
+tree, not just story-scoped files.
+
+**Root cause in code**: `baseline.sh` compares test results before/after
+but the complexity check has no baseline — it's a global pass/fail on
+the whole codebase.
+
+**Solutions (pick one):**
+
+- **A. Complexity baseline with delta scoping** (recommended): Snapshot
+  complexity per function before execution. Only fail if functions in
+  the story's `files` list increased complexity.
+- **B. Per-file complexity check**: Run complexipy only on files changed
+  by the current story's commits.
+- **C. Complexity allowlist in prd.json**: Optional
+  `complexity_exceptions` field per story. Heavy-handed but explicit.
 
 ### 4. Stale snapshot tests from other stories
 
 In teams mode, new failures from other stories in the same batch
-appear as regressions for the current story. Baseline predates all
-stories in the batch.
+appear as regressions for the current story. `baseline.sh` captures
+failing tests BEFORE the batch, so new failures from other stories
+appear as regressions introduced by the current story.
+
+**Root cause in code**: `capture_test_baseline` runs once per story
+start, but in teams mode all stories share the same codebase state.
+Story A's baseline doesn't account for story B's changes.
+
+**Solutions (pick one):**
+
+- **A. Rolling baseline per story** (recommended): After each story's
+  commits are verified and kept, re-capture the baseline before
+  verifying the next story.
+- **B. Test-to-source mapping**: Map each failing test to the source
+  files it imports. Only flag a failure as regression if it imports a
+  file from the current story's `files` list.
+- **C. Accept known cross-story failures**: After detecting new
+  failures, check if they exist in ANY story's test file list from the
+  batch. Only block on truly orphaned regressions.
 
 ### 5. File-conflict dependencies not tracked
 
 `depends_on` tracks logical dependencies but not file-overlap conflicts.
-Two unrelated stories editing the same file produce merge conflicts in
-teams mode.
+In teams mode, two unrelated stories editing the same file (e.g., both
+editing `run_cli.py`) produce merge conflicts or silently overwrite
+each other's changes.
 
-### 6. Worktree lock contention
+**Root cause in code**: `get_unblocked_stories` checks only
+`depends_on` — it has no file-overlap awareness. Two stories with
+`depends_on: []` and overlapping `files` arrays both appear unblocked.
+
+**Solutions (pick one):**
+
+- **A. File-conflict deps in prd.json** (recommended): Add file-overlap
+  dependencies during PRD generation. `generate_prd_json.py` can detect
+  overlapping `files` arrays and auto-inject `depends_on` edges.
+- **B. Runtime file-lock check**: Before delegating a story, check if
+  any in-progress story shares files. Skip overlapping stories until
+  the conflicting story completes.
+
+### 6. Incomplete PRD file lists (Sprint 8 post-mortem)
+
+Three stories passed quality checks but left stale tests because the
+PRD `files` arrays missed secondary consumers of renamed interfaces.
+All three failures were from tests *outside* the story's scope.
+
+**Mitigations implemented:**
+
+- Impact scan prompt instruction: agent greps test tree for old symbol
+  names before implementation
+- Wave checkpoint: full `make validate` runs at wave boundaries to
+  catch cross-story breakage
+- Killed-process detection: exit 137/143 is a hard failure, not a
+  silent pass
+- Scoped ruff/tests: teams mode only checks story files, preventing
+  cross-story false positives
+- Pycache cleanup: removes stale `.pyc` files before test runs
+
+### 7. Worktree lock contention
 
 Two workers claim same story if prd.json read+write is not atomic.
 Mitigated by file locking in `ralph.sh`.
 
-### 7. Stale worktree after crash
+### 8. Stale worktree after crash
 
 If a worker process dies mid-story, the worktree remains locked.
 `make ralph_clean` with double confirmation handles cleanup.
 
-### 8. Claude rate limits
+### 9. Claude rate limits
 
 Parallel workers can hit API rate limits. Workers retry with
 exponential backoff (configured in `config.sh`).
 
-### 9. Disk space exhaustion
+### 10. Disk space exhaustion
 
 Each worktree is a full checkout. Monitor with `df -h` when running
 N_WT>3 on constrained environments.
 
+### Key Structural Issue
+
+The fundamental problem is **cross-story interference in teams mode**:
+quality gates for story X catch regressions introduced by stories Y
+and Z. The validation checks the entire test suite against a baseline
+that predates all stories in the batch.
+
+**Recommended combined approach**: Implement solutions 1A + 2A + 3B +
+4A + 5A. This gives:
+
+- Phase persistence across resets (1A) — eliminates Sisyphean loops
+- File-scoped commit attribution (2A) — correct story ownership
+- Per-file complexity (3B) — scoped complexity checks
+- Rolling baseline (4A) — simplest baseline fix
+- File-conflict deps in prd.json (5A) — prevents parallel edits to
+  same file
+
+All five are backward-compatible with single-story mode
+(`TEAMS=false`).
+
 ## TODO / Future Work
 
-- [ ] **Agent Teams for parallel story execution**: Activate via
-  `make ralph_run TEAMS=true`. Lead agent orchestrates teammates with
-  skill-specific delegation. A **wave** is the set of unblocked stories
-  (all dependencies satisfied). Stories within a wave run in parallel;
-  next wave starts after current completes.
-  - [ ] **CC Agent Teams as alternative orchestrator**: Replace bash loop
-    with CC main orchestrator spawning teams via `TeamCreate` + `Task`.
-    Each story becomes a `TaskCreate` with `blockedBy` dependencies
-    (logical and file-conflict). Addresses five failure modes
-    structurally: isolated teammate contexts prevent cross-contamination,
-    `blockedBy` prevents stale snapshots, no external reset eliminates
-    loops, lead-scoped validation prevents cross-story complexity
-    failures, file-conflict deps prevent parallel edits to same file.
-    Requires self-contained story descriptions in PRD Story Breakdown.
+- [ ] **Agent Teams for parallel story execution**: Enable with
+  `make ralph_run TEAMS=true`
+  (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`). Lead agent orchestrates
+  teammates with skill-specific delegation. **Terminology**: a **wave**
+  is the set of currently unblocked stories (all `depends_on` satisfied)
+  — i.e., the frontier of the dependency graph. Stories within a wave
+  run in parallel (one teammate each); the next wave starts after the
+  current one completes.
+  - [ ] **CC Agent Teams as alternative orchestrator**: Instead of
+    Ralph's bash loop driving `claude -p` with bolted-on teams support,
+    the CC main orchestrator agent directly spawns a team via
+    `TeamCreate` + `Task` tool. Each story becomes a `TaskCreate` entry
+    with `blockedBy` dependencies (both logical and file-conflict).
+    Addresses Ralph failure modes structurally: isolated teammate
+    contexts prevent cross-contamination (#2), `blockedBy` prevents
+    stale snapshots (#4), no external reset eliminates Sisyphean loops
+    (#1), lead-scoped validation prevents cross-story complexity
+    failures (#3), and file-conflict deps in `blockedBy` prevent
+    parallel edits to the same file (#5). Requires self-contained story
+    descriptions in the PRD Story Breakdown (usable as
+    `TaskCreate(description=...)`).
 
 - [ ] **Consolidate split test directories**: `tests/gui/` vs
-  `tests/test_gui/` caused two Sprint 8 failures. Merge into single
-  `tests/gui/` to eliminate ambiguity. Codebase hygiene independent
-  of Ralph.
+  `tests/test_gui/` directly caused 2 of 3 Sprint 8 failures. Story
+  authors found and updated tests in one directory but missed the other.
+  Merging into a single `tests/gui/` eliminates the ambiguity.
+  Independent of Ralph — codebase hygiene.
 
-- [ ] **Ad-hoc steering instructions**: Accept `INSTRUCTION` parameter
-  via CLI/Make to inject user guidance into prompt without editing
-  tracked files. Example: `make ralph_run INSTRUCTION="focus on error
-  handling"`. Useful for nudging behavior without modifying PRD or
-  progress.
+- [ ] **Ad-hoc steering instructions**: Accept a free-text `INSTRUCTION`
+  parameter via CLI/Make to inject user guidance into the prompt without
+  editing tracked files. Usage:
+  `make ralph_run INSTRUCTION="focus on error handling"`. The
+  instruction would be appended to the story prompt so the agent factors
+  it in during implementation. Useful for nudging behavior (e.g.,
+  "prefer small commits", "skip Tier 2 tests") without modifying
+  tracked files.
 
-- [ ] **Rewrite Ralph engine in Rust or similar**: Current bash
-  implementation is brittle and growing complex. Rewrite orchestration
-  core in a testable language to gain unit tests, type safety, and
-  maintainable control flow. Keep Claude Code invocation via subprocess.
+- [ ] **Rewrite Ralph engine in Go**: The bash script engine
+  (`ralph.sh` + `baseline.sh` + `common.sh`, ~3k lines across 13 files)
+  is brittle, untestable, and diverges when the template is forked.
+  Rewrite as a standalone Go binary (`ralph`) distributed as a single
+  static executable (10-15 MB, zero runtime deps). Makefile stays as the
+  user-facing interface, calling `ralph <subcommand>` instead of
+  `bash ralph/scripts/*.sh`. Includes language adapter system for
+  TDD/BDD validation across Python, Go, TypeScript, Rust, C++, and C.
+  Go chosen over Rust (contributor onboarding days vs months, goroutines
+  map directly to N-worker pattern, trivial cross-compilation) and
+  TypeScript (135 MB deno compile binary, subprocess env pollution from
+  bundled V8 runtime). Key deps: Cobra (CLI), Viper (config). See
+  [`docs/UserStory.md`](../docs/UserStory.md) for full requirements
+  and architecture.
 
-- [ ] **Multi-instance worktree orchestration**: Run N independent Ralph
-  instances (solo or teams) in separate git worktrees simultaneously.
-  Each gets its own branch, prd.json, and progress.txt. Merge results
-  at completion. Reference:
+- [ ] **Multi-instance worktree orchestration**: Run up to N independent
+  Ralph instances (solo or teams) in separate git worktrees
+  simultaneously. Each worktree gets its own branch, prd.json, and
+  progress.txt. Merge results back at completion. Supersedes the
+  single-worktree "Git worktrees for teams isolation" deferred item.
+  Reference:
   [ralph-loop template](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template).
 
-- [ ] **Merge with ralph-loop template**: Port features from parallel
-  template repo (worktree management, kanban tracking, vibe coding) or
-  consolidate both projects to avoid maintaining duplicate Ralph
-  implementations.
+- [ ] **Merge with ralph-loop template**: Evaluate and port features
+  from
+  [ralph-loop template](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template)
+  into this project, or merge both projects altogether. The template
+  repo has diverged with its own worktree management, kanban tracking,
+  and vibe coding workflow. Consolidate to avoid maintaining two
+  separate Ralph implementations.
 
 - [ ] **Streaming progress**: WebSocket-based real-time progress
   streaming for dashboard integrations (beyond REST polling).
@@ -608,39 +882,59 @@ N_WT>3 on constrained environments.
 
 ### Deferred
 
-- [ ] **Intra-story teams**: Multiple agents on single story. Requires
-  shared-file coordination and merge conflict handling. Deferred until
-  inter-story mode validated.
+- [ ] **Intra-story teams**: Multiple agents on one story (e.g., test
+  writer + implementer). Requires shared-file coordination, merge
+  conflict handling, and split TDD ownership. Deferred until inter-story
+  mode is validated.
 
 - [ ] **Git worktrees for teams isolation**: True filesystem isolation
-  eliminates cross-contamination. Each story in wave gets own worktree;
-  merge at boundaries. Deferred until scoped checks + wave checkpoints
-  validated.
+  eliminates all cross-contamination (`__pycache__`, ruff/test
+  cross-pollution). Each story in a wave gets its own `git worktree`.
+  Merge at wave boundaries via `git merge --squash`. Deferred until
+  scoped checks + wave checkpoints are validated.
 
-- [ ] **Automated impact-scope analysis**: Post-story function detecting
-  renamed identifiers and scanning tests for out-of-scope consumers.
-  Currently handled via prompt. Automate if incident recurs.
+- [ ] **Automated impact-scope analysis**: Post-story function that
+  diffs removed identifiers in `src/`, filters to renamed-only (removed
+  but not re-added), and greps `tests/` for out-of-scope consumers.
+  Currently handled by the agent via prompt instruction. Automate if a
+  second incident occurs where the prompt instruction is insufficient.
 
 - [ ] **Inline snapshot drift detection**: Run
-  `uv run pytest --inline-snapshot=review` after clean passes. Deferred
-  until output format stability confirmed.
+  `uv run pytest --inline-snapshot=review` after clean test passes to
+  surface stale snapshots. Deferred until `--inline-snapshot=review`
+  output format is confirmed stable for non-interactive use. Snapshot
+  mismatches already show up as normal test failures.
 
-- [ ] **Cross-directory test warning**: Flag modules with tests in
-  multiple directories. Structural fix (consolidating dirs) preferred.
-  Deferred as YAGNI.
+- [ ] **Cross-directory test warning**: Flag when a source module has
+  tests in multiple directories (e.g., `tests/gui/` and
+  `tests/test_gui/`). Symptom of poor test directory hygiene —
+  consolidating test dirs (above) is the structural fix. Deferred as
+  YAGNI.
 
-### Completed
+### Done
 
-- [x] **Intermediate progress visibility** — Monitor tails agent log at
-  30s intervals with `[CC]` prefix.
-  - [x] **CC monitor log nesting** — Tracks byte offset, reads only new
-    content via tail, prevents duplication.
-- [x] **Agent Teams inter-story** — Appends unblocked stories; filters
-  commits by story ID to prevent false positives.
-- [x] **Scoped reset on validation failure** — Snapshot untracked files;
-  remove only story-created files on TDD failure.
-- [x] **Deduplicate log levels** — Strip leading log level prefixes
-  before wrapping with monitor output.
+- [x] **Intermediate progress visibility** — Monitor now tails agent log
+  output at 30s intervals with `[CC]` (magenta) prefix for agent
+  activity and red for agent errors, alongside existing phase detection
+  from git log.
+  - [x] **CC monitor log nesting** — `monitor_story_progress` now
+    tracks byte offset (`wc -c`) between 30s cycles and reads only new
+    log content via `tail -c +$offset`, preventing
+    `[CC] [INFO] [CC] [INFO] ...` nesting chains.
+- [x] **Agent Teams inter-story** — `ralph.sh` appends unblocked
+  independent stories to the prompt; `check_tdd_commits` filters by
+  story ID in teams mode to prevent cross-story marker false positives.
+  Completed stories caught by existing `detect_already_complete` path.
+- [x] **Scoped reset on validation failure** — Untracked files are
+  snapshot before story execution; on TDD failure, only story-created
+  files are removed. Additionally, quality-failure retries skip TDD
+  verification entirely (prior RED+GREEN already verified), and
+  `check_tdd_commits` has a fallback that detects `refactor(` prefix
+  when `[REFACTOR]` bracket marker is missing.
+- [x] **Deduplicate log levels** — `monitor_story_progress` strips
+  leading `[INFO]`/`[WARN]`/`[ERROR]` prefix from CC agent output
+  before wrapping with `log_cc*`, preventing
+  `[INFO] ... [CC] [INFO]` duplication.
 
 ## Troubleshooting
 
