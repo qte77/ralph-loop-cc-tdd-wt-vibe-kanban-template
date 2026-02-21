@@ -199,6 +199,7 @@ make_executable() {
     chmod +x ralph/scripts/vibe.sh
     chmod +x ralph/scripts/lib/stop_ralph_processes.sh
     chmod +x ralph/scripts/lib/cleanup_worktrees.sh
+    chmod +x ralph/scripts/reorganize_prd.sh
     log_success "Scripts are executable"
 }
 

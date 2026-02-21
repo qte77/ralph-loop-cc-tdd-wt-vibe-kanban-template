@@ -173,6 +173,31 @@ if [ -d "$SRC_BASE_DIR/$TEMPLATE_PACKAGE_NAME" ]; then
 	mv "$SRC_BASE_DIR/$TEMPLATE_PACKAGE_NAME" "$SRC_BASE_DIR/$APP_NAME"
 fi
 
+# Copy project templates if they exist and targets still have placeholders
+PROJECT_TPL_DIR="$RALPH_TEMPLATES_DIR/project"
+if [ -d "$PROJECT_TPL_DIR" ]; then
+	# README.template.md → README.md (only if still has template placeholder)
+	if [ -f "$PROJECT_TPL_DIR/README.template.md" ] && grep -q '\[PROJECT-NAME\]' README.md 2>/dev/null; then
+		cp "$PROJECT_TPL_DIR/README.template.md" README.md
+		sed -i "s|\[PROJECT-NAME\]|$(escape_sed "$PROJECT")|g" README.md
+		sed -i "s|\[PROJECT-DESCRIPTION\]|$(escape_sed "$DESCRIPTION")|g" README.md
+		sed -i "s|\[GITHUB-REPO\]|$(escape_sed "$GITHUB_REPO")|g" README.md
+	fi
+	# CHANGELOG.template.md → CHANGELOG.md (only if not already customized)
+	if [ -f "$PROJECT_TPL_DIR/CHANGELOG.template.md" ] && [ ! -f "CHANGELOG.md" ]; then
+		cp "$PROJECT_TPL_DIR/CHANGELOG.template.md" CHANGELOG.md
+	fi
+	# pyproject.template.toml → pyproject.toml (only if still has placeholder)
+	if [ -f "$PROJECT_TPL_DIR/pyproject.template.toml" ] && grep -q '\[PROJECT-NAME\]' pyproject.toml 2>/dev/null; then
+		cp "$PROJECT_TPL_DIR/pyproject.template.toml" pyproject.toml
+		sed -i "s|\[PROJECT-NAME\]|$(escape_sed "$PROJECT")|g" pyproject.toml
+		sed -i "s|\[PROJECT-DESCRIPTION\]|$(escape_sed "$DESCRIPTION")|g" pyproject.toml
+		sed -i "s|\[APP-NAME\]|$(escape_sed "$APP_NAME")|g" pyproject.toml
+		sed -i "s|\[PYTHON-VERSION\]|$(escape_sed "$PYTHON_VERSION")|g" pyproject.toml
+		sed -i "s|\[PYTHON-VERSION-SHORT\]|$(escape_sed "$PYTHON_VERSION_SHORT")|g" pyproject.toml
+	fi
+fi
+
 # Verify replacements
 REMAINING=$(grep -r "YOUR-ORG\|your_project_name\|Python Ralph-Loop Template\|\[PROJECT NAME\]\|\[YEAR\]\|\[YOUR NAME\|\[PROJECT DESCRIPTION\]\|\[GITHUB REPO\]\|\[PYTHON VERSION\]\|\[APP NAME\]" . --exclude-dir=.git --exclude="TEMPLATE_USAGE.md" --exclude="Makefile" --exclude-dir="$RALPH_TEMPLATES_DIR" 2>/dev/null | wc -l)
 if [ $REMAINING -gt 0 ]; then
