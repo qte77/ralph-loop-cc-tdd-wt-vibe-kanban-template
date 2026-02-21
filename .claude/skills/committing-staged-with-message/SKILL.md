@@ -1,12 +1,14 @@
 ---
-title: Commit all changes with a generated Message
-name: commit-with-message
-description: Generate commit message, pause for approval, then commit all changes. This slash command automates the commit workflow while giving you control over the commit message.
-argument-hint: (no arguments needed)
-tools: Bash, Read, Glob, Grep, MultiEdit
+name: committing-staged-with-message
+description: Generate commit message for staged changes, pause for approval, then commit. Stage files first with `git add`, then run this skill.
+compatibility: Designed for Claude Code
+metadata:
+  model: haiku
+  argument-hint: (no arguments needed)
+  allowed-tools: Bash, Read, Glob, Grep
 ---
 
-I'll commit all changes with a generated message following these steps:
+# Commit Staged Changes with Generated Message
 
 ## Step 1: Analyze Changes
 

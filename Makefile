@@ -6,7 +6,7 @@
 
 .SILENT:
 .ONESHELL:
-.PHONY: setup_dev setup_claude_code setup_markdownlint setup_sandbox setup_project run_markdownlint ruff complexity duplication lint_md test_all test_quick test_coverage test_e2e type_check validate validate_quick quick_validate docs_serve docs_build ralph_validate_json ralph_create_userstory_md ralph_create_prd_md ralph_init_loop ralph_run ralph_status ralph_clean ralph_archive ralph_abort ralph_watch ralph_get_log vibe_start vibe_stop_all vibe_status vibe_cleanup help
+.PHONY: setup_dev setup_claude_code setup_markdownlint setup_sandbox setup_agent_docs setup_project run_markdownlint ruff complexity duplication lint_md test_all test_quick test_coverage test_e2e type_check validate validate_quick quick_validate docs_serve docs_build ralph_validate_json ralph_create_userstory_md ralph_create_prd_md ralph_init_loop ralph_run ralph_status ralph_clean ralph_archive ralph_abort ralph_watch ralph_get_log vibe_start vibe_stop_all vibe_status vibe_cleanup help
 .DEFAULT_GOAL := help
 
 
@@ -35,6 +35,10 @@ setup_sandbox:  ## Setup isolation tools (jscpd for copy-paste detection)
 	echo "Setting up sandbox tools ..."
 	npm install -gs jscpd
 	echo "jscpd version: $$(jscpd --version)"
+
+setup_agent_docs:  ## Create root-level symlinks for AGENT_LEARNINGS.md and AGENT_REQUESTS.md
+	[ -e AGENT_LEARNINGS.md ] || ln -s ralph/docs/LEARNINGS.md AGENT_LEARNINGS.md
+	[ -e AGENT_REQUESTS.md ] || ln -s ralph/docs/REQUESTS.md AGENT_REQUESTS.md
 
 setup_project:  ## Customize template with your project details. Run with help: bash scripts/setup_project.sh help
 	bash scripts/setup_project.sh || { echo ""; echo "ERROR: Project setup failed. Please check the error messages above."; exit 1; }
@@ -136,7 +140,7 @@ ralph_create_prd_md:  ## [Optional] Generate PRD.md from UserStory.md. No params
 
 ralph_init_loop:  ## Initialize Ralph loop environment. No params.
 	echo "Initializing Ralph loop environment ..."
-	claude -p '/generate-prd-json-from-md'
+	claude -p '/generating-prd-json-from-prd-md'
 	bash ralph/scripts/init.sh
 	$(MAKE) -s ralph_validate_json
 

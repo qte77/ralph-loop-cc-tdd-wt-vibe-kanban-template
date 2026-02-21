@@ -77,7 +77,7 @@ Human Workflow (Assisted - Optional):
   make ralph_create_userstory_md → make ralph_create_prd_md → make ralph_init_loop → make ralph
 
 Agent Workflow:
-  PRD.md → prd.json (generate-prd-json-from-md command) → Ralph Loop → src/ + tests/
+  PRD.md → prd.json (generating-prd-json-from-prd-md skill) → Ralph Loop → src/ + tests/
   Uses: .claude/skills/, .claude/rules/
 
 Mandatory for Both:

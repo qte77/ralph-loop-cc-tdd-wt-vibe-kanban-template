@@ -130,7 +130,7 @@ validate_environment() {
 
     if [ ! -f "$PRD_JSON" ]; then
         log_error "prd.json not found at $PRD_JSON"
-        log_info "Run 'claude -p /generate-prd-json-from-md' or 'make ralph_init_loop'"
+        log_info "Run 'claude -p /generating-prd-json-from-prd-md' or 'make ralph_init_loop'"
         exit 1
     fi
 
