@@ -6,7 +6,7 @@
 
 .SILENT:
 .ONESHELL:
-.PHONY: setup_dev setup_claude_code setup_markdownlint setup_project run_markdownlint ruff test_all test_quick test_coverage test_e2e type_check validate validate_quick quick_validate ralph_validate_json ralph_create_userstory_md ralph_create_prd_md ralph_init_loop ralph_run ralph_status ralph_clean ralph_archive ralph_abort ralph_watch ralph_get_log vibe_start vibe_stop_all vibe_status vibe_cleanup help
+.PHONY: setup_dev setup_claude_code setup_markdownlint setup_sandbox setup_project run_markdownlint ruff complexity duplication lint_md test_all test_quick test_coverage test_e2e type_check validate validate_quick quick_validate docs_serve docs_build ralph_validate_json ralph_create_userstory_md ralph_create_prd_md ralph_init_loop ralph_run ralph_status ralph_clean ralph_archive ralph_abort ralph_watch ralph_get_log vibe_start vibe_stop_all vibe_status vibe_cleanup help
 .DEFAULT_GOAL := help
 
 
@@ -30,6 +30,11 @@ setup_markdownlint:  ## Setup markdownlint CLI, node.js and npm have to be prese
 	echo "Setting up markdownlint CLI ..."
 	npm install -gs markdownlint-cli
 	echo "markdownlint version: $$(markdownlint --version)"
+
+setup_sandbox:  ## Setup isolation tools (jscpd for copy-paste detection)
+	echo "Setting up sandbox tools ..."
+	npm install -gs jscpd
+	echo "jscpd version: $$(jscpd --version)"
 
 setup_project:  ## Customize template with your project details. Run with help: bash scripts/setup_project.sh help
 	bash scripts/setup_project.sh || { echo ""; echo "ERROR: Project setup failed. Please check the error messages above."; exit 1; }
@@ -55,6 +60,12 @@ ruff:  ## Lint: Format and check with ruff
 
 complexity:  ## Check cognitive complexity with complexipy
 	uv run complexipy
+
+duplication:  ## Check for code duplication with jscpd
+	jscpd src/ --reporters console --format python
+
+lint_md:  ## Lint markdown files - Usage: make lint_md FILES="docs/**/*.md"
+	markdownlint $${FILES:-"*.md"} --fix
 
 test_all:  ## Run all tests (excludes E2E tests by default)
 	uv run pytest
@@ -98,6 +109,16 @@ quick_validate:  ## Fast development cycle validation
 	-$(MAKE) -s type_check
 	-$(MAKE) -s complexity
 	echo "Quick validation completed (check output for any failures)"
+
+
+# MARK: docs
+
+
+docs_serve:  ## Serve MkDocs documentation locally
+	uv run mkdocs serve
+
+docs_build:  ## Build MkDocs documentation
+	uv run mkdocs build
 
 
 # MARK: ralph
