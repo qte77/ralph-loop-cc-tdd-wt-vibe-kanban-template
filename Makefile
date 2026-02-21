@@ -6,33 +6,38 @@
 
 .SILENT:
 .ONESHELL:
-.PHONY: setup_dev setup_claude_code setup_markdownlint setup_project run_markdownlint ruff test_all test_quick test_coverage test_e2e type_check validate validate_quick quick_validate ralph_validate_json ralph_create_userstory_md ralph_create_prd_md ralph_init_loop ralph_run ralph_status ralph_clean ralph_archive ralph_abort ralph_watch ralph_get_log vibe_start vibe_stop_all vibe_status vibe_cleanup help
+.PHONY: setup_dev setup_claude_code setup_npm_tools setup_lychee setup_project run_markdownlint ruff complexity duplication lint_md lint_hardcoded_paths lint_links test_all test_quick test_coverage test_e2e type_check validate validate_quick quick_validate docs_serve docs_build ralph_validate_json ralph_create_userstory_md ralph_create_prd_md ralph_init_loop ralph_run ralph_run_worktree ralph_init_and_run ralph_reorganize_prd ralph_status ralph_stop ralph_clean ralph_archive ralph_watch ralph_get_log vibe_start vibe_stop_all vibe_status vibe_cleanup help
 .DEFAULT_GOAL := help
 
 
 # MARK: setup
 
 
-setup_dev:  ## Install uv and deps, Download and start Ollama 
+setup_dev:  ## Install uv and deps, npm tools, lychee
 	echo "Setting up dev environment ..."
 	pip install uv -q
 	uv sync --all-groups
 	echo "npm version: $$(npm --version)"
 	$(MAKE) -s setup_claude_code
-	$(MAKE) -s setup_markdownlint
+	$(MAKE) -s setup_npm_tools
+	$(MAKE) -s setup_lychee
 
 setup_claude_code:  ## Setup claude code CLI, node.js and npm have to be present
 	echo "Setting up Claude Code CLI ..."
 	npm install -gs @anthropic-ai/claude-code
 	echo "Claude Code CLI version: $$(claude --version)"
 
-setup_markdownlint:  ## Setup markdownlint CLI, node.js and npm have to be present
-	echo "Setting up markdownlint CLI ..."
-	npm install -gs markdownlint-cli
-	echo "markdownlint version: $$(markdownlint --version)"
+setup_npm_tools:  ## Setup npm-based dev tools (markdownlint, jscpd)
+	echo "Setting up npm tools ..."
+	npm install -gs markdownlint-cli jscpd
+	echo "markdownlint: $$(markdownlint --version), jscpd: $$(jscpd --version)"
 
-setup_project:  ## Customize template with your project details. Run with help: bash scripts/setup_project.sh help
-	bash scripts/setup_project.sh || { echo ""; echo "ERROR: Project setup failed. Please check the error messages above."; exit 1; }
+setup_lychee:  ## Install lychee link checker (Rust binary, requires sudo)
+	curl -sL https://github.com/lycheeverse/lychee/releases/latest/download/lychee-x86_64-unknown-linux-gnu.tar.gz | sudo tar xz -C /usr/local/bin lychee
+	echo "lychee version: $$(lychee --version)"
+
+setup_project:  ## Customize template with your project details. Run with help: bash ralph/scripts/setup_project.sh help
+	bash ralph/scripts/setup_project.sh || { echo ""; echo "ERROR: Project setup failed. Please check the error messages above."; exit 1; }
 
 
 # MARK: run markdownlint
@@ -55,6 +60,27 @@ ruff:  ## Lint: Format and check with ruff
 
 complexity:  ## Check cognitive complexity with complexipy
 	uv run complexipy
+
+duplication:  ## Check for code duplication with jscpd
+	jscpd src/ --reporters console --format python
+
+lint_md:  ## Lint markdown files - Usage: make lint_md FILES="docs/**/*.md"
+	markdownlint $${FILES:-"*.md"} --fix
+
+lint_hardcoded_paths:  ## GHA safety: check for /workspaces/ in test files
+	echo "Checking for hardcoded /workspaces/ paths in tests..."
+	if grep -rn --include='*.py' '/workspaces/' tests/ 2>/dev/null; then
+		echo "ERROR: Found hardcoded /workspaces/ paths in tests (breaks GHA)"
+		exit 1
+	fi
+	echo "No hardcoded paths found"
+
+lint_links:  ## Check for broken links with lychee. Usage: make lint_links [INPUT_FILES="docs/**/*.md"]
+	if command -v lychee > /dev/null 2>&1; then \
+		lychee $(or $(INPUT_FILES),.); \
+	else \
+		echo "lychee not installed — skipping link check (run 'make setup_lychee' to install)"; \
+	fi
 
 test_all:  ## Run all tests (excludes E2E tests by default)
 	uv run pytest
@@ -97,7 +123,18 @@ quick_validate:  ## Fast development cycle validation
 	$(MAKE) -s ruff
 	-$(MAKE) -s type_check
 	-$(MAKE) -s complexity
+	-$(MAKE) -s lint_hardcoded_paths
 	echo "Quick validation completed (check output for any failures)"
+
+
+# MARK: docs
+
+
+docs_serve:  ## Serve MkDocs documentation locally
+	uv run mkdocs serve
+
+docs_build:  ## Build MkDocs documentation
+	uv run mkdocs build
 
 
 # MARK: ralph
@@ -107,15 +144,15 @@ ralph_validate_json:  ## Internal: Validate prd.json syntax
 
 ralph_create_userstory_md:  ## [Optional] Create UserStory.md interactively. No params.
 	echo "Creating UserStory.md through interactive Q&A ..."
-	claude -p '/build-userstory'
+	claude -p '/generating-interactive-userstory-md'
 
 ralph_create_prd_md:  ## [Optional] Generate PRD.md from UserStory.md. No params.
 	echo "Generating PRD.md from UserStory.md ..."
-	claude -p '/generate-prd-md-from-userstory'
+	claude -p '/generating-prd-md-from-userstory-md'
 
 ralph_init_loop:  ## Initialize Ralph loop environment. No params.
 	echo "Initializing Ralph loop environment ..."
-	claude -p '/generate-prd-json-from-md'
+	claude -p '/generating-prd-json-from-prd-md'
 	bash ralph/scripts/init.sh
 	$(MAKE) -s ralph_validate_json
 
@@ -128,12 +165,18 @@ ralph_run:  ## Run Ralph loop - Usage: make ralph_run [N_WT=<N>] [ITERATIONS=<N>
 	RALPH_JUDGE_MAX_WT=$${RALPH_JUDGE_MAX_WT:-} \
 	RALPH_SECURITY_REVIEW=$${RALPH_SECURITY_REVIEW:-} \
 	RALPH_MERGE_INTERACTIVE=$${RALPH_MERGE_INTERACTIVE:-} \
-	bash ralph/scripts/parallel_ralph.sh "$${N_WT}" "$${ITERATIONS}"
+	env -u VIRTUAL_ENV bash ralph/scripts/parallel_ralph.sh "$${N_WT}" "$${ITERATIONS}"
+
+ralph_run_worktree:  ## Create worktree for a Ralph branch. Usage: make ralph_run_worktree BRANCH=ralph/sprint-name
+	env -u VIRTUAL_ENV bash ralph/scripts/ralph-in-worktree.sh "$${BRANCH}"
 
 ralph_init_and_run:  ## Initialize and run Ralph loop in one command. Usage: make ralph_init_and_run [N_WT=<N>] [ITERATIONS=<N>] [DEBUG=1] [RALPH_JUDGE_ENABLED=true] [RALPH_SECURITY_REVIEW=true] [RALPH_MERGE_INTERACTIVE=true]
 	$(MAKE) -s ralph_init_loop
 	$(MAKE) -s ralph_run N_WT=$${N_WT:-} ITERATIONS=$${ITERATIONS:-} DEBUG=$${DEBUG:-} RALPH_JUDGE_ENABLED=$${RALPH_JUDGE_ENABLED:-} RALPH_SECURITY_REVIEW=$${RALPH_SECURITY_REVIEW:-} RALPH_MERGE_INTERACTIVE=$${RALPH_MERGE_INTERACTIVE:-}
 
+
+ralph_reorganize_prd:  ## Archive current PRD and activate new one. Usage: make ralph_reorganize_prd NEW_PRD=docs/PRD-v2.md [VERSION=2]
+	bash ralph/scripts/reorganize_prd.sh $${VERSION:+-v $${VERSION}} "$${NEW_PRD}"
 
 ralph_status:  ## Show Ralph loop progress
 	bash ralph/scripts/parallel_ralph.sh status
@@ -174,14 +217,16 @@ vibe_cleanup:  ## Remove all tasks from Vibe Kanban
 
 
 help:  ## Displays this message with available recipes
-	# TODO add stackoverflow source
 	echo "Usage: make [recipe]"
-	echo "Recipes:"
-	awk '/^[a-zA-Z0-9_-]+:.*?##/ {
-		helpMessage = match($$0, /## (.*)/)
-		if (helpMessage) {
-			recipe = $$1
-			sub(/:/, "", recipe)
-			printf "  \033[36m%-20s\033[0m %s\n", recipe, substr($$0, RSTART + 3, RLENGTH)
-		}
+	echo ""
+	awk '/^# MARK:/ { \
+		printf "\n\033[1;33m%s\033[0m\n", substr($$0, index($$0, ":")+2) \
+	} \
+	/^[a-zA-Z0-9_-]+:.*?##/ { \
+		helpMessage = match($$0, /## (.*)/) ; \
+		if (helpMessage) { \
+			recipe = $$1 ; \
+			sub(/:/, "", recipe) ; \
+			printf "  \033[36m%-24s\033[0m %s\n", recipe, substr($$0, RSTART + 3, RLENGTH) \
+		} \
 	}' $(MAKEFILE_LIST)

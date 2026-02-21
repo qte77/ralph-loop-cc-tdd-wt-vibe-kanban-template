@@ -4,7 +4,7 @@
 
 # Source dependencies
 _LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$_LIB_DIR/colors.sh"
+source "$_LIB_DIR/common.sh"
 
 # Evaluate worktrees using Claude-as-Judge
 # Args: $1=run_id, $2=n_wt

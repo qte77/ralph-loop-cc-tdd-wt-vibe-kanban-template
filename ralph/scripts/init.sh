@@ -11,7 +11,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source libraries
-source "$SCRIPT_DIR/lib/colors.sh"
+source "$SCRIPT_DIR/lib/common.sh"
 source "$SCRIPT_DIR/lib/config.sh"
 source "$SCRIPT_DIR/lib/validate_json.sh"
 
@@ -70,9 +70,8 @@ check_project_structure() {
     local required_files=(
         "AGENTS.md"
         "CONTRIBUTING.md"
-        "docs/PRD.md"
         "Makefile"
-        ".claude/commands/generate-prd-json-from-md.md"
+        ".claude/skills/generating-prd-json-from-prd-md/SKILL.md"
         "ralph/scripts/ralph.sh"
         "$RALPH_PROMPT_FILE"
     )
@@ -117,7 +116,7 @@ initialize_progress() {
 # Ralph Loop Progress Log
 
 Started: $(date)
-Project: agents-eval-ralph-cc-tdd
+Project: [PROJECT NAME]
 
 This file tracks the progress of Ralph loop autonomous execution.
 Each iteration appends its results here.
@@ -129,6 +128,44 @@ EOF
         fi
     else
         log_info "progress.txt already exists"
+    fi
+}
+
+# Initialize docs/PRD.md from template if it doesn't exist
+initialize_prd_md() {
+    local prd_md="docs/PRD.md"
+    local prd_md_template="$RALPH_TEMPLATES_DIR/prd.md.template"
+
+    if [ ! -f "$prd_md" ]; then
+        if [ -f "$prd_md_template" ]; then
+            log_info "Initializing PRD.md from template..."
+            mkdir -p "$(dirname "$prd_md")"
+            cp "$prd_md_template" "$prd_md"
+            log_success "docs/PRD.md initialized from template"
+        else
+            log_warn "PRD template not found: $prd_md_template"
+        fi
+    else
+        log_info "docs/PRD.md already exists"
+    fi
+}
+
+# Initialize docs/UserStory.md from template if it doesn't exist
+initialize_userstory_md() {
+    local userstory_md="docs/UserStory.md"
+    local userstory_template="$RALPH_TEMPLATES_DIR/userstory.md.template"
+
+    if [ ! -f "$userstory_md" ]; then
+        if [ -f "$userstory_template" ]; then
+            log_info "Initializing UserStory.md from template..."
+            mkdir -p "$(dirname "$userstory_md")"
+            cp "$userstory_template" "$userstory_md"
+            log_success "docs/UserStory.md initialized from template"
+        else
+            log_warn "UserStory template not found: $userstory_template"
+        fi
+    else
+        log_info "docs/UserStory.md already exists"
     fi
 }
 
@@ -170,7 +207,7 @@ check_prd_json() {
 
         log_info ""
         log_info "To populate prd.json with real stories, run:"
-        log_info "  claude -p '/generate-prd-json-from-md'"
+        log_info "  claude -p '/generating-prd-json-from-prd-md'"
         log_info ""
         return 1
     else
@@ -179,7 +216,7 @@ check_prd_json() {
         # Validate JSON format
         if validate_prd_json "$RALPH_PRD_JSON"; then
             local total=$(jq '.stories | length' "$RALPH_PRD_JSON")
-            local passing=$(jq '[.stories[] | select(.passes == true)] | length' "$RALPH_PRD_JSON")
+            local passing=$(jq '[.stories[] | select(.status == "passed")] | length' "$RALPH_PRD_JSON")
             log_info "Status: $passing/$total stories completed"
         else
             return 1
@@ -199,14 +236,20 @@ make_executable() {
     chmod +x ralph/scripts/vibe.sh
     chmod +x ralph/scripts/lib/stop_ralph_processes.sh
     chmod +x ralph/scripts/lib/cleanup_worktrees.sh
+    chmod +x ralph/scripts/reorganize_prd.sh
+    chmod +x ralph/scripts/ralph-in-worktree.sh 2>/dev/null || true
+    chmod +x ralph/scripts/generate_prd_json.py 2>/dev/null || true
     log_success "Scripts are executable"
 }
+
 
 # Main
 main() {
     check_prerequisites
     check_project_structure
     create_state_dirs
+    initialize_prd_md
+    initialize_userstory_md
     initialize_progress
     initialize_vibe_config
     make_executable

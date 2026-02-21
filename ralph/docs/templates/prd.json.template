@@ -1,20 +1,21 @@
 {
   "project": "[PROJECT NAME]",
-  "desciption": "A concise project desctipion",
+  "description": "A concise project description",
   "source": "docs/PRD.md",
   "generated": "TEMPLATE",
   "stories": [
     {
       "id": "STORY-EXAMPLE",
       "title": "Example story - replace with real stories",
-      "description": "This is a placeholder. Use /generate-prd-json-from-md command to populate from PRD.md",
+      "description": "This is a placeholder. Use /generating-prd-json-from-prd-md command to populate from PRD.md",
       "depends_on": [],
       "acceptance": [
-        "Run: claude -p '/generate-prd-json-from-md' or make ralph_init_loop",
+        "Run: claude -p '/generating-prd-json-from-prd-md' or make ralph_init_loop",
         "Command will parse PRD.md and populate real stories here"
       ],
       "files": ["ralph/docs/prd.json"],
-      "passes": false,
+      "status": "pending",
+      "wave": null,
       "completed_at": null
     }
   ]

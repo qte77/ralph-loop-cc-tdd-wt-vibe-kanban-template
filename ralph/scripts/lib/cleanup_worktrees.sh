@@ -7,7 +7,7 @@ _LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source dependencies if not already loaded
 if ! command -v log_info &> /dev/null; then
-    source "$_LIB_DIR/colors.sh"
+    source "$_LIB_DIR/common.sh"
 fi
 
 if [ -z "${RALPH_PARALLEL_WORKTREE_PREFIX:-}" ]; then
@@ -26,8 +26,8 @@ cleanup_worktrees() {
         echo "$worktree_list" | awk '{print $1}' | while read worktree_path; do
             # Extract worktree number from path
             # Format: ${PREFIX}-${RUN_ID} (N_WT=1) or ${PREFIX}-${RUN_ID}-${NUM} (N_WT>1)
-            # Examples: ../agenteval-ralph-wt-41adf4 → 1
-            #           ../agenteval-ralph-wt-41adf4-2 → 2
+            # Examples: ../your_project_name-ralph-wt-41adf4 → 1
+            #           ../your_project_name-ralph-wt-41adf4-2 → 2
             local basename_wt=$(basename "$worktree_path")
             local wt_num
 

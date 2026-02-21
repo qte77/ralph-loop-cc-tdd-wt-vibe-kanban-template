@@ -14,12 +14,11 @@ Ralph loop infrastructure:
 - Scripts: ralph/scripts/ (ralph.sh, init.sh, archive.sh, abort.sh, clean.sh)
 - Templates: ralph/docs/templates/ (prd.json.template, progress.txt.template)
 - State files: ralph/docs/ (prd.json, progress.txt)
-- Skills: .claude/skills/ (designing-backend, implementing-python, reviewing-code)
-- Commands: .claude/commands/ (generate-prd-json-from-md, commit-with-message, build-userstory, generate-prd-md-from-userstory)
+- Skills: .claude/skills/ (designing-backend, implementing-python, reviewing-code, generating-prd-json-from-prd-md, committing-staged-with-message)
 
 Next steps:
 1. Run `make ralph_init_loop` to validate environment
-2. Generate real prd.json: `claude -p '/generate-prd-json-from-md'` or via `make ralph_init_loop`
+2. Generate real prd.json: `claude -p '/generating-prd-json-from-prd-md'` or via `make ralph_init_loop`
 3. Execute Ralph loop: `make ralph_run ITERATIONS=5`
 
 ---

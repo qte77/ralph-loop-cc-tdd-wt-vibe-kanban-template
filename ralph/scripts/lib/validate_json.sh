@@ -10,7 +10,7 @@ fi
 
 # Source colors for logging (if not already sourced)
 if ! command -v log_error &> /dev/null; then
-    source "$RALPH_LIB_DIR/colors.sh"
+    source "$RALPH_LIB_DIR/common.sh"
 fi
 
 # Validate prd.json file exists and contains valid JSON

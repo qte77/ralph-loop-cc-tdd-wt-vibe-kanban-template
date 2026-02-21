@@ -130,7 +130,7 @@ curl -s http://127.0.0.1:5173/api/projects
   "data": [
     {
       "id": "bc74b558-e1e1-4f20-91e2-c6fd33bb969f",
-      "name": "agents-eval-ralph-cc-tdd",
+      "name": "your-project-name",
       "default_agent_working_dir": "",
       "remote_project_id": null,
       "created_at": "2026-01-22T13:50:36.549Z",
@@ -285,13 +285,14 @@ All status transitions verified working via direct API testing:
 
 - ✓ `todo` → `inprogress` → `inreview` → `done` → `cancelled` → `todo`
 
+<!-- TODO: Verify if these issues still exist with vibe-kanban v0.1.17+ -->
 **Known Issues:**
 
 1. **All tasks moved to cancelled**: During Ralph runs, all tasks end up
    in `cancelled` status regardless of pass/fail. Completed stories
-   (e.g., STORY-000, STORY-001 with `.passes: true`) remain in `todo` or
+   (e.g., STORY-000, STORY-001 with `.status: "passed"`) remain in `todo` or
    move to `cancelled` instead of `done`.
-2. **Already-passing stories not synced**: Stories with `.passes: true`
+2. **Already-passing stories not synced**: Stories with `.status: "passed"`
    in prd.json are not synced to Vibe at Ralph startup.
 3. **Tracking fields not persisting**: `executor`, `has_in_progress_attempt`,
    `last_attempt_failed` return as defaults in API responses despite being

@@ -1,0 +1,30 @@
+# Lychee link checker configuration
+# Used by .github/workflows/links-fail-fast.yaml and make lint_links
+# https://lychee.cli.rs/usage/config/
+
+# Accept common "soft failure" status codes from bot-protected sites
+accept = [200, 204, 301, 403, 401, 429]
+
+# Skip paths not relevant to link checking
+exclude_path = [
+  ".venv",
+  ".github/workflows",
+  "ralph/scripts",
+  "ralph/docs/templates",  # template files with placeholder links
+]
+
+# Exclude URLs that commonly fail in CI
+exclude = [
+  "^https?://localhost",
+  "^https?://127\\.0\\.0\\.1",
+  "^https?://0\\.0\\.0\\.0",
+  # Template placeholder URLs (not real until project is customized)
+  "YOUR-ORG",
+  "YOUR-PROJECT-NAME",
+  "\\[GITHUB-REPO\\]",
+  "codefactor\\.io/repository/github/\\[",
+  # pkg.go.dev sometimes blocks CI
+  "^https?://pkg\\.go\\.dev",
+  # SECURITY.md relative advisory link (GitHub renders this correctly)
+  "^file:///security/advisories",
+]

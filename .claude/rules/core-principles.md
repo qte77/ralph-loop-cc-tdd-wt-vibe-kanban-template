@@ -25,9 +25,11 @@ speculative features.
 
 **Prevent Incoherence** - Spot inconsistencies. Validate against existing patterns.
 
+**Resolve Ambiguity** - Clarify vague requirements before acting.
+
 ## Decision Principles
 
-**Rigor and Sufficiency** - Research thoroughly. Decide with evidence.
+**Rigor and Sufficiency** - Research enough to decide confidently. No more, no less.
 
 **High-Impact Quick Wins** - Prioritize must-do tasks. Ship fast, iterate.
 
@@ -49,7 +51,7 @@ speculative features.
 Before finishing, ask yourself:
 
 - **Did we forget anything?** - Check requirements thoroughly
-- **Beneficial enhancements or quick wins?** - Identify opportunities
+- **High-ROI enhancements?** - Suggest opportunities (don't implement)
 - **Something to delete?** - Remove obsolete/unnecessary code
 
 **IMPORTANT**: Do NOT alter files based on this review. Only output

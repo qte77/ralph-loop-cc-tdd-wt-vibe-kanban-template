@@ -43,8 +43,8 @@
 # - Higher score wins; N_WT=1 skips scoring overhead
 #
 # Worktree Naming:
-# - N_WT=1: ${PREFIX}-${RUN_ID}        (e.g., ../agenteval-ralph-wt-a3f5e2)
-# - N_WT>1: ${PREFIX}-${RUN_ID}-${NUM} (e.g., ../agenteval-ralph-wt-b9c4d1-1)
+# - N_WT=1: ${PREFIX}-${RUN_ID}        (e.g., ../your_project_name-ralph-wt-a3f5e2)
+# - N_WT>1: ${PREFIX}-${RUN_ID}-${NUM} (e.g., ../your_project_name-ralph-wt-b9c4d1-1)
 # - PREFIX: Dynamic, defaults to ../${SRC_PACKAGE_DIR}-ralph-wt (configurable)
 # - RUN_ID: Unique 6-char alphanumeric ID generated per run
 # - NUM: Worktree index (1 to N_WT)
@@ -57,7 +57,7 @@ set -eEuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source libraries
-source "$SCRIPT_DIR/lib/colors.sh"
+source "$SCRIPT_DIR/lib/common.sh"
 source "$SCRIPT_DIR/lib/config.sh"
 source "$SCRIPT_DIR/lib/validate_json.sh"
 source "$SCRIPT_DIR/lib/vibe.sh"
@@ -331,7 +331,7 @@ score_worktree() {
     fi
 
     # Base metrics
-    local stories_passed=$(jq '[.stories[] | select(.passes == true)] | length' "$prd_json" 2>/dev/null || echo 0)
+    local stories_passed=$(jq '[.stories[] | select(.status == "passed")] | length' "$prd_json" 2>/dev/null || echo 0)
     local total_stories=$(jq '.stories | length' "$prd_json" 2>/dev/null || echo 0)
     local test_count=$(find "$worktree_path" -name "test_*.py" -type f 2>/dev/null | wc -l)
 
@@ -434,7 +434,7 @@ merge_best() {
     local total_stories=0
 
     if [ -f "$prd_json" ]; then
-        stories_passed=$(jq '[.stories[] | select(.passes == true)] | length' "$prd_json" 2>/dev/null || echo 0)
+        stories_passed=$(jq '[.stories[] | select(.status == "passed")] | length' "$prd_json" 2>/dev/null || echo 0)
         total_stories=$(jq '.stories | length' "$prd_json" 2>/dev/null || echo 0)
     fi
 
@@ -540,7 +540,7 @@ show_all_status() {
 
         if [ -f "$prd_json" ]; then
             local total=$(jq '.stories | length' "$prd_json" 2>/dev/null || echo 0)
-            local passed=$(jq '[.stories[] | select(.passes == true)] | length' "$prd_json" 2>/dev/null || echo 0)
+            local passed=$(jq '[.stories[] | select(.status == "passed")] | length' "$prd_json" 2>/dev/null || echo 0)
             echo "Stories: $passed/$total passed"
         fi
 
@@ -718,7 +718,7 @@ main() {
                     existing_worktrees+=("$i")
                     resume_n_wt=$i
 
-                    # Extract run_id from worktree path (e.g., agenteval-ralph-wt-41adf4-1 → 41adf4)
+                    # Extract run_id from worktree path (e.g., your_project_name-ralph-wt-41adf4-1 → 41adf4)
                     if [ -z "$resume_run_id" ]; then
                         resume_run_id=$(basename "$old_wt" | grep -oP '(?<=-ralph-wt-)[a-z0-9]+(?=(-[0-9]+)?$)')
                     fi

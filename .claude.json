@@ -1,0 +1,10 @@
+{
+  "installMethod": "native",
+  "preferredNotifChannel": "terminal_bell",
+  "diffTool": "terminal",
+  "fileCheckpointingEnabled": true,
+  "terminalProgressBarEnabled": true,
+  "respectGitignore": true,
+  "theme": "dark",
+  "editorMode": "normal"
+}

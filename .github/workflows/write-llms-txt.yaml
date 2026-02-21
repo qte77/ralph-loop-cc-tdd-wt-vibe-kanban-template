@@ -1,0 +1,55 @@
+# Generate llms.txt - flattened repo text for LLM context
+# See: https://llmstxt.org/
+name: write-llms-txt
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      LLMS_TXT_PATH:
+        description: "Output directory"
+        required: false
+        default: "docs"
+      LLMS_TXT_NAME:
+        description: "Output filename"
+        required: false
+        default: "llms.txt"
+      CONVERTER_URL:
+        description: "Converter service"
+        required: false
+        default: "uithub.com"
+
+env:
+  LLMS_TXT_PATH: ${{ inputs.LLMS_TXT_PATH || 'docs' }}
+  LLMS_TXT_NAME: ${{ inputs.LLMS_TXT_NAME || 'llms.txt' }}
+  CONVERTER_URL: ${{ inputs.CONVERTER_URL || 'uithub.com' }}
+
+jobs:
+  write-llms-txt:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract branch name
+        run: echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+
+      - name: Generate llms.txt
+        run: |
+          mkdir -p "${{ env.LLMS_TXT_PATH }}"
+          LLMS_TXT_FILE="${{ env.LLMS_TXT_PATH }}/${{ env.LLMS_TXT_NAME }}"
+          REPO_NAME="${{ github.repository }}"
+          URL="https://${{ env.CONVERTER_URL }}/${REPO_NAME}/tree/${BRANCH}"
+          curl -sL "${URL}" -o "${LLMS_TXT_FILE}"
+          echo "Generated ${LLMS_TXT_FILE} from ${URL}"
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          LLMS_TXT_FILE="${{ env.LLMS_TXT_PATH }}/${{ env.LLMS_TXT_NAME }}"
+          git add "${LLMS_TXT_FILE}"
+          git diff --cached --quiet || git commit -m "docs: update ${LLMS_TXT_FILE} from ${CONVERTER_URL}"
+          git push

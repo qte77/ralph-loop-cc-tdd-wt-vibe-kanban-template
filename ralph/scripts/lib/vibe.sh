@@ -59,14 +59,14 @@ kanban_init() {
         while IFS= read -r story; do
             local id=$(echo "$story" | jq -r '.id')
             local title=$(echo "$story" | jq -r '.title')
-            local passes=$(echo "$story" | jq -r '.passes')
+            local story_status=$(echo "$story" | jq -r '.status')
 
             # Add [run_id] and [WTn] prefixes
             local task_title="[$run_id] [WT$wt] ${id}: $title"
 
-            # Set initial status based on .passes field (preserve already-completed stories)
+            # Set initial status based on .status field (preserve already-completed stories)
             local initial_status="todo"
-            if [ "$passes" == "true" ]; then
+            if [ "$story_status" == "passed" ]; then
                 initial_status="done"
             fi
 

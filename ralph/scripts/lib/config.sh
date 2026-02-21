@@ -20,7 +20,7 @@
 # Source package directory name (relative to src/)
 # Change this to adapt Ralph to different projects
 # This determines worktree prefix: ../${SRC_PACKAGE_DIR}-ralph-wt
-SRC_PACKAGE_DIR="agenteval"
+SRC_PACKAGE_DIR="your_project_name"
 
 # Base directory paths
 DOCS_BASE_DIR="docs"
@@ -29,7 +29,7 @@ TESTS_BASE_DIR="tests"
 
 # Archive configuration
 ARCHIVE_BASE_DIR="src_archive"
-ARCHIVE_PREFIX="agentseval_ralph_run"
+ARCHIVE_PREFIX="your_project_name_ralph_run"
 
 # =================================================
 # DERIVED DIRECTORY PATHS
@@ -109,8 +109,8 @@ RALPH_MERGE_INTERACTIVE=${RALPH_MERGE_INTERACTIVE:-false}
 RALPH_PRD_JSON="$RALPH_DOCS_DIR/prd.json"
 RALPH_PROGRESS_FILE="$RALPH_DOCS_DIR/progress.txt"
 RALPH_PROMPT_FILE="$RALPH_TEMPLATES_DIR/story.prompt.md"
-RALPH_LEARNINGS_FILE="$RALPH_DOCS_DIR/LEARNINGS.md"
-RALPH_REQUESTS_FILE="$RALPH_DOCS_DIR/REQUESTS.md"
+RALPH_LEARNINGS_FILE="ralph/LEARNINGS.md"
+RALPH_REQUESTS_FILE="ralph/REQUESTS.md"
 RALPH_METRICS_FILE="metrics.json"
 
 # =================================================

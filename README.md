@@ -1,19 +1,18 @@
-# agents-eval-ralph-cc-tdd
+# Python Ralph-Loop Template
 
-A Multi-Agent System (MAS) evaluation framework using PydanticAI that
-generates and evaluates scientific paper reviews through a three-tiered
-assessment approach: traditional metrics, LLM-as-a-Judge, and graph-based
-complexity analysis.
+> What a time to be alive
+
+Out-of-the-box Python project template using Ralph Loop autonomous development
 
 ![Version](https://img.shields.io/badge/version-0.0.0-58f4c2.svg)
 [![License](https://img.shields.io/badge/license-BSD3Clause-58f4c2.svg)](LICENSE.md)
-[![CodeQL](https://github.com/qte77/agents-eval-ralph-cc-tdd/actions/workflows/codeql.yaml/badge.svg)](https://github.com/qte77/agents-eval-ralph-cc-tdd/actions/workflows/codeql.yaml)
-[![CodeFactor](https://www.codefactor.io/repository/github/qte77/agents-eval-ralph-cc-tdd/badge)](https://www.codefactor.io/repository/github/qte77/agents-eval-ralph-cc-tdd)
-[![ruff](https://github.com/qte77/agents-eval-ralph-cc-tdd/actions/workflows/ruff.yaml/badge.svg)](https://github.com/qte77/agents-eval-ralph-cc-tdd/actions/workflows/ruff.yaml)
-[![pyright](https://github.com/qte77/agents-eval-ralph-cc-tdd/actions/workflows/pyright.yaml/badge.svg)](https://github.com/qte77/agents-eval-ralph-cc-tdd/actions/workflows/pyright.yaml)
-[![pytest](https://github.com/qte77/agents-eval-ralph-cc-tdd/actions/workflows/pytest.yaml/badge.svg)](https://github.com/qte77/agents-eval-ralph-cc-tdd/actions/workflows/pytest.yaml)
-[![Link Checker](https://github.com/qte77/agents-eval-ralph-cc-tdd/actions/workflows/links-fail-fast.yaml/badge.svg)](https://github.com/qte77/agents-eval-ralph-cc-tdd/actions/workflows/links-fail-fast.yaml)
-[![Deploy Docs](https://github.com/qte77/agents-eval-ralph-cc-tdd/actions/workflows/generate-deploy-mkdocs-ghpages.yaml/badge.svg)](https://github.com/qte77/agents-eval-ralph-cc-tdd/actions/workflows/generate-deploy-mkdocs-ghpages.yaml)
+[![CodeQL](https://github.com/YOUR-ORG/YOUR-PROJECT-NAME/actions/workflows/codeql.yaml/badge.svg)](https://github.com/YOUR-ORG/YOUR-PROJECT-NAME/actions/workflows/codeql.yaml)
+[![CodeFactor](https://www.codefactor.io/repository/github/YOUR-ORG/YOUR-PROJECT-NAME/badge)](https://www.codefactor.io/repository/github/YOUR-ORG/YOUR-PROJECT-NAME)
+[![ruff](https://github.com/YOUR-ORG/YOUR-PROJECT-NAME/actions/workflows/ruff.yaml/badge.svg)](https://github.com/YOUR-ORG/YOUR-PROJECT-NAME/actions/workflows/ruff.yaml)
+[![pyright](https://github.com/YOUR-ORG/YOUR-PROJECT-NAME/actions/workflows/pyright.yaml/badge.svg)](https://github.com/YOUR-ORG/YOUR-PROJECT-NAME/actions/workflows/pyright.yaml)
+[![pytest](https://github.com/YOUR-ORG/YOUR-PROJECT-NAME/actions/workflows/pytest.yaml/badge.svg)](https://github.com/YOUR-ORG/YOUR-PROJECT-NAME/actions/workflows/pytest.yaml)
+[![Link Checker](https://github.com/YOUR-ORG/YOUR-PROJECT-NAME/actions/workflows/links-fail-fast.yaml/badge.svg)](https://github.com/YOUR-ORG/YOUR-PROJECT-NAME/actions/workflows/links-fail-fast.yaml)
+[![Deploy Docs](https://github.com/YOUR-ORG/YOUR-PROJECT-NAME/actions/workflows/generate-deploy-mkdocs-ghpages.yaml/badge.svg)](https://github.com/YOUR-ORG/YOUR-PROJECT-NAME/actions/workflows/generate-deploy-mkdocs-ghpages.yaml)
 
 ## Features
 
@@ -31,7 +30,7 @@ complexity analysis.
 - **VS Code** - Workspace settings, tasks, and extensions for optimal Python
   development
 - **Configurable Model routing** - Use different models for hard or easy tasks.
-  See [Ralph README.md](./ralph/docs/README.md#model-selection).
+  See [Ralph README.md](./ralph/README.md#configuration).
 
 ## Quick Start
 
@@ -45,7 +44,7 @@ make setup_dev
 
 # Optional
 make ralph_create_userstory_md            # Interactive User Story using CC
-make ralph_create_prd_md                  # Generate PRD.md from UserStory.md 
+make ralph_create_prd_md                  # Generate PRD.md from UserStory.md
 
 # 3. Write requirements in docs/PRD.md, then run Ralph
 make ralph_init_loop             # Initialize (creates prd.json)
@@ -62,7 +61,7 @@ make ralph_archive NEW_PRD=docs/PRD-v2.md [VERSION=2]
 
 For detailed setup and usage, see
 [docs/TEMPLATE_USAGE.md](docs/TEMPLATE_USAGE.md). For Ralph Loop details see
-[Ralph README.md](./ralph/docs/README.md).
+[Ralph README.md](./ralph/README.md).
 
 ## Workflow
 
@@ -77,7 +76,7 @@ Human Workflow (Assisted - Optional):
   make ralph_create_userstory_md → make ralph_create_prd_md → make ralph_init_loop → make ralph
 
 Agent Workflow:
-  PRD.md → prd.json (generate-prd-json-from-md command) → Ralph Loop → src/ + tests/
+  PRD.md → prd.json (generating-prd-json-from-prd-md skill) → Ralph Loop → src/ + tests/
   Uses: .claude/skills/, .claude/rules/
 
 Mandatory for Both:

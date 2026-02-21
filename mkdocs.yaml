@@ -1,9 +1,9 @@
 # https://github.com/james-willett/mkdocs-material-youtube-tutorial
 # https://mkdocstrings.github.io/recipes/
 # site info set in workflow
-site_name: 'agents-eval-ralph-cc-tdd'
-site_description: 'A Multi-Agent System (MAS) evaluation framework using PydanticAI that generates and evaluates scientific paper reviews through a three-tiered assessment approach: traditional metrics, LLM-as-a-Judge, and graph-based complexity analysis.'
-repo_url: 'https://github.com/qte77/agents-eval-ralph-cc-tdd'
+site_name: '[PROJECT NAME]'
+site_description: '[PROJECT DESCRIPTION]'
+repo_url: 'https://github.com/[GITHUB REPO]'
 edit_uri: edit/main
 theme:
   name: material
