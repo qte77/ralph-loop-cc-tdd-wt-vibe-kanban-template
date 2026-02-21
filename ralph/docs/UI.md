@@ -130,7 +130,7 @@ curl -s http://127.0.0.1:5173/api/projects
   "data": [
     {
       "id": "bc74b558-e1e1-4f20-91e2-c6fd33bb969f",
-      "name": "agents-eval-ralph-cc-tdd",
+      "name": "your-project-name",
       "default_agent_working_dir": "",
       "remote_project_id": null,
       "created_at": "2026-01-22T13:50:36.549Z",

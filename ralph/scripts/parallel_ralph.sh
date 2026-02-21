@@ -43,8 +43,8 @@
 # - Higher score wins; N_WT=1 skips scoring overhead
 #
 # Worktree Naming:
-# - N_WT=1: ${PREFIX}-${RUN_ID}        (e.g., ../agenteval-ralph-wt-a3f5e2)
-# - N_WT>1: ${PREFIX}-${RUN_ID}-${NUM} (e.g., ../agenteval-ralph-wt-b9c4d1-1)
+# - N_WT=1: ${PREFIX}-${RUN_ID}        (e.g., ../your_project_name-ralph-wt-a3f5e2)
+# - N_WT>1: ${PREFIX}-${RUN_ID}-${NUM} (e.g., ../your_project_name-ralph-wt-b9c4d1-1)
 # - PREFIX: Dynamic, defaults to ../${SRC_PACKAGE_DIR}-ralph-wt (configurable)
 # - RUN_ID: Unique 6-char alphanumeric ID generated per run
 # - NUM: Worktree index (1 to N_WT)
@@ -718,7 +718,7 @@ main() {
                     existing_worktrees+=("$i")
                     resume_n_wt=$i
 
-                    # Extract run_id from worktree path (e.g., agenteval-ralph-wt-41adf4-1 → 41adf4)
+                    # Extract run_id from worktree path (e.g., your_project_name-ralph-wt-41adf4-1 → 41adf4)
                     if [ -z "$resume_run_id" ]; then
                         resume_run_id=$(basename "$old_wt" | grep -oP '(?<=-ralph-wt-)[a-z0-9]+(?=(-[0-9]+)?$)')
                     fi

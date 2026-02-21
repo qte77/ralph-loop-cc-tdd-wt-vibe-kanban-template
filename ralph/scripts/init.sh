@@ -117,7 +117,7 @@ initialize_progress() {
 # Ralph Loop Progress Log
 
 Started: $(date)
-Project: agents-eval-ralph-cc-tdd
+Project: [PROJECT NAME]
 
 This file tracks the progress of Ralph loop autonomous execution.
 Each iteration appends its results here.
