@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Claude Code sandbox hardening (network allowlist, filesystem write restrictions,
+  deny curl/wget, agent teams support, PR attribution)
+- Statusline JSON schema reference (`.claude/scripts/statusline-json-structure.json`)
+- Root-level `AGENT_LEARNINGS.md` and `AGENT_REQUESTS.md` symlinks to `ralph/docs/`
+- `.env.example` documenting required and optional environment variables
+- `lychee.toml` link checker config for `links-fail-fast.yaml` workflow
+- `write-llms-txt.yaml` GitHub Actions workflow for LLM context generation
 - Claude Code configuration (`.claude.json`)
 - Context management rules (`.claude/rules/context-management.md`)
 - Extended skill set: testing-python, compacting-context, researching-codebase,
@@ -21,7 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced CONTRIBUTING.md with testing requirements and code standards
 - SECURITY.md with vulnerability reporting process
 - Devcontainer Ollama variant
-- MCP configuration (`.mcp.json`)
+
+### Removed
+
+- `.mcp.json` (MCP server configuration)
+- `.claude/commands/commit-with-message.md` (migrated to skill)
+- `.claude/commands/generate-prd-json-from-md.md` (migrated to skill)
 - Ralph Loop: Claude-as-Judge for intelligent parallel worktree selection
 - Ralph Loop: Vibe Kanban real-time UI integration for live progress tracking
 - Ralph Loop: Auto-resume for paused worktrees
@@ -34,6 +46,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Migrated `commit-with-message` and `generate-prd-json-from-md` from commands
+  to skills with haiku model routing
+- Devcontainer `UV_CACHE_DIR` aligned to `/tmp/claude-1000/uv-cache` (sandbox path)
+- Devcontainer `postCreateCommand` now includes `make setup_sandbox`
+- SECURITY.md enhanced with GitHub Security Advisories and 90-day disclosure policy
 - GitHub Actions workflows (pytest, ruff, codeql)
 - MkDocs documentation setup (`mkdocs.yaml`)
 - Ralph Loop: CLI returns immediately in normal mode (background execution)
