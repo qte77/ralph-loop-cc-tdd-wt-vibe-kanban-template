@@ -1,5 +1,5 @@
 {
-  "name": "Project DevEnv",
+  "name": "Project DevEnv + Ollama",
   "image": "mcr.microsoft.com/vscode/devcontainers/python:3.13",
   "features": {
     "ghcr.io/devcontainers/features/node:1": {},
@@ -15,7 +15,7 @@
     "LOAD_DOTENV": "true",
     "UV_CACHE_DIR": "/tmp/uv-cache"
   },
-  "postCreateCommand": "make setup_dev",
+  "postCreateCommand": "make setup_dev OLLAMA=1",
   "customizations": {
     "vscode": {
       "extensions": [
