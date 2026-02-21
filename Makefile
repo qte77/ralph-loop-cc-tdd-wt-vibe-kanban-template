@@ -156,7 +156,7 @@ ralph_create_userstory_md:  ## [Optional] Create UserStory.md interactively. No 
 
 ralph_create_prd_md:  ## [Optional] Generate PRD.md from UserStory.md. No params.
 	echo "Generating PRD.md from UserStory.md ..."
-	claude -p '/generating-prd-json-from-prd-md'
+	claude -p '/generating-prd-md-from-userstory-md'
 
 ralph_init_loop:  ## Initialize Ralph loop environment. No params.
 	echo "Initializing Ralph loop environment ..."
