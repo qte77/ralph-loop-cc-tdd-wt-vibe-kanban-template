@@ -95,8 +95,8 @@ claude -p /review-learnings
 
 **Files:**
 
-- `ralph/LEARNINGS.md` — Accumulated knowledge (read before each story)
-- `ralph/REQUESTS.md` — Human-to-agent guidance (edit while Ralph runs)
+- `LEARNINGS.md` — Accumulated knowledge (read before each story)
+- `REQUESTS.md` — Human-to-agent guidance (edit while Ralph runs)
 
 **Workflow:** Plan -> Work (TDD) -> Compound (append learning) -> Review
 (prune/declutter)
@@ -201,12 +201,13 @@ optimal agent guidance:
 ## Structure
 
 ```text
+project-root/
+├── LEARNINGS.md               # Accumulated agent knowledge (active)
+├── REQUESTS.md                # Human-to-agent communication (active)
 ralph/
 ├── CHANGELOG.md               # Version history
 ├── CONTRIBUTING.md             # Command reference
-├── LEARNINGS.md               # Accumulated agent knowledge
 ├── README.md                  # This file
-├── REQUESTS.md                # Human-to-agent communication
 ├── TEMPLATE_USAGE.md          # Setup guide
 ├── docs/
 │   ├── prd.json               # Story definitions and status
@@ -559,6 +560,12 @@ N_WT>3 on constrained environments.
 
 ## Future Work
 
+- **Template init: migrate LEARNINGS.md and REQUESTS.md**: When
+  `setup_project.sh` initializes a new project from this template,
+  move root `LEARNINGS.md` and `REQUESTS.md` to `ralph/` as template
+  defaults, then create fresh project-specific files at root.
+  Symlinks (`AGENT_LEARNINGS.md`, `AGENT_REQUESTS.md`) always point
+  to the root-level active files.
 - **CC Agent Teams**: Native Claude Code agent teams for structured
   multi-agent collaboration (architect + developer + reviewer roles)
 - **Engine rewrite**: Extract Ralph core logic into a testable language
