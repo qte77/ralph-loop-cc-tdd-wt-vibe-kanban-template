@@ -483,3 +483,31 @@ make ralph_run [N_WT=1] [ITERATIONS=25]
     devcontainer/Linux
   - **Recommended**: SSH + Tailscale for mobile terminal access, or build
     JSON API for custom dashboards
+
+## Known Failure Modes
+
+Documented from parallel worktree operation (Sprint 7 research):
+
+- **Worktree lock contention**: Two workers claim same story if prd.json
+  read+write is not atomic. Mitigated by file locking in `ralph.sh`.
+- **Merge conflicts on state files**: `prd.json` and `progress.txt` can
+  conflict when merging worktrees. `parallel_ralph.sh` uses `--theirs`
+  strategy for state files.
+- **Stale worktree after crash**: If a worker process dies mid-story,
+  the worktree remains locked. `make ralph_clean` with double confirmation
+  handles cleanup.
+- **Claude rate limits**: Parallel workers can hit API rate limits.
+  Workers retry with exponential backoff (configured in `config.sh`).
+- **Disk space exhaustion**: Each worktree is a full checkout. Monitor
+  with `df -h` when running N_WT>3 on constrained environments.
+
+## Future Work
+
+- **CC Agent Teams**: Native Claude Code agent teams for structured
+  multi-agent collaboration (architect + developer + reviewer roles)
+- **Engine rewrite**: Extract Ralph core logic into a Python package
+  for better testability, type safety, and plugin architecture
+- **Streaming progress**: WebSocket-based real-time progress streaming
+  for dashboard integrations (beyond REST polling)
+- **PRD versioning**: First-class support for PRD iterations with
+  diff-based story carry-over between versions
