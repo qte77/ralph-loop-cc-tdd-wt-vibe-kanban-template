@@ -556,22 +556,91 @@ exponential backoff (configured in `config.sh`).
 Each worktree is a full checkout. Monitor with `df -h` when running
 N_WT>3 on constrained environments.
 
-## Future Work
+## TODO / Future Work
 
-- **CC Agent Teams**: Native Claude Code agent teams for structured
-  multi-agent collaboration (architect + developer + reviewer roles)
-- **Engine rewrite**: Extract Ralph core logic into a testable language
-  (Rust or Python) for better testability, type safety, and plugin
-  architecture
-- **Streaming progress**: WebSocket-based real-time progress streaming
-  for dashboard integrations (beyond REST polling)
-- **PRD versioning**: First-class support for PRD iterations with
-  diff-based story carry-over between versions
-- **Ad-hoc steering**: Accept free-text `INSTRUCTION` parameter via
-  CLI/Make to inject user guidance into the prompt without editing
-  PRD or progress files
-- **Multi-instance orchestration**: Run up to N independent Ralph
-  instances in separate git worktrees simultaneously
+- [ ] **Agent Teams for parallel story execution**: Activate via
+  `make ralph_run TEAMS=true`. Lead agent orchestrates teammates with
+  skill-specific delegation. A **wave** is the set of unblocked stories
+  (all dependencies satisfied). Stories within a wave run in parallel;
+  next wave starts after current completes.
+  - [ ] **CC Agent Teams as alternative orchestrator**: Replace bash loop
+    with CC main orchestrator spawning teams via `TeamCreate` + `Task`.
+    Each story becomes a `TaskCreate` with `blockedBy` dependencies
+    (logical and file-conflict). Addresses five failure modes
+    structurally: isolated teammate contexts prevent cross-contamination,
+    `blockedBy` prevents stale snapshots, no external reset eliminates
+    loops, lead-scoped validation prevents cross-story complexity
+    failures, file-conflict deps prevent parallel edits to same file.
+    Requires self-contained story descriptions in PRD Story Breakdown.
+
+- [ ] **Consolidate split test directories**: `tests/gui/` vs
+  `tests/test_gui/` caused two Sprint 8 failures. Merge into single
+  `tests/gui/` to eliminate ambiguity. Codebase hygiene independent
+  of Ralph.
+
+- [ ] **Ad-hoc steering instructions**: Accept `INSTRUCTION` parameter
+  via CLI/Make to inject user guidance into prompt without editing
+  tracked files. Example: `make ralph_run INSTRUCTION="focus on error
+  handling"`. Useful for nudging behavior without modifying PRD or
+  progress.
+
+- [ ] **Rewrite Ralph engine in Rust or similar**: Current bash
+  implementation is brittle and growing complex. Rewrite orchestration
+  core in a testable language to gain unit tests, type safety, and
+  maintainable control flow. Keep Claude Code invocation via subprocess.
+
+- [ ] **Multi-instance worktree orchestration**: Run N independent Ralph
+  instances (solo or teams) in separate git worktrees simultaneously.
+  Each gets its own branch, prd.json, and progress.txt. Merge results
+  at completion. Reference:
+  [ralph-loop template](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template).
+
+- [ ] **Merge with ralph-loop template**: Port features from parallel
+  template repo (worktree management, kanban tracking, vibe coding) or
+  consolidate both projects to avoid maintaining duplicate Ralph
+  implementations.
+
+- [ ] **Streaming progress**: WebSocket-based real-time progress
+  streaming for dashboard integrations (beyond REST polling).
+
+- [ ] **PRD versioning**: First-class support for PRD iterations with
+  diff-based story carry-over between versions.
+
+### Deferred
+
+- [ ] **Intra-story teams**: Multiple agents on single story. Requires
+  shared-file coordination and merge conflict handling. Deferred until
+  inter-story mode validated.
+
+- [ ] **Git worktrees for teams isolation**: True filesystem isolation
+  eliminates cross-contamination. Each story in wave gets own worktree;
+  merge at boundaries. Deferred until scoped checks + wave checkpoints
+  validated.
+
+- [ ] **Automated impact-scope analysis**: Post-story function detecting
+  renamed identifiers and scanning tests for out-of-scope consumers.
+  Currently handled via prompt. Automate if incident recurs.
+
+- [ ] **Inline snapshot drift detection**: Run
+  `uv run pytest --inline-snapshot=review` after clean passes. Deferred
+  until output format stability confirmed.
+
+- [ ] **Cross-directory test warning**: Flag modules with tests in
+  multiple directories. Structural fix (consolidating dirs) preferred.
+  Deferred as YAGNI.
+
+### Completed
+
+- [x] **Intermediate progress visibility** — Monitor tails agent log at
+  30s intervals with `[CC]` prefix.
+  - [x] **CC monitor log nesting** — Tracks byte offset, reads only new
+    content via tail, prevents duplication.
+- [x] **Agent Teams inter-story** — Appends unblocked stories; filters
+  commits by story ID to prevent false positives.
+- [x] **Scoped reset on validation failure** — Snapshot untracked files;
+  remove only story-created files on TDD failure.
+- [x] **Deduplicate log levels** — Strip leading log level prefixes
+  before wrapping with monitor output.
 
 ## Troubleshooting
 
