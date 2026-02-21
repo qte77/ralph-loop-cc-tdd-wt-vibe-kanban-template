@@ -5,8 +5,8 @@ set -e
 
 # Source color utilities and escape functions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/../ralph/scripts/lib/colors.sh"
-source "$SCRIPT_DIR/../ralph/scripts/lib/config.sh"
+source "$SCRIPT_DIR/lib/colors.sh"
+source "$SCRIPT_DIR/lib/config.sh"
 
 # Template placeholder names (before customization)
 TEMPLATE_PACKAGE_NAME="your_project_name"
@@ -17,9 +17,9 @@ show_help() {
 Setup script to customize template with project details
 
 Usage:
-  bash scripts/setup_project.sh                    # Interactive mode
+  bash ralph/scripts/setup_project.sh              # Interactive mode
   make setup_project                               # Via Makefile
-  bash scripts/setup_project.sh help              # Show this help
+  bash ralph/scripts/setup_project.sh help         # Show this help
 
 Interactive Prompts (with auto-detection where possible):
   1. GitHub org/repo      - Auto-detected from git remote

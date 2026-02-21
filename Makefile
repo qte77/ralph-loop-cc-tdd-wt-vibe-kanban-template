@@ -40,8 +40,8 @@ setup_agent_docs:  ## Create root-level symlinks for AGENT_LEARNINGS.md and AGEN
 	[ -e AGENT_LEARNINGS.md ] || ln -s ralph/docs/LEARNINGS.md AGENT_LEARNINGS.md
 	[ -e AGENT_REQUESTS.md ] || ln -s ralph/docs/REQUESTS.md AGENT_REQUESTS.md
 
-setup_project:  ## Customize template with your project details. Run with help: bash scripts/setup_project.sh help
-	bash scripts/setup_project.sh || { echo ""; echo "ERROR: Project setup failed. Please check the error messages above."; exit 1; }
+setup_project:  ## Customize template with your project details. Run with help: bash ralph/scripts/setup_project.sh help
+	bash ralph/scripts/setup_project.sh || { echo ""; echo "ERROR: Project setup failed. Please check the error messages above."; exit 1; }
 
 
 # MARK: run markdownlint
