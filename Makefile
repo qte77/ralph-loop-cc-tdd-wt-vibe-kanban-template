@@ -6,7 +6,7 @@
 
 .SILENT:
 .ONESHELL:
-.PHONY: setup_dev setup_claude_code setup_markdownlint setup_sandbox setup_agent_docs setup_project run_markdownlint ruff complexity duplication lint_md test_all test_quick test_coverage test_e2e type_check validate validate_quick quick_validate docs_serve docs_build ralph_validate_json ralph_create_userstory_md ralph_create_prd_md ralph_init_loop ralph_run ralph_status ralph_clean ralph_archive ralph_abort ralph_watch ralph_get_log vibe_start vibe_stop_all vibe_status vibe_cleanup help
+.PHONY: setup_dev setup_claude_code setup_markdownlint setup_npm_tools setup_sandbox setup_agent_docs setup_project run_markdownlint ruff complexity duplication lint_md lint_hardcoded_paths lint_links test_all test_quick test_coverage test_e2e type_check validate validate_quick quick_validate docs_serve docs_build ralph_validate_json ralph_create_userstory_md ralph_create_prd_md ralph_init_loop ralph_run ralph_reorganize_prd ralph_status ralph_clean ralph_archive ralph_abort ralph_watch ralph_get_log vibe_start vibe_stop_all vibe_status vibe_cleanup help
 .DEFAULT_GOAL := help
 
 
@@ -35,6 +35,11 @@ setup_sandbox:  ## Setup isolation tools (jscpd for copy-paste detection)
 	echo "Setting up sandbox tools ..."
 	npm install -gs jscpd
 	echo "jscpd version: $$(jscpd --version)"
+
+setup_npm_tools:  ## Install all npm CLI tools (markdownlint, jscpd, lychee)
+	echo "Setting up npm tools ..."
+	npm install -gs markdownlint-cli jscpd lychee
+	echo "markdownlint: $$(markdownlint --version), jscpd: $$(jscpd --version)"
 
 setup_agent_docs:  ## Create root-level symlinks for AGENT_LEARNINGS.md and AGENT_REQUESTS.md
 	[ -e AGENT_LEARNINGS.md ] || ln -s ralph/docs/LEARNINGS.md AGENT_LEARNINGS.md
@@ -70,6 +75,18 @@ duplication:  ## Check for code duplication with jscpd
 
 lint_md:  ## Lint markdown files - Usage: make lint_md FILES="docs/**/*.md"
 	markdownlint $${FILES:-"*.md"} --fix
+
+lint_hardcoded_paths:  ## GHA safety: check for /workspaces/ in test files
+	echo "Checking for hardcoded /workspaces/ paths in tests..."
+	if grep -rn '/workspaces/' tests/ 2>/dev/null; then
+		echo "ERROR: Found hardcoded /workspaces/ paths in tests (breaks GHA)"
+		exit 1
+	fi
+	echo "No hardcoded paths found"
+
+lint_links:  ## Check for broken links in markdown files
+	echo "Checking for broken links..."
+	lychee --no-progress "**/*.md" --exclude-path node_modules --exclude-path .venv
 
 test_all:  ## Run all tests (excludes E2E tests by default)
 	uv run pytest
@@ -112,6 +129,7 @@ quick_validate:  ## Fast development cycle validation
 	$(MAKE) -s ruff
 	-$(MAKE) -s type_check
 	-$(MAKE) -s complexity
+	-$(MAKE) -s lint_hardcoded_paths
 	echo "Quick validation completed (check output for any failures)"
 
 
@@ -132,11 +150,11 @@ ralph_validate_json:  ## Internal: Validate prd.json syntax
 
 ralph_create_userstory_md:  ## [Optional] Create UserStory.md interactively. No params.
 	echo "Creating UserStory.md through interactive Q&A ..."
-	claude -p '/build-userstory'
+	claude -p '/generating-interactive-userstory-md'
 
 ralph_create_prd_md:  ## [Optional] Generate PRD.md from UserStory.md. No params.
 	echo "Generating PRD.md from UserStory.md ..."
-	claude -p '/generate-prd-md-from-userstory'
+	claude -p '/generating-prd-json-from-prd-md'
 
 ralph_init_loop:  ## Initialize Ralph loop environment. No params.
 	echo "Initializing Ralph loop environment ..."
@@ -159,6 +177,9 @@ ralph_init_and_run:  ## Initialize and run Ralph loop in one command. Usage: mak
 	$(MAKE) -s ralph_init_loop
 	$(MAKE) -s ralph_run N_WT=$${N_WT:-} ITERATIONS=$${ITERATIONS:-} DEBUG=$${DEBUG:-} RALPH_JUDGE_ENABLED=$${RALPH_JUDGE_ENABLED:-} RALPH_SECURITY_REVIEW=$${RALPH_SECURITY_REVIEW:-} RALPH_MERGE_INTERACTIVE=$${RALPH_MERGE_INTERACTIVE:-}
 
+
+ralph_reorganize_prd:  ## Archive current PRD and activate new one. Usage: make ralph_reorganize_prd NEW_PRD=docs/PRD-v2.md [VERSION=2]
+	bash ralph/scripts/reorganize_prd.sh $${VERSION:+-v $${VERSION}} "$${NEW_PRD}"
 
 ralph_status:  ## Show Ralph loop progress
 	bash ralph/scripts/parallel_ralph.sh status
@@ -199,14 +220,16 @@ vibe_cleanup:  ## Remove all tasks from Vibe Kanban
 
 
 help:  ## Displays this message with available recipes
-	# TODO add stackoverflow source
 	echo "Usage: make [recipe]"
-	echo "Recipes:"
-	awk '/^[a-zA-Z0-9_-]+:.*?##/ {
-		helpMessage = match($$0, /## (.*)/)
-		if (helpMessage) {
-			recipe = $$1
-			sub(/:/, "", recipe)
-			printf "  \033[36m%-20s\033[0m %s\n", recipe, substr($$0, RSTART + 3, RLENGTH)
-		}
+	echo ""
+	awk '/^# MARK:/ { \
+		printf "\n\033[1;33m%s\033[0m\n", substr($$0, 9) \
+	} \
+	/^[a-zA-Z0-9_-]+:.*?##/ { \
+		helpMessage = match($$0, /## (.*)/) ; \
+		if (helpMessage) { \
+			recipe = $$1 ; \
+			sub(/:/, "", recipe) ; \
+			printf "  \033[36m%-24s\033[0m %s\n", recipe, substr($$0, RSTART + 3, RLENGTH) \
+		} \
 	}' $(MAKEFILE_LIST)
