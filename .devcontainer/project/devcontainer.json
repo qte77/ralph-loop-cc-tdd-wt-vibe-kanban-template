@@ -13,9 +13,9 @@
   },
   "remoteEnv": {
     "LOAD_DOTENV": "true",
-    "UV_CACHE_DIR": "/tmp/uv-cache"
+    "UV_CACHE_DIR": "/tmp/claude-1000/uv-cache"
   },
-  "postCreateCommand": "make setup_dev",
+  "postCreateCommand": "make setup_sandbox && make setup_dev",
   "customizations": {
     "vscode": {
       "extensions": [
