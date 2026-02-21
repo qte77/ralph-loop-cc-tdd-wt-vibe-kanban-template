@@ -4,12 +4,34 @@
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "CLAUDE_CODE_IDE_SKIP_AUTO_INSTALL": "1",
     "CLAUDE_CODE_SUBAGENT_MODEL": "opusplan",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "DISABLE_NON_ESSENTIAL_MODEL_CALLS": "1",
     "OTEL_EXPORTER_OTLP_METRICS_PROTOCOL": "",
     "OTEL_EXPORTER_OTLP_PROTOCOL": "",
     "OTEL_LOGS_EXPORTER": ""
   },
-  
+  "attribution": {
+    "commit": "Co-Authored-By: Claude <noreply@anthropic.com>",
+    "pr": "Generated with Claude <noreply@anthropic.com>"
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true,
+    "allowUnsandboxedCommands": false,
+    "enableWeakerNestedSandbox": false,
+    "network": {
+      "allowLocalBinding": true,
+      "allowedHosts": ["api.github.com"]
+    },
+    "filesystem": {
+      "write": {
+        "allowOnly": [
+          "/tmp/claude-1000",
+          ".git"
+        ]
+      }
+    }
+  },
   "permissions": {
     "allow": [
       "Bash(date:*)",
@@ -38,7 +60,8 @@
       "mcp__plugin_context7_context7__query-docs",
       "Read(.claude/skills/**/*.md)",
       "SlashCommand",
-      "Skill"
+      "Skill",
+      "TeamCreate"
     ],
     "deny": [
       "Bash(awk:*)",
@@ -50,7 +73,9 @@
       "Bash(ls:*)",
       "Bash(source:*)",
       "Bash(tail:*)",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)"
     ],
     "ask": [
       "Bash(bash:ralph/scripts/*.sh:*)",
@@ -76,10 +101,6 @@
     "code-review@claude-plugins-official": true,
     "code-simplifier@claude-plugins-official": true,
     "context7@claude-plugins-official": true,
-    "pyright-lsp@claude-plugins-official": true,
     "security-guidance@claude-plugins-official": true
-  },
-  "attribution": {
-    "commit": "Co-Authored-By: Claude <noreply@anthropic.com>"
   }
 }

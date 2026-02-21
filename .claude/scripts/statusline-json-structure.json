@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Claude Code Statusline Input Structure",
+  "description": "JSON structure passed to statusline command scripts via stdin. Used by .claude/scripts/statusline.sh",
+
+  "session_id": "550e8400-e29b-41d4-a716-446655440000",
+  "transcript_path": "/home/user/.claude/transcripts/2026-02-11/session-abc123.jsonl",
+  "cwd": "/workspaces/project-name",
+
+  "model": {
+    "id": "opusplan",
+    "display_name": "Claude Opus 4.6 (Plan mode)"
+  },
+
+  "workspace": {
+    "current_dir": "/workspaces/project-name",
+    "project_dir": "/workspaces/project-name"
+  },
+
+  "version": "1.15.0",
+
+  "output_style": {
+    "name": "default"
+  },
+
+  "cost": {
+    "total_cost_usd": 0.52,
+    "total_duration_ms": 120000,
+    "total_api_duration_ms": 45000,
+    "total_lines_added": 120,
+    "total_lines_removed": 35
+  },
+
+  "context_window": {
+    "total_input_tokens": 65000,
+    "total_output_tokens": 8500,
+    "context_window_size": 200000,
+    "current_usage": {
+      "input_tokens": 2000,
+      "output_tokens": 500,
+      "cache_creation_input_tokens": 15000,
+      "cache_read_input_tokens": 48000
+    },
+    "used_percentage": 36.75,
+    "remaining_percentage": 63.25
+  },
+
+  "exceeds_200k_tokens": false,
+
+  "_fields_used_by_statusline_sh": {
+    "workspace.current_dir": "basename shown in statusline",
+    "model.id": "displayed as model:{value}",
+    "version": "displayed as ver:{value}",
+    "cost.total_cost_usd": "formatted as rounded USD",
+    "cost.total_api_duration_ms": "converted to minutes",
+    "cost.total_lines_added": "combined as +{added}/-{removed}",
+    "cost.total_lines_removed": "combined as +{added}/-{removed}",
+    "context_window.total_input_tokens": "converted to k",
+    "context_window.total_output_tokens": "converted to k",
+    "context_window.remaining_percentage": "used for color thresholds",
+    "exceeds_200k_tokens": "boolean flag"
+  },
+
+  "_usage_notes": {
+    "stdin_input": "This JSON is passed to statusline scripts via stdin",
+    "jq_extraction": "Fields extracted using jq: echo \"$input\" | jq -r '.field.path'",
+    "script_location": ".claude/scripts/statusline.sh",
+    "config_location": ".claude/settings.json → statusLine.command"
+  }
+}
