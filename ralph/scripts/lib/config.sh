@@ -20,7 +20,7 @@
 # Source package directory name (relative to src/)
 # Change this to adapt Ralph to different projects
 # This determines worktree prefix: ../${SRC_PACKAGE_DIR}-ralph-wt
-SRC_PACKAGE_DIR="agenteval"
+SRC_PACKAGE_DIR="your_project_name"
 
 # Base directory paths
 DOCS_BASE_DIR="docs"
@@ -29,7 +29,7 @@ TESTS_BASE_DIR="tests"
 
 # Archive configuration
 ARCHIVE_BASE_DIR="src_archive"
-ARCHIVE_PREFIX="agentseval_ralph_run"
+ARCHIVE_PREFIX="your_project_name_ralph_run"
 
 # =================================================
 # DERIVED DIRECTORY PATHS
