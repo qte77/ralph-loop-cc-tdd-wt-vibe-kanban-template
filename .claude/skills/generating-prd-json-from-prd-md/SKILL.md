@@ -59,7 +59,8 @@ Required fields:
 - `description`: What to implement (1-2 sentences)
 - `acceptance`: Testable completion criteria
 - `files`: Expected files to modify/create
-- `passes`: Boolean (false initially)
+- `status`: String enum (`"pending"` initially; `"in_progress"`, `"passed"`, `"failed"`)
+- `wave`: Wave number for dependency-frontier tracking (`null` initially)
 - `completed_at`: Timestamp when marked passing
 
 ## Validation Rules
@@ -68,7 +69,7 @@ Before saving prd.json:
 
 - [ ] All required fields present for each story
 - [ ] IDs are unique
-- [ ] All stories have `passes: false` initially
+- [ ] All stories have `status: "pending"` initially
 - [ ] Acceptance criteria are specific and testable
 - [ ] File paths match project structure
 

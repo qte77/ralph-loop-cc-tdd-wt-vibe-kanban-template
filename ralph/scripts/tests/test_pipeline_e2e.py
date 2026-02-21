@@ -61,7 +61,7 @@ def test_full_ralph_pipeline(tmp_path: Path) -> None:
                     "Package is importable",
                 ],
                 "expected_files": ["src/myapp/__init__.py"],
-                "passes": False,
+                "status": "pending",
                 "completed_at": None,
                 "depends_on": [],
             },
@@ -74,7 +74,7 @@ def test_full_ralph_pipeline(tmp_path: Path) -> None:
                     "Unit tests pass",
                 ],
                 "expected_files": ["src/myapp/calculator.py", "tests/test_calculator.py"],
-                "passes": False,
+                "status": "pending",
                 "completed_at": None,
                 "depends_on": ["STORY-001"],
             },
@@ -96,7 +96,7 @@ def test_full_ralph_pipeline(tmp_path: Path) -> None:
 
     assert len(loaded_prd["stories"]) == 2
     assert loaded_prd["stories"][0]["id"] == "STORY-001"
-    assert loaded_prd["stories"][0]["passes"] is False
+    assert loaded_prd["stories"][0]["status"] == "pending"
     assert loaded_prd["stories"][1]["depends_on"] == ["STORY-001"]
 
 
@@ -119,7 +119,7 @@ def test_prd_json_validation() -> None:
                 "description": "Description",
                 "acceptance_criteria": ["Criterion 1"],
                 "expected_files": ["file.py"],
-                "passes": False,
+                "status": "pending",
                 "completed_at": None,
                 "depends_on": [],
             }
@@ -137,7 +137,7 @@ def test_prd_json_validation() -> None:
         "description",
         "acceptance_criteria",
         "expected_files",
-        "passes",
+        "status",
         "completed_at",
         "depends_on",
     ]
@@ -157,11 +157,11 @@ def test_dependency_resolution() -> None:
     3. Dependency ordering is respected
     """
     stories = [
-        {"id": "A", "passes": True, "depends_on": []},
-        {"id": "B", "passes": False, "depends_on": ["A"]},
-        {"id": "C", "passes": False, "depends_on": ["A", "B"]},
-        {"id": "D", "passes": False, "depends_on": ["E"]},
-        {"id": "E", "passes": False, "depends_on": []},
+        {"id": "A", "status": "passed", "depends_on": []},
+        {"id": "B", "status": "pending", "depends_on": ["A"]},
+        {"id": "C", "status": "pending", "depends_on": ["A", "B"]},
+        {"id": "D", "status": "pending", "depends_on": ["E"]},
+        {"id": "E", "status": "pending", "depends_on": []},
     ]
 
     # Simulate dependency resolution
@@ -173,7 +173,7 @@ def test_dependency_resolution() -> None:
 
         for dep_id in story["depends_on"]:
             dep = next(s for s in stories_list if s["id"] == dep_id)
-            if not dep["passes"]:
+            if dep["status"] != "passed":
                 return False
         return True
 

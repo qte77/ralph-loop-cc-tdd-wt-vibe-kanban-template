@@ -51,7 +51,7 @@ $description
 
 ## Why
 
-$(jq -r '.stories[] | select(.passes == true) | .description' "$RALPH_PRD_JSON" | head -5 | sed 's/^/- /')
+$(jq -r '.stories[] | select(.status == "passed") | .description' "$RALPH_PRD_JSON" | head -5 | sed 's/^/- /')
 
 ## Quick Start
 

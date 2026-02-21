@@ -1,6 +1,6 @@
 {
   "project": "[PROJECT NAME]",
-  "desciption": "A concise project desctipion",
+  "description": "A concise project description",
   "source": "docs/PRD.md",
   "generated": "TEMPLATE",
   "stories": [
@@ -14,7 +14,8 @@
         "Command will parse PRD.md and populate real stories here"
       ],
       "files": ["ralph/docs/prd.json"],
-      "passes": false,
+      "status": "pending",
+      "wave": null,
       "completed_at": null
     }
   ]

@@ -331,7 +331,7 @@ score_worktree() {
     fi
 
     # Base metrics
-    local stories_passed=$(jq '[.stories[] | select(.passes == true)] | length' "$prd_json" 2>/dev/null || echo 0)
+    local stories_passed=$(jq '[.stories[] | select(.status == "passed")] | length' "$prd_json" 2>/dev/null || echo 0)
     local total_stories=$(jq '.stories | length' "$prd_json" 2>/dev/null || echo 0)
     local test_count=$(find "$worktree_path" -name "test_*.py" -type f 2>/dev/null | wc -l)
 
@@ -434,7 +434,7 @@ merge_best() {
     local total_stories=0
 
     if [ -f "$prd_json" ]; then
-        stories_passed=$(jq '[.stories[] | select(.passes == true)] | length' "$prd_json" 2>/dev/null || echo 0)
+        stories_passed=$(jq '[.stories[] | select(.status == "passed")] | length' "$prd_json" 2>/dev/null || echo 0)
         total_stories=$(jq '.stories | length' "$prd_json" 2>/dev/null || echo 0)
     fi
 
@@ -540,7 +540,7 @@ show_all_status() {
 
         if [ -f "$prd_json" ]; then
             local total=$(jq '.stories | length' "$prd_json" 2>/dev/null || echo 0)
-            local passed=$(jq '[.stories[] | select(.passes == true)] | length' "$prd_json" 2>/dev/null || echo 0)
+            local passed=$(jq '[.stories[] | select(.status == "passed")] | length' "$prd_json" 2>/dev/null || echo 0)
             echo "Stories: $passed/$total passed"
         fi
 

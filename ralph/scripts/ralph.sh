@@ -166,7 +166,7 @@ validate_environment() {
 # Get next story with resolved dependencies (execute deps first)
 get_next_story() {
     # Get all incomplete stories
-    local incomplete=$(jq -r '.stories[] | select(.passes == false) | .id' "$PRD_JSON")
+    local incomplete=$(jq -r '.stories[] | select(.status != "passed") | .id' "$PRD_JSON")
 
     for story_id in $incomplete; do
         # Check if all dependencies are complete
@@ -176,9 +176,9 @@ get_next_story() {
 
         local deps_met=true
         for dep in $deps; do
-            local dep_passes=$(jq -r --arg id "$dep" \
-                '.stories[] | select(.id == $id) | .passes' "$PRD_JSON")
-            if [ "$dep_passes" != "true" ]; then
+            local dep_status=$(jq -r --arg id "$dep" \
+                '.stories[] | select(.id == $id) | .status' "$PRD_JSON")
+            if [ "$dep_status" != "passed" ]; then
                 deps_met=false
                 break
             fi
@@ -204,23 +204,39 @@ get_story_details() {
 # Update story status in prd.json
 update_story_status() {
     local story_id="$1"
-    local status="$2"
+    local new_status="$2"  # "passed" or "failed"
     local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
     jq --arg id "$story_id" \
-       --arg status "$status" \
+       --arg status "$new_status" \
        --arg timestamp "$timestamp" \
-       '(.stories[] | select(.id == $id) | .passes) |= ($status == "true") |
-        (.stories[] | select(.id == $id) | .completed_at) |= (if $status == "true" then $timestamp else null end)' \
+       '(.stories[] | select(.id == $id) | .status) = $status |
+        (.stories[] | select(.id == $id) | .completed_at) = (if $status == "passed" then $timestamp else null end)' \
        "$PRD_JSON" > "${PRD_JSON}.tmp"
 
-    # Validate JSON before replacing original
     if ! validate_prd_json "${PRD_JSON}.tmp"; then
         rm -f "${PRD_JSON}.tmp"
         return 1
     fi
-
     mv "${PRD_JSON}.tmp" "$PRD_JSON"
+}
+
+# Verify that only the current story was modified in prd.json
+verify_teammate_stories() {
+    local story_id="$1"
+    local base_commit="$2"
+    # Diff prd.json between base_commit and HEAD
+    # Extract changed story IDs — only $story_id should appear
+    local changed_ids=$(git diff "$base_commit" HEAD -- "$PRD_JSON" | \
+        grep -oE '"id":\s*"STORY-[0-9a-z]+"' | \
+        grep -oE 'STORY-[0-9a-z]+' | sort -u)
+    for cid in $changed_ids; do
+        if [ "$cid" != "$story_id" ]; then
+            log_warn "Story $cid was modified during $story_id execution"
+            return 1
+        fi
+    done
+    return 0
 }
 
 # Append to progress log
@@ -465,7 +481,7 @@ check_tdd_commits() {
     local commits_before="$2"
 
     # Skip TDD verification for first story being executed to allow ramp-up
-    local completed_stories=$(jq '[.stories[] | select(.passes == true)] | length' "$PRD_JSON")
+    local completed_stories=$(jq '[.stories[] | select(.status == "passed")] | length' "$PRD_JSON")
     if [ "$completed_stories" -eq 0 ]; then
         log_info "Skipping TDD verification for first story (ramp-up)"
         return 0
@@ -543,6 +559,12 @@ check_tdd_commits() {
 main() {
     log_info "Starting Ralph Loop (max iterations: $MAX_ITERATIONS)"
 
+    # Legacy guard: detect old "passes" boolean schema
+    if jq -e '.stories[0] | has("passes")' "$PRD_JSON" &>/dev/null; then
+        log_error "prd.json uses legacy 'passes' field. Run: python3 ralph/scripts/generate_prd_json.py"
+        exit 1
+    fi
+
     validate_environment
     init_log_dir
 
@@ -585,8 +607,8 @@ main() {
 
             if [ $tdd_check_result -eq 2 ]; then
                 # No commits made - check if story was already complete
-                local current_status=$(jq -r --arg sid "$story_id" '.stories[] | select(.id == $sid) | .passes' "$PRD_JSON")
-                if [ "$current_status" == "true" ]; then
+                local current_status=$(jq -r --arg sid "$story_id" '.stories[] | select(.id == $sid) | .status' "$PRD_JSON")
+                if [ "$current_status" == "passed" ]; then
                     # Story was verified as complete (no new work needed)
                     kanban_update "$story_id" "done"
                     log_progress "$iteration" "$story_id" "PASS" "Verified as already complete"
@@ -613,7 +635,7 @@ main() {
             local validation_log="$RALPH_TMP_DIR/validate_${story_id}.log"
             if run_quality_checks "$validation_log"; then
                 # Mark as passing
-                update_story_status "$story_id" "true"
+                update_story_status "$story_id" "passed"
                 kanban_update "$story_id" "done"
                 log_progress "$iteration" "$story_id" "PASS" "Completed successfully with TDD commits"
                 log_info "Story $story_id marked as PASSING"
@@ -626,7 +648,7 @@ main() {
                 # Attempt to fix validation errors
                 if fix_validation_errors "$story_id" "$details" "$validation_log" "$MAX_FIX_ATTEMPTS"; then
                     # Mark as passing after successful fixes
-                    update_story_status "$story_id" "true"
+                    update_story_status "$story_id" "passed"
                     kanban_update "$story_id" "done"
                     log_progress "$iteration" "$story_id" "PASS" "Completed after fixing validation errors"
                     log_info "Story $story_id marked as PASSING after fixes"
@@ -654,10 +676,10 @@ main() {
         # Mark incomplete stories as cancelled (preserve 'done' status for passing stories)
         while IFS= read -r story; do
             local id=$(echo "$story" | jq -r '.id')
-            local passes=$(echo "$story" | jq -r '.passes')
+            local status=$(echo "$story" | jq -r '.status')
 
             # Skip stories that passed - they're already marked "done"
-            if [ "$passes" == "true" ]; then
+            if [ "$status" == "passed" ]; then
                 continue
             fi
 
@@ -673,7 +695,7 @@ main() {
         git add "$PRD_JSON" "$PROGRESS_FILE"
 
         local total=$(jq '.stories | length' "$PRD_JSON")
-        local passing=$(jq '[.stories[] | select(.passes == true)] | length' "$PRD_JSON")
+        local passing=$(jq '[.stories[] | select(.status == "passed")] | length' "$PRD_JSON")
 
         git commit -m "docs(ralph): update progress after loop completion
 
@@ -682,7 +704,7 @@ Summary: $passing/$total stories passing"
 
     # Summary
     local total=$(jq '.stories | length' "$PRD_JSON")
-    local passing=$(jq '[.stories[] | select(.passes == true)] | length' "$PRD_JSON")
+    local passing=$(jq '[.stories[] | select(.status == "passed")] | length' "$PRD_JSON")
 
     log_info "Summary: $passing/$total stories passing"
 }
