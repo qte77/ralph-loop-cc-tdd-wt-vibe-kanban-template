@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Claude Code configuration (`.claude.json`)
+- Context management rules (`.claude/rules/context-management.md`)
+- Extended skill set: testing-python, compacting-context, researching-codebase,
+  generating-writeup, auditing-accessibility, securing-mas
+- Quality thresholds and role boundaries in AGENTS.md
+- Enhanced CONTRIBUTING.md with testing requirements and code standards
+- SECURITY.md with vulnerability reporting process
+- GitHub Actions workflows (pytest, ruff, codeql)
+- MkDocs documentation setup (`mkdocs.yaml`)
+- Devcontainer Ollama variant
+- MCP configuration (`.mcp.json`)
 - Ralph Loop: Claude-as-Judge for intelligent parallel worktree selection
 - Ralph Loop: Vibe Kanban real-time UI integration for live progress tracking
 - Ralph Loop: Auto-resume for paused worktrees
