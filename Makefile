@@ -6,7 +6,7 @@
 
 .SILENT:
 .ONESHELL:
-.PHONY: setup_dev setup_claude_code setup_markdownlint setup_npm_tools setup_sandbox setup_project run_markdownlint ruff complexity duplication lint_md lint_hardcoded_paths lint_links test_all test_quick test_coverage test_e2e type_check validate validate_quick quick_validate docs_serve docs_build ralph_validate_json ralph_create_userstory_md ralph_create_prd_md ralph_init_loop ralph_run ralph_reorganize_prd ralph_status ralph_clean ralph_archive ralph_abort ralph_watch ralph_get_log vibe_start vibe_stop_all vibe_status vibe_cleanup help
+.PHONY: setup_dev setup_claude_code setup_markdownlint setup_npm_tools setup_sandbox setup_project run_markdownlint ruff complexity duplication lint_md lint_hardcoded_paths lint_links test_all test_quick test_coverage test_e2e type_check validate validate_quick quick_validate docs_serve docs_build ralph_validate_json ralph_create_userstory_md ralph_create_prd_md ralph_init_loop ralph_run ralph_run_worktree ralph_reorganize_prd ralph_status ralph_clean ralph_archive ralph_abort ralph_watch ralph_get_log vibe_start vibe_stop_all vibe_status vibe_cleanup help
 .DEFAULT_GOAL := help
 
 
@@ -169,7 +169,10 @@ ralph_run:  ## Run Ralph loop - Usage: make ralph_run [N_WT=<N>] [ITERATIONS=<N>
 	RALPH_JUDGE_MAX_WT=$${RALPH_JUDGE_MAX_WT:-} \
 	RALPH_SECURITY_REVIEW=$${RALPH_SECURITY_REVIEW:-} \
 	RALPH_MERGE_INTERACTIVE=$${RALPH_MERGE_INTERACTIVE:-} \
-	bash ralph/scripts/parallel_ralph.sh "$${N_WT}" "$${ITERATIONS}"
+	env -u VIRTUAL_ENV bash ralph/scripts/parallel_ralph.sh "$${N_WT}" "$${ITERATIONS}"
+
+ralph_run_worktree:  ## Create worktree for a Ralph branch. Usage: make ralph_run_worktree BRANCH=ralph/sprint-name
+	env -u VIRTUAL_ENV bash ralph/scripts/ralph-in-worktree.sh "$${BRANCH}"
 
 ralph_init_and_run:  ## Initialize and run Ralph loop in one command. Usage: make ralph_init_and_run [N_WT=<N>] [ITERATIONS=<N>] [DEBUG=1] [RALPH_JUDGE_ENABLED=true] [RALPH_SECURITY_REVIEW=true] [RALPH_MERGE_INTERACTIVE=true]
 	$(MAKE) -s ralph_init_loop

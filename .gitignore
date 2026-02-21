@@ -47,9 +47,6 @@ site/
 # hypothesis
 .hypothesis/
 
-# ralph state
-ralph/state/
-
 # jscpd
 .jscpd/
 jscpd-report.json
