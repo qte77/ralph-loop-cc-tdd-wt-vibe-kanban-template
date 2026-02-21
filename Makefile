@@ -6,7 +6,7 @@
 
 .SILENT:
 .ONESHELL:
-.PHONY: setup_dev setup_claude_code setup_markdownlint setup_npm_tools setup_sandbox setup_agent_docs setup_project run_markdownlint ruff complexity duplication lint_md lint_hardcoded_paths lint_links test_all test_quick test_coverage test_e2e type_check validate validate_quick quick_validate docs_serve docs_build ralph_validate_json ralph_create_userstory_md ralph_create_prd_md ralph_init_loop ralph_run ralph_reorganize_prd ralph_status ralph_clean ralph_archive ralph_abort ralph_watch ralph_get_log vibe_start vibe_stop_all vibe_status vibe_cleanup help
+.PHONY: setup_dev setup_claude_code setup_markdownlint setup_npm_tools setup_sandbox setup_project run_markdownlint ruff complexity duplication lint_md lint_hardcoded_paths lint_links test_all test_quick test_coverage test_e2e type_check validate validate_quick quick_validate docs_serve docs_build ralph_validate_json ralph_create_userstory_md ralph_create_prd_md ralph_init_loop ralph_run ralph_reorganize_prd ralph_status ralph_clean ralph_archive ralph_abort ralph_watch ralph_get_log vibe_start vibe_stop_all vibe_status vibe_cleanup help
 .DEFAULT_GOAL := help
 
 
@@ -41,15 +41,6 @@ setup_npm_tools:  ## Install all npm CLI tools (markdownlint, jscpd, lychee)
 	npm install -gs markdownlint-cli jscpd lychee
 	echo "markdownlint: $$(markdownlint --version), jscpd: $$(jscpd --version)"
 	echo "lychee version: $$(lychee --version)"
-
-setup_agent_docs:  ## Create root-level symlinks for AGENT_LEARNINGS.md and AGENT_REQUESTS.md
-	# FIXME: LEARNINGS.md and REQUESTS.md live at root for active use.
-	# When template is initialized (setup_project.sh), move current files
-	# to ralph/ as ralph/LEARNINGS.md and ralph/REQUESTS.md (template
-	# defaults), then replace root files with fresh project-specific ones.
-	# Symlinks (AGENT_*) always point to the root-level active files.
-	[ -e AGENT_LEARNINGS.md ] || ln -s LEARNINGS.md AGENT_LEARNINGS.md
-	[ -e AGENT_REQUESTS.md ] || ln -s REQUESTS.md AGENT_REQUESTS.md
 
 setup_project:  ## Customize template with your project details. Run with help: bash ralph/scripts/setup_project.sh help
 	bash ralph/scripts/setup_project.sh || { echo ""; echo "ERROR: Project setup failed. Please check the error messages above."; exit 1; }

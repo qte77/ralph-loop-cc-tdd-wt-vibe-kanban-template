@@ -61,6 +61,6 @@ Agents MUST NOT:
 
 1. **Use make recipes exclusively** - No direct tool commands
 2. **Run `make validate` before completion** - All checks must pass
-3. **Update AGENT_LEARNINGS.md** - Document discoveries and patterns
+3. **Update ralph/LEARNINGS.md** - Document discoveries and patterns
 4. **Follow existing patterns** - Study `src/` before implementing
 5. **Reference file:line** - Always cite evidence for claims

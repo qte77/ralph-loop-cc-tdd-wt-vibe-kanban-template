@@ -203,31 +203,12 @@ make_executable() {
     log_success "Scripts are executable"
 }
 
-# Create root-level symlinks for agent docs (AGENTS.md and settings.json reference root paths)
-create_agent_doc_symlinks() {
-    log_info "Creating root-level agent doc symlinks..."
-
-    if [ ! -e "AGENT_LEARNINGS.md" ] && [ -f "$RALPH_LEARNINGS_FILE" ]; then
-        ln -s "$RALPH_LEARNINGS_FILE" "AGENT_LEARNINGS.md"
-        log_success "AGENT_LEARNINGS.md → $RALPH_LEARNINGS_FILE"
-    elif [ -L "AGENT_LEARNINGS.md" ]; then
-        log_info "AGENT_LEARNINGS.md symlink already exists"
-    fi
-
-    if [ ! -e "AGENT_REQUESTS.md" ] && [ -f "$RALPH_REQUESTS_FILE" ]; then
-        ln -s "$RALPH_REQUESTS_FILE" "AGENT_REQUESTS.md"
-        log_success "AGENT_REQUESTS.md → $RALPH_REQUESTS_FILE"
-    elif [ -L "AGENT_REQUESTS.md" ]; then
-        log_info "AGENT_REQUESTS.md symlink already exists"
-    fi
-}
 
 # Main
 main() {
     check_prerequisites
     check_project_structure
     create_state_dirs
-    create_agent_doc_symlinks
     initialize_progress
     initialize_vibe_config
     make_executable

@@ -110,7 +110,7 @@ Answer these questions:
 
 **Step 2: Append to LEARNINGS.md**
 
-Add to appropriate section in `LEARNINGS.md`:
+Add to appropriate section in `ralph/LEARNINGS.md`:
 
 - **Validation Fixes**: What fixed validation errors
   - Format: `- [STORY-XXX] Brief description of fix`
