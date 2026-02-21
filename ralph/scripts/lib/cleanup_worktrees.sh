@@ -7,7 +7,7 @@ _LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source dependencies if not already loaded
 if ! command -v log_info &> /dev/null; then
-    source "$_LIB_DIR/colors.sh"
+    source "$_LIB_DIR/common.sh"
 fi
 
 if [ -z "${RALPH_PARALLEL_WORKTREE_PREFIX:-}" ]; then

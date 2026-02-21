@@ -8,9 +8,6 @@
 # Source this file in Ralph scripts:
 #   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 #   source "$SCRIPT_DIR/lib/common.sh"
-#
-# Note: colors.sh is a subset of this file and is kept for backward
-# compatibility. New scripts should source common.sh instead.
 
 # =================================================
 # ANSI Color Codes

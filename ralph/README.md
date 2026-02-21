@@ -233,7 +233,6 @@ ralph/
         ├── config.sh              # Centralized configuration
         ├── common.sh              # Shared utilities (logging, colors)
         ├── baseline.sh            # Baseline-aware test validation
-        ├── colors.sh              # Legacy logging (kept for compat)
         ├── judge.sh               # Claude-as-Judge evaluation
         ├── vibe.sh                # Vibe Kanban REST API
         ├── validate_json.sh       # JSON validation utilities
