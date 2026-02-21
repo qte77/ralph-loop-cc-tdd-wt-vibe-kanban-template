@@ -29,7 +29,7 @@ speculative features.
 
 ## Decision Principles
 
-**Rigor and Sufficiency** - Research thoroughly. Decide with evidence.
+**Rigor and Sufficiency** - Research enough to decide confidently. No more, no less.
 
 **High-Impact Quick Wins** - Prioritize must-do tasks. Ship fast, iterate.
 
@@ -51,7 +51,7 @@ speculative features.
 Before finishing, ask yourself:
 
 - **Did we forget anything?** - Check requirements thoroughly
-- **High-ROI enhancements?** - Identify opportunities
+- **High-ROI enhancements?** - Suggest opportunities (don't implement)
 - **Something to delete?** - Remove obsolete/unnecessary code
 
 **IMPORTANT**: Do NOT alter files based on this review. Only output

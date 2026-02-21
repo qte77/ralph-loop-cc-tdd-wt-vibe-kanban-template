@@ -1,6 +1,6 @@
 # Context Management (ACE-FCA)
 
-**MANDATORY for efficient token utilization.**
+Principles for optimal context window utilization.
 
 ## Context Quality Equation
 
@@ -8,16 +8,23 @@ Quality output = Correct context + Complete context + Minimal noise
 
 ## Degradation Hierarchy (worst to best)
 
-1. **Incorrect information** - cascading errors
-2. **Missing information** - leads to guessing
-3. **Excessive noise** - dilutes signal, wastes capacity
+1. **Incorrect information** - worst, causes cascading errors (garbage in, garbage out)
+2. **Missing information** - leads to assumptions (agent guesses, sometimes wrong)
+3. **Excessive noise** - dilutes signal, wastes capacity (truth buried but still there)
 
-## Utilization Target: 40-60% capacity
+Better to have less correct info than more info with errors.
 
-- **Warning threshold**: Above 70% triggers compaction
-- **Critical threshold**: Above 85% requires immediate compaction
+## Utilization Target
 
-## Context Pollution Sources (compact immediately)
+Keep context at **40-60%** capacity. Leave room for:
+
+- Model reasoning
+- Output generation
+- Error recovery
+
+## Context Pollution Sources (What)
+
+These mess up context - compact/summarize immediately:
 
 - File searches (glob/grep results)
 - Code flow traces
@@ -29,7 +36,7 @@ Quality output = Correct context + Complete context + Minimal noise
 
 Research → Planning → Implementation. Compact after each phase transition.
 
-## Compaction Triggers
+## Compaction Triggers (When)
 
 Use `compacting-context` skill when:
 
@@ -39,21 +46,14 @@ Use `compacting-context` skill when:
 
 ## Subagent Usage
 
-Use `researching-codebase` skill to isolate discovery artifacts.
+Use `researching-codebase` skill to:
 
-## Output Format Guidelines
+- Isolate discovery artifacts from main context
+- Return structured findings only
+- Prevent search noise pollution
 
-**Prefer concise formats:**
+## Output Guidelines
 
-- Single-line summaries for status updates
-- Bullet points over paragraphs
-- Tables for structured comparisons
-- Code snippets with context, not full files
-- `file:line` references instead of quoting code
-
-**Avoid:**
-
-- Multi-paragraph explanations for simple changes
-- Repeating user instructions back verbatim
-- Including unchanged code in edit descriptions
-- Verbose error messages when line references suffice
+- Prefer structured summaries over raw dumps
+- Extract only relevant portions from large files
+- Use targeted searches, not broad sweeps

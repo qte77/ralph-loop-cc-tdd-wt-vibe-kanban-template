@@ -40,6 +40,7 @@ setup_npm_tools:  ## Install all npm CLI tools (markdownlint, jscpd, lychee)
 	echo "Setting up npm tools ..."
 	npm install -gs markdownlint-cli jscpd lychee
 	echo "markdownlint: $$(markdownlint --version), jscpd: $$(jscpd --version)"
+	echo "lychee version: $$(lychee --version)"
 
 setup_agent_docs:  ## Create root-level symlinks for AGENT_LEARNINGS.md and AGENT_REQUESTS.md
 	[ -e AGENT_LEARNINGS.md ] || ln -s ralph/docs/LEARNINGS.md AGENT_LEARNINGS.md
@@ -78,7 +79,7 @@ lint_md:  ## Lint markdown files - Usage: make lint_md FILES="docs/**/*.md"
 
 lint_hardcoded_paths:  ## GHA safety: check for /workspaces/ in test files
 	echo "Checking for hardcoded /workspaces/ paths in tests..."
-	if grep -rn '/workspaces/' tests/ 2>/dev/null; then
+	if grep -rn --include='*.py' '/workspaces/' tests/ 2>/dev/null; then
 		echo "ERROR: Found hardcoded /workspaces/ paths in tests (breaks GHA)"
 		exit 1
 	fi
@@ -86,7 +87,8 @@ lint_hardcoded_paths:  ## GHA safety: check for /workspaces/ in test files
 
 lint_links:  ## Check for broken links in markdown files
 	echo "Checking for broken links..."
-	lychee --no-progress "**/*.md" --exclude-path node_modules --exclude-path .venv
+	command -v lychee >/dev/null 2>&1 || { echo "lychee not found. Run: make setup_npm_tools"; exit 1; }
+	lychee $(or $(INPUT_FILES),.)
 
 test_all:  ## Run all tests (excludes E2E tests by default)
 	uv run pytest
@@ -223,7 +225,7 @@ help:  ## Displays this message with available recipes
 	echo "Usage: make [recipe]"
 	echo ""
 	awk '/^# MARK:/ { \
-		printf "\n\033[1;33m%s\033[0m\n", substr($$0, 9) \
+		printf "\n\033[1;33m%s\033[0m\n", substr($$0, index($$0, ":")+2) \
 	} \
 	/^[a-zA-Z0-9_-]+:.*?##/ { \
 		helpMessage = match($$0, /## (.*)/) ; \

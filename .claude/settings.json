@@ -13,10 +13,6 @@
   "outputStyle": "default",
   "spinnerTipsEnabled": true,
   "prefersReducedMotion": true,
-  "attribution": {
-    "commit": "Co-Authored-By: Claude <noreply@anthropic.com>",
-    "pr": "Generated with Claude <noreply@anthropic.com>"
-  },
   "sandbox": {
     "enabled": true,
     "autoAllowBashIfSandboxed": true,
@@ -113,5 +109,9 @@
     "context7@claude-plugins-official": true,
     "pyright-lsp@claude-plugins-official": true,
     "security-guidance@claude-plugins-official": true
+  },
+  "attribution": {
+    "commit": "Co-Authored-By: Claude <noreply@anthropic.com>",
+    "pr": "Generated with Claude <noreply@anthropic.com>"
   }
 }
