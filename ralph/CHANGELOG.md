@@ -53,6 +53,10 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Killed-process detection (exit 137/143 as hard failure)
 - Pycache cleanup before test runs
 - `prompt.md` upstream-compatible agent prompt template
+- Runtime initialization of `docs/PRD.md` and `docs/UserStory.md` from
+  templates via `init.sh` (no longer requires pre-existing files)
+- `docs/NAMING.md` — CLI name candidates research with availability
+  analysis, taglines, and elimination rationale
 
 ### Changed
 
@@ -64,6 +68,17 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Centralized configuration in `ralph/scripts/lib/config.sh`
 - Model routing: sonnet for implementation, haiku for fixes and simple
   changes, configurable judge model
+- `TEMPLATE_USAGE.md` consolidated into `ralph/README.md`
+- `docs/PRD.md` removed as committed file — now generated from template
+  at runtime by `init.sh`
+- `docs/UserStory.md` rewritten for Go CLI rewrite specification
+- Makefile `ralph_run` uses `env -u VIRTUAL_ENV` for clean subprocess
+  environments
+
+### Removed
+
+- `ralph/TEMPLATE_USAGE.md` (merged into `ralph/README.md`)
+- `docs/PRD.md` as tracked file (replaced by runtime template init)
 
 ### Fixed
 
@@ -78,6 +93,7 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Scoped reset on red-green validation failure: only story-created files
   removed, not entire working tree
 - TDD commit counter persistence across quality-failure resets
+- Typos in `prd.json.template` (`desciption` → `description`)
 
 ## Known Issues
 
