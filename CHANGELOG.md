@@ -20,8 +20,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Quality thresholds and role boundaries in AGENTS.md
 - Enhanced CONTRIBUTING.md with testing requirements and code standards
 - SECURITY.md with vulnerability reporting process
-- GitHub Actions workflows (pytest, ruff, codeql)
-- MkDocs documentation setup (`mkdocs.yaml`)
 - Devcontainer Ollama variant
 - MCP configuration (`.mcp.json`)
 - Ralph Loop: Claude-as-Judge for intelligent parallel worktree selection
@@ -36,6 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- GitHub Actions workflows (pytest, ruff, codeql)
+- MkDocs documentation setup (`mkdocs.yaml`)
 - Ralph Loop: CLI returns immediately in normal mode (background execution)
 - Ralph Loop: Append to progress.txt instead of resetting
 - Ralph Loop: Separated stop and cleanup operations for better control
