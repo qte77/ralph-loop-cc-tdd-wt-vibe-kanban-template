@@ -42,6 +42,12 @@ make ralph_run N_WT=3
 
 Ralph auto-detects Vibe Kanban on configured port and syncs status in real-time. See [UI.md](./UI.md) for details.
 
+### Optional: Visual Workflow Design
+
+[CC Workflow Studio](https://github.com/breaking-brake/cc-wf-studio) provides a drag-and-drop VS Code extension for designing Claude Code agent workflows visually. Useful for creating `.claude/skills/` and `.claude/commands/` files.
+
+Install from VS Code Marketplace: `breaking-brake.cc-wf-studio`
+
 ### Compound Engineering - Knowledge Management
 
 Ralph implements compound engineering: each solved problem makes future work easier through systematic knowledge capture.
