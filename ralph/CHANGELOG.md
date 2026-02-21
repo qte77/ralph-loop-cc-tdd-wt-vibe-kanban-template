@@ -52,7 +52,6 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Impact scan prompt instruction for rename detection
 - Killed-process detection (exit 137/143 as hard failure)
 - Pycache cleanup before test runs
-- `TEMPLATE_USAGE.md` quick-start guide
 - `prompt.md` upstream-compatible agent prompt template
 
 ### Changed

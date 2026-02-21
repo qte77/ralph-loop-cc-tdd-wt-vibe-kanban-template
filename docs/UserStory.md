@@ -1,4 +1,4 @@
-# UserStory: Rewrite Ralph Engine as Wiggly CLI (Go)
+# UserStory: Rewrite Ralph Engine as Go CLI
 
 ## Problem
 
@@ -19,13 +19,14 @@ Rewrite the Ralph engine as a standalone Go binary distributed as a single
 static executable. The Makefile stays as the user-facing interface, calling
 CLI subcommands instead of `bash ralph/scripts/*.sh`.
 
-**Project name:** Wiggly (CLI binary name TBD — `wiggly` or `ralph`,
-decided before first release).
+**Project name:** TBD — decided before first release. See
+[docs/NAMING.md](NAMING.md) for candidates, taglines, and availability
+research.
 
-### Bootstrap: Ralph builds Wiggly
+### Bootstrap: Ralph builds its replacement
 
 The current bash-based Ralph loop implements the Go rewrite. The PRD stories
-for Wiggly are executed by the existing `parallel_ralph.sh` engine — Ralph
+are executed by the existing `parallel_ralph.sh` engine — Ralph
 bootstraps its own replacement. Once the Go binary passes all acceptance
 criteria, the bash scripts become dead code and are removed. One-way
 migration, not parallel maintenance.
