@@ -1,0 +1,9 @@
+{
+  "exa": {
+    "type": "http",
+    "url": "https://mcp.exa.ai/mcp",
+    "env": {
+      "EXA_API_KEY": "$EXA_API_KEY"
+    }
+  }
+}
