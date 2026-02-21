@@ -1,58 +1,55 @@
-# Context Management
+# Context Management (ACE-FCA)
 
-**MANDATORY for efficient token utilization.** Apply these principles to maintain
-optimal context capacity throughout conversations.
+**MANDATORY for efficient token utilization.**
 
-## ACE-FCA Principle
+## Context Quality Equation
 
-**Accuracy > Completeness > Brevity**
+Quality output = Correct context + Complete context + Minimal noise
 
-When generating output, prioritize:
+## Degradation Hierarchy (worst to best)
 
-1. **Accuracy** - Correct information is non-negotiable
-2. **Completeness** - Include all necessary details for the task
-3. **Brevity** - Eliminate redundancy and unnecessary verbosity
+1. **Incorrect information** - cascading errors
+2. **Missing information** - leads to guessing
+3. **Excessive noise** - dilutes signal, wastes capacity
 
-## Capacity Guidelines
+## Utilization Target: 40-60% capacity
 
-- **Target utilization**: Maintain 40-60% context capacity
-- **Warning threshold**: Above 70% triggers compaction consideration
+- **Warning threshold**: Above 70% triggers compaction
 - **Critical threshold**: Above 85% requires immediate compaction
+
+## Context Pollution Sources (compact immediately)
+
+- File searches (glob/grep results)
+- Code flow traces
+- Edit applications
+- Test/build logs
+- Large JSON blobs from tools
+
+## Workflow Phases
+
+Research → Planning → Implementation. Compact after each phase transition.
 
 ## Compaction Triggers
 
-Apply context compression when:
+Use `compacting-context` skill when:
 
-- [ ] Output exceeds 500 lines for simple tasks
-- [ ] Repeating information already in conversation
-- [ ] Including full file contents when excerpts suffice
-- [ ] Verbose explanations for straightforward operations
+- Verbose tool output (logs, JSON, search results)
+- After completing a phase or milestone
+- Before starting new complex task
 
-## Compaction Strategies
+## Subagent Usage
 
-1. **Reference existing context** - "As shown above" instead of repeating
-2. **Use file:line references** - `src/module.py:42` instead of quoting code
-3. **Summarize rather than enumerate** - "All 15 tests pass" vs listing each
-4. **Delegate to skills** - Use `/compacting-context` for verbose outputs
-
-## Delegation to Skills
-
-When context is constrained, delegate to specialized skills:
-
-- `/researching-codebase` - For deep exploration without polluting main context
-- `/compacting-context` - For summarizing verbose outputs
-- `/reviewing-code` - For detailed analysis in isolated context
+Use `researching-codebase` skill to isolate discovery artifacts.
 
 ## Output Format Guidelines
 
 **Prefer concise formats:**
 
-```
 - Single-line summaries for status updates
 - Bullet points over paragraphs
 - Tables for structured comparisons
 - Code snippets with context, not full files
-```
+- `file:line` references instead of quoting code
 
 **Avoid:**
 
