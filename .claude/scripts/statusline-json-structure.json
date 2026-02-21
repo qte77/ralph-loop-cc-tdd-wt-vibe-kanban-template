@@ -65,9 +65,10 @@
 
   "_color_thresholds": {
     "context_remaining": {
-      "critical": "≤25% → Yellow fg on Red bg (\\033[93;41m)",
-      "warning": "≤50% → Bright Red fg on Dark Gray bg (\\033[91;48;5;237m)",
-      "ok": ">50% → Green fg (\\033[0;32m)"
+      "critical": "≤10% true free → Yellow fg on Red bg (\\033[93;41m)",
+      "warning": "≤20% true free → Bright Red fg on Dark Gray bg (\\033[91;48;5;237m)",
+      "caution": "≤35% true free → Yellow fg (\\033[93m)",
+      "ok": ">35% true free → Green fg (\\033[0;32m)"
     }
   },
 

@@ -46,10 +46,12 @@ true_free_pct=$(awk "BEGIN {print $remaining_pct - $AUTOCOMPACT_BUFFER_PCT}")
 remaining=$(echo "$true_free_pct" | awk '{printf "%.2f", $1/100}' | sed 's/^0\./\./')
 
 # Color remaining based on TRUE free space threshold (warn when running LOW)
-if [ $(awk "BEGIN {print ($true_free_pct <= 25)}") -eq 1 ]; then
-    ctx_color="\\033[93;41m"  # Bright yellow fg, red bg - CRITICAL (≤25% usable)
-elif [ $(awk "BEGIN {print ($true_free_pct <= 50)}") -eq 1 ]; then
-    ctx_color="\\033[91;48;5;237m"  # Bright red fg, dark gray bg - WARNING (≤50% usable)
+if [ $(awk "BEGIN {print ($true_free_pct <= 10)}") -eq 1 ]; then
+    ctx_color="\\033[93;41m"  # Bright yellow fg, red bg - CRITICAL (≤10% usable)
+elif [ $(awk "BEGIN {print ($true_free_pct <= 20)}") -eq 1 ]; then
+    ctx_color="\\033[91;48;5;237m"  # Bright red fg, dark gray bg - WARNING (≤20% usable)
+elif [ $(awk "BEGIN {print ($true_free_pct <= 35)}") -eq 1 ]; then
+    ctx_color="\\033[93m"  # Yellow fg - CAUTION (≤35% usable)
 else
     ctx_color="\\033[0;32m"   # Normal green fg - OK
 fi
