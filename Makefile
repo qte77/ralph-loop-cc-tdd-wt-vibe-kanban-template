@@ -43,6 +43,10 @@ setup_npm_tools:  ## Install all npm CLI tools (markdownlint, jscpd, lychee)
 	echo "lychee version: $$(lychee --version)"
 
 setup_agent_docs:  ## Create root-level symlinks for AGENT_LEARNINGS.md and AGENT_REQUESTS.md
+	# FIXME: symlinks should point to root-level files, but LEARNINGS.md and
+	# REQUESTS.md live in ralph/ for the template. When the template is used,
+	# setup_project.sh should move them to root and replace with project-specific
+	# learnings/requests files. Until then, symlink into ralph/.
 	[ -e AGENT_LEARNINGS.md ] || ln -s ralph/LEARNINGS.md AGENT_LEARNINGS.md
 	[ -e AGENT_REQUESTS.md ] || ln -s ralph/REQUESTS.md AGENT_REQUESTS.md
 
