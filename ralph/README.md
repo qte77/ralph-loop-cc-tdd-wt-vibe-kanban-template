@@ -661,6 +661,9 @@ Additional worktree-related failure modes:
 
 ## TODO / Future Work
 
+See also [TODO.md](TODO.md) for code quality items and additional
+backlog.
+
 - [ ] **Agent Teams for parallel story execution**: Enable with
   `make ralph_run TEAMS=true`
   (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`). Lead agent orchestrates
