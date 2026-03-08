@@ -85,6 +85,44 @@ Mandatory for Both:
   .gitmessage     - Commit message format
 ```
 
+## Consumption Approaches
+
+### 1. GitHub Template (default)
+
+Use "Use this template" on GitHub. Full project scaffold with `ralph/`,
+`.claude/`, CI workflows, devcontainer, etc.
+
+### 2. Git Submodule (existing project)
+
+Add Ralph to an existing project without forking:
+
+```bash
+git submodule add --branch main \
+  https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template.git \
+  .ralph-template
+
+# Symlink into your project
+ln -s .ralph-template/ralph ralph
+ln -s .ralph-template/.claude .claude
+```
+
+**Pros:** SOT stays upstream, `git submodule update --remote` pulls
+latest changes.
+
+**Cons:** Full repo checkout (not just `ralph/`), symlinks need
+CI/Makefile awareness.
+
+For project-specific `.claude/` overrides (rules, skills, settings),
+keep local files alongside the symlinked ones — Claude Code merges
+`.claude/settings.local.json` over `.claude/settings.json`.
+
+### 3. Standalone CLI (planned)
+
+Install Ralph as a standalone binary. No git integration needed.
+Candidates: Go (static binary, zero deps), Bun/Deno (scripting feel +
+native JSON). See [Ralph README.md TODO](./ralph/README.md#todo--future-work)
+for scope analysis.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow, core
