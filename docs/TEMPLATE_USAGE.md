@@ -129,3 +129,6 @@ make help              # Show all commands
 3. Run `make ralph_run` for autonomous implementation
 
 See `.claude/skills/` for available skills and `make help` for all commands.
+
+For adding Ralph to an **existing project** (submodule), see
+[Consumption Approaches](../README.md#consumption-approaches).

@@ -14,7 +14,7 @@ report it responsibly.
 ### How to Report
 
 1. **Do NOT** open a public issue
-2. Use [GitHub Security Advisories](../../security/advisories) to report privately,
+2. Use [GitHub Security Advisories](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/security/advisories) to report privately,
    or email security concerns to the project maintainers
 3. Include:
    - Description of the vulnerability

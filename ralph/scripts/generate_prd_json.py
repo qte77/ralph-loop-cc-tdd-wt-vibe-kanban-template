@@ -643,6 +643,78 @@ def _parse_args(argv: list[str]) -> tuple[Path, bool]:
     return prd_path, dry_run
 
 
+def _print_wave_plan(stories: list[Story]) -> None:
+    """Display wave-grouped dependency plan for dry-run output."""
+    wave_groups: dict[int, list[Story]] = {}
+    for story in stories:
+        wave_groups.setdefault(story["wave"], []).append(story)
+    for wn in sorted(wave_groups):
+        label = f"Wave {wn}" if wn > 0 else "Pre-completed"
+        print(f"  {label}:")
+        for story in wave_groups[wn]:
+            ac_count = len(story["acceptance"])
+            files_count = len(story["files"])
+            sid, stitle = story["id"], story["title"][:60]
+            print(f"    {sid}: {stitle} (AC: {ac_count}, files: {files_count})")
+
+
+def _merge_with_existing(
+    output_path: Path, new_parsed_stories: list[Story]
+) -> list[Story]:
+    """Load existing prd.json, preserve passed stories, merge new ones."""
+    existing_stories: list[Story] = []
+    if output_path.exists():
+        with open(output_path) as f:
+            existing_data: dict[str, list[Story]] = json.load(f)
+            existing_stories = existing_data.get("stories", [])
+            print(f"Loaded {len(existing_stories)} existing stories from prd.json")
+
+    passed_count, updated_count = _backfill_existing_stories(existing_stories)
+    if passed_count > 0:
+        print(f"Protected {passed_count} passed stories from modification")
+    if updated_count > 0:
+        print(f"Updated {updated_count} incomplete stories with missing fields")
+
+    existing_ids = {s["id"] for s in existing_stories}
+    new_stories = [s for s in new_parsed_stories if s["id"] not in existing_ids]
+    print(
+        f"Filtered to {len(new_stories)} new stories "
+        f"(skipped {len(new_parsed_stories) - len(new_stories)} duplicates)"
+    )
+
+    all_stories: list[Story] = existing_stories + new_stories
+    all_stories.sort(key=lambda s: story_sort_key(s["id"]))
+    return all_stories
+
+
+def _print_summary(output_path: Path, all_stories: list[Story]) -> None:
+    """Print generation summary with wave grouping."""
+    completed = sum(1 for s in all_stories if s.get("status") == "passed")
+    print(f"\nGenerated {output_path}")
+    print(
+        f"Total stories: {len(all_stories)} ({completed} completed, "
+        f"{len(all_stories) - completed} pending)"
+    )
+    # Reason: Show per-wave grouping for visibility into execution plan
+    waves: dict[int, list[str]] = {}
+    for s in all_stories:
+        waves.setdefault(s["wave"], []).append(s["id"])
+    for wave_num in sorted(waves):
+        if wave_num == 0:
+            ids = [
+                sid
+                for sid in waves[0]
+                if any(
+                    st["id"] == sid and st.get("status") == "passed"
+                    for st in all_stories
+                )
+            ]
+            if ids:
+                print(f"  Completed: {', '.join(ids)}")
+        else:
+            print(f"  Wave {wave_num}: {', '.join(waves[wave_num])}")
+
+
 def main() -> int:
     """Parse PRD markdown and generate ralph/docs/prd.json.
 
@@ -695,44 +767,10 @@ def main() -> int:
     compute_waves(new_parsed_stories)
 
     if dry_run:
-        # Reason: Group by wave for visual dependency plan
-        wave_groups: dict[int, list[Story]] = {}
-        for story in new_parsed_stories:
-            wave_groups.setdefault(story["wave"], []).append(story)
-        for wn in sorted(wave_groups):
-            label = f"Wave {wn}" if wn > 0 else "Pre-completed"
-            print(f"  {label}:")
-            for story in wave_groups[wn]:
-                ac_count = len(story["acceptance"])
-                files_count = len(story["files"])
-                sid, stitle = story["id"], story["title"][:60]
-                print(f"    {sid}: {stitle} (AC: {ac_count}, files: {files_count})")
+        _print_wave_plan(new_parsed_stories)
         return 0
 
-    # Load existing prd.json (safety: preserve passed stories)
-    existing_stories: list[Story] = []
-    if output_path.exists():
-        with open(output_path) as f:
-            existing_data: dict[str, list[Story]] = json.load(f)
-            existing_stories = existing_data.get("stories", [])
-            print(f"Loaded {len(existing_stories)} existing stories from prd.json")
-
-    passed_count, updated_count = _backfill_existing_stories(existing_stories)
-    if passed_count > 0:
-        print(f"Protected {passed_count} passed stories from modification")
-    if updated_count > 0:
-        print(f"Updated {updated_count} incomplete stories with missing fields")
-
-    existing_ids = {s["id"] for s in existing_stories}
-    new_stories = [s for s in new_parsed_stories if s["id"] not in existing_ids]
-    print(
-        f"Filtered to {len(new_stories)} new stories "
-        f"(skipped {len(new_parsed_stories) - len(new_stories)} duplicates)"
-    )
-
-    all_stories: list[Story] = existing_stories + new_stories
-    all_stories.sort(key=lambda s: story_sort_key(s["id"]))
-
+    all_stories = _merge_with_existing(output_path, new_parsed_stories)
     compute_waves(all_stories)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -749,29 +787,7 @@ def main() -> int:
             indent=2,
         )
 
-    completed = sum(1 for s in all_stories if s.get("status") == "passed")
-    print(f"\nGenerated {output_path}")
-    print(
-        f"Total stories: {len(all_stories)} ({completed} completed, "
-        f"{len(all_stories) - completed} pending)"
-    )
-
-    # Reason: Show per-wave grouping for visibility into execution plan
-    waves: dict[int, list[str]] = {}
-    for s in all_stories:
-        waves.setdefault(s["wave"], []).append(s["id"])
-    for wave_num in sorted(waves):
-        if wave_num == 0:
-            ids = [
-                sid
-                for sid in waves[0]
-                if any(st["id"] == sid and st.get("status") == "passed" for st in all_stories)
-            ]
-            if ids:
-                print(f"  Completed: {', '.join(ids)}")
-        else:
-            print(f"  Wave {wave_num}: {', '.join(waves[wave_num])}")
-
+    _print_summary(output_path, all_stories)
     return 0
 
 

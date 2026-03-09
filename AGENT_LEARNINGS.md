@@ -1,1 +1,1 @@
-ralph/docs/LEARNINGS.md
+ralph/LEARNINGS.md
