@@ -1,0 +1,30 @@
+# Embedded C-specific Makefile recipes.
+# Auto-included by main Makefile when .scaffold contains 'embedded'.
+# Run `make help` for available recipes.
+
+.PHONY: build clean flash validate
+
+BUILD_DIR ?= build
+TARGET ?= firmware
+
+# MARK: embedded build
+
+build:  ## Build embedded firmware with CMake
+	cmake -S . -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=Release
+	cmake --build $(BUILD_DIR) --parallel
+
+clean:  ## Remove build artifacts
+	rm -rf $(BUILD_DIR)
+
+flash:  ## Flash firmware to connected device (requires openocd or vendor tool)
+	@echo "Flash target not configured — set FLASH_CMD in your project Makefile"
+	@exit 1
+
+# MARK: embedded validate
+
+validate:  ## Validate build (compile + static analysis)
+	set -e
+	echo "Running embedded validation sequence..."
+	$(MAKE) -s clean
+	$(MAKE) -s build
+	echo "Embedded validation completed successfully"

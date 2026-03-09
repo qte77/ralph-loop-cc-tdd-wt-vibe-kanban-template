@@ -1,8 +1,8 @@
-# Python Ralph-Loop Template
+# Ralph-Loop Template
 
 > What a time to be alive
 
-Out-of-the-box Python project template using Ralph Loop autonomous development
+Language-agnostic project template using Ralph Loop autonomous development with plugin-based scaffold architecture
 
 ![Version](https://img.shields.io/badge/version-0.0.0-58f4c2.svg)
 [![License](https://img.shields.io/badge/license-BSD3Clause-58f4c2.svg)](LICENSE.md)
@@ -19,40 +19,70 @@ Out-of-the-box Python project template using Ralph Loop autonomous development
 - **Ralph Loop** - Autonomous development using a shell loop
 - **Claude Code** - Pre-configured skills, plugins, rules, and commands for
   AI-assisted development
-- **Makefile** - Build automation, Ralph orchestration, and validation commands
-- **Python Tooling** - ruff (linting/formatting), pyright (type checking),
-  pytest (testing)
+- **Plugin-based Scaffold** - Language-agnostic core; language toolchain installed
+  on demand via `make setup_scaffold LANG=<lang>`
+- **Makefile** - Split architecture: core recipes in `Makefile`,
+  language-specific recipes in `Makefile.<lang>` (auto-included from `.scaffold`)
 - **MkDocs** - Auto-generated documentation with GitHub Pages deployment
 - **GitHub Actions** - CI/CD workflows (CodeQL, ruff, pyright, pytest, link
   checking, docs deployment)
 - **DevContainers** - Template (Alpine ~10MB) and actual project
   (Python/Node/Docker ~1GB+)
-- **VS Code** - Workspace settings, tasks, and extensions for optimal Python
-  development
+- **VS Code** - Workspace settings, tasks, and extensions for development
 - **Configurable Model routing** - Use different models for hard or easy tasks.
   See [Ralph README.md](./ralph/README.md#configuration).
+
+## Scaffold Workflow
+
+The scaffold system writes a `.scaffold` file (gitignored) that controls which
+`Makefile.<lang>` is auto-included at build time:
+
+```bash
+# Initialize scaffold for your language (run once after cloning)
+make setup_scaffold LANG=python     # Python: ruff, pyright, pytest, mkdocs
+make setup_scaffold LANG=embedded   # Embedded C: cmake build + flash
+
+# Install the toolchain for the active scaffold
+make setup_toolchain
+
+# Validate — dispatches to the active scaffold's validate recipe
+make validate
+```
+
+Supported languages:
+
+| `LANG` | Toolchain | Validate |
+|--------|-----------|---------|
+| `python` | uv, ruff, pyright, pytest | ruff + pyright + complexipy + pytest |
+| `embedded` | cmake, C compiler | cmake build |
+
+Language-specific Claude Code skills are **not** checked into the template.
+Install them from [claude-code-utils-plugin](https://github.com/qte77/claude-code-utils-plugin)
+as needed for your language.
 
 ## Quick Start
 
 ```bash
-# 1. Customize template with your project details
-# The devcontainer needs a rebuild, if the python version was changed
-make setup_project
+# 1. Choose your language scaffold (written to .scaffold, gitignored)
+make setup_scaffold LANG=python
 
-# 2. Setup development environment, if not done by devcontainer.json
-make setup_dev
+# 2. Install toolchain (also runs automatically in devcontainer via onCreateCommand)
+make setup_toolchain
+
+# 3. Customize template with your project details
+make setup_project
 
 # Optional
 make ralph_create_userstory_md            # Interactive User Story using CC
 make ralph_create_prd_md                  # Generate PRD.md from UserStory.md
 
-# 3. Write requirements in docs/PRD.md, then run Ralph
+# 4. Write requirements in docs/PRD.md, then run Ralph
 make ralph_init_loop             # Initialize (creates prd.json)
 make ralph_run [ITERATIONS=25]   # Run autonomous development
 make ralph_run                   # Resume if paused (auto-detects existing worktrees)
 make ralph_status                # Check progress (with timestamp)
 
-# 4. Post-run options
+# 5. Post-run options
 # Reset state (removes prd.json, progress.txt)
 make ralph_clean
 # Archive and start new iteration

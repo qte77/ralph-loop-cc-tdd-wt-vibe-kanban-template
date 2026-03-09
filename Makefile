@@ -1,19 +1,69 @@
-# This Makefile automates the build, test, and clean processes for the project.
-# It provides a convenient way to run common tasks using the 'make' command.
-# It is designed to work with the 'uv' tool for managing Python environments and dependencies.
-# Note: UV_LINK_MODE could be configured in .devcontainer/project/devcontainer.json
+# This Makefile automates build, test, and project-setup tasks.
+# Language-specific recipes live in Makefile.<lang> and are auto-included
+# based on the contents of .scaffold (written by `make setup_scaffold`).
 # Run `make help` to see all available recipes.
 
 .SILENT:
 .ONESHELL:
-.PHONY: setup_dev setup_claude_code setup_npm_tools setup_lychee setup_project run_markdownlint ruff complexity duplication lint_md lint_hardcoded_paths lint_links test_all test_quick test_coverage test_e2e type_check validate validate_quick quick_validate docs_serve docs_build ralph_validate_json ralph_create_userstory_md ralph_create_prd_md ralph_init_loop ralph_run ralph_run_worktree ralph_init_and_run ralph_reorganize_prd ralph_status ralph_stop ralph_clean ralph_archive ralph_watch ralph_get_log vibe_start vibe_stop_all vibe_status vibe_cleanup help
+.PHONY: setup_scaffold setup_toolchain setup_dev setup_claude_code setup_npm_tools setup_lychee setup_project run_markdownlint lint_md lint_links ralph_validate_json ralph_create_userstory_md ralph_create_prd_md ralph_init_loop ralph_run ralph_run_worktree ralph_init_and_run ralph_reorganize_prd ralph_status ralph_stop ralph_clean ralph_archive ralph_watch ralph_get_log vibe_start vibe_stop_all vibe_status vibe_cleanup help
 .DEFAULT_GOAL := help
+
+# Auto-include language-specific Makefile when .scaffold exists
+-include Makefile.$(shell cat .scaffold 2>/dev/null)
+
+
+# MARK: scaffold
+
+
+setup_scaffold:  ## Initialize scaffold for a language. Usage: make setup_scaffold LANG=python|embedded
+	if [ -z "$(LANG)" ]; then
+		echo "ERROR: LANG is required. Usage: make setup_scaffold LANG=python|embedded"
+		exit 1
+	fi
+	case "$(LANG)" in
+		python|embedded) ;;
+		*)
+			echo "ERROR: Unsupported LANG '$(LANG)'. Supported: python, embedded"
+			exit 1
+		;;
+	esac
+	echo "$(LANG)" > .scaffold
+	echo "Scaffold set to: $(LANG)"
+	echo "Run 'make setup_toolchain' to install language toolchain"
+
+setup_toolchain:  ## Install toolchain for the active scaffold (reads .scaffold)
+	if [ ! -f .scaffold ]; then
+		echo "ERROR: .scaffold file not found. Run 'make setup_scaffold LANG=<lang>' first"
+		exit 1
+	fi
+	LANG=$$(cat .scaffold)
+	echo "Setting up toolchain for language: $$LANG"
+	case "$$LANG" in
+		python)
+			pip install uv -q
+			uv sync --all-groups
+			$(MAKE) -s setup_npm_tools
+			$(MAKE) -s setup_lychee
+			echo "Python toolchain ready"
+		;;
+		embedded)
+			if ! command -v cmake > /dev/null 2>&1; then
+				echo "ERROR: cmake not found — install cmake and a C compiler first"
+				exit 1
+			fi
+			echo "Embedded toolchain ready (cmake: $$(cmake --version | head -1))"
+		;;
+		*)
+			echo "ERROR: Unknown language '$$LANG' in .scaffold"
+			exit 1
+		;;
+	esac
 
 
 # MARK: setup
 
 
-setup_dev:  ## Install uv and deps, npm tools, lychee
+setup_dev:  ## Install uv and deps, npm tools, lychee (python scaffold)
 	echo "Setting up dev environment ..."
 	pip install uv -q
 	uv sync --all-groups
@@ -51,29 +101,11 @@ run_markdownlint:  ## Lint markdown files. Usage from root dir: make run_markdow
 	markdownlint $(INPUT_FILES) --fix
 
 
-# MARK: Sanity
+# MARK: lint
 
-
-ruff:  ## Lint: Format and check with ruff
-	uv run ruff format --exclude tests
-	uv run ruff check --fix --exclude tests
-
-complexity:  ## Check cognitive complexity with complexipy
-	uv run complexipy
-
-duplication:  ## Check for code duplication with jscpd
-	jscpd src/ --reporters console --format python
 
 lint_md:  ## Lint markdown files - Usage: make lint_md FILES="docs/**/*.md"
 	markdownlint $${FILES:-"*.md"} --fix
-
-lint_hardcoded_paths:  ## GHA safety: check for /workspaces/ in test files
-	echo "Checking for hardcoded /workspaces/ paths in tests..."
-	if grep -rn --include='*.py' '/workspaces/' tests/ 2>/dev/null; then
-		echo "ERROR: Found hardcoded /workspaces/ paths in tests (breaks GHA)"
-		exit 1
-	fi
-	echo "No hardcoded paths found"
 
 lint_links:  ## Check for broken links with lychee. Usage: make lint_links [INPUT_FILES="docs/**/*.md"]
 	if command -v lychee > /dev/null 2>&1; then \
@@ -82,62 +114,9 @@ lint_links:  ## Check for broken links with lychee. Usage: make lint_links [INPU
 		echo "lychee not installed — skipping link check (run 'make setup_lychee' to install)"; \
 	fi
 
-test_all:  ## Run all tests (excludes E2E tests by default)
-	uv run pytest
-
-test_quick:  ## Quick test - rerun only failed tests (use during fix iterations)
-	uv run pytest --lf -x
-
-test_coverage:  ## Run tests with coverage threshold (configured in pyproject.toml)
-	echo "Running tests with coverage gate (fail_under=70% in pyproject.toml)..."
-	uv run pytest --cov
-
-test_e2e:  ## Run E2E tests only (Ralph parallel loop tests)
-	echo "Running E2E tests..."
-	bash ralph/scripts/tests/test_parallel_ralph.sh
-	uv run pytest -m e2e -v
-
-type_check:  ## Check for static typing errors
-	uv run pyright
-
-validate:  ## Complete pre-commit validation sequence
-	set -e
-	echo "Running complete validation sequence..."
-	$(MAKE) -s ruff
-	$(MAKE) -s type_check
-	$(MAKE) -s complexity
-	$(MAKE) -s test_coverage
-	echo "Validation completed successfully"
-
-validate_quick:  ## Quick validation for fix iterations (no coverage check)
-	set -e
-	echo "Running quick validation (no coverage check)..."
-	$(MAKE) -s ruff
-	$(MAKE) -s type_check
-	$(MAKE) -s complexity
-	$(MAKE) -s test_quick
-	echo "Quick validation completed"
-
-quick_validate:  ## Fast development cycle validation
-	echo "Running quick validation ..."
-	$(MAKE) -s ruff
-	-$(MAKE) -s type_check
-	-$(MAKE) -s complexity
-	-$(MAKE) -s lint_hardcoded_paths
-	echo "Quick validation completed (check output for any failures)"
-
-
-# MARK: docs
-
-
-docs_serve:  ## Serve MkDocs documentation locally
-	uv run mkdocs serve
-
-docs_build:  ## Build MkDocs documentation
-	uv run mkdocs build
-
 
 # MARK: ralph
+
 
 ralph_validate_json:  ## Internal: Validate prd.json syntax
 	bash ralph/scripts/lib/validate_json.sh

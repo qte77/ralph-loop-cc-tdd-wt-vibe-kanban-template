@@ -1,3 +1,6 @@
+# Scaffold state
+.scaffold
+
 # Python bytecode
 __pycache__/
 *.py[cod]
