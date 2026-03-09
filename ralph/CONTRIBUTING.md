@@ -21,6 +21,25 @@ For project-level development workflows, see the root
 | `make ralph_clean` | Reset Ralph state (worktrees + local) | |
 | `make ralph_archive` | Archive current run state | `ARCHIVE_LOGS=1` |
 
+### Makefile Integration (Submodule Users)
+
+When Ralph is added as a git submodule, the project root Makefile
+includes Ralph's scoped Makefile:
+
+```makefile
+# Project root Makefile
+-include ralph/Makefile
+```
+
+Ralph's `Makefile` uses `RALPH_ROOT` (defaults to its own directory)
+for all paths, so recipes work regardless of where the submodule is
+checked out. All `ralph_*` recipes are then available from the
+project root.
+
+For the full submodule setup, see
+[Consumption Approaches](../../README.md#2-git-submodule-existing-project)
+in the root README.
+
 ### Upstream Command Mapping
 
 This template uses different command names from the upstream

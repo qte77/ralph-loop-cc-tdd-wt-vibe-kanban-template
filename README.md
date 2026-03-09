@@ -94,40 +94,92 @@ Use "Use this template" on GitHub. Full project scaffold with `ralph/`,
 
 ### 2. Git Submodule (existing project)
 
-Add Ralph to an existing project as a read-only reference:
+Add Ralph as a submodule. Two approaches depending on how tightly
+you want to track upstream.
+
+#### 2a. Direct submodule at `ralph/` (recommended)
+
+The submodule **is** your `ralph/` directory. Scripts update
+automatically via `git submodule update --remote`. Local state
+files (`prd.json`, `progress.txt`, `LEARNINGS.md`, `archive/`)
+are gitignored in the template so they survive updates.
 
 ```bash
 # Add submodule
 git submodule add --branch main \
   https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template.git \
-  .ralph-template
+  ralph
 
-# Copy ralph/ locally (required — scripts write state to ralph/docs/)
-cp -r .ralph-template/ralph ralph
+# Initialize local state files (gitignored, never overwritten)
+cp ralph/LEARNINGS.md.example ralph/LEARNINGS.md
+cp ralph/REQUESTS.md.example ralph/REQUESTS.md
+mkdir -p ralph/docs/archive
 
-# .claude/ can be symlinked (read-only) or copied (if overrides needed)
-ln -s .ralph-template/.claude .claude   # symlink
-# cp -r .ralph-template/.claude .claude # copy for local overrides
+# Include ralph's Makefile from your project root Makefile
+echo '-include ralph/Makefile' >> Makefile
+
+# Ignore dirty submodule state (local files)
+git config -f .gitmodules submodule.ralph.ignore dirty
 ```
 
-**Why copy `ralph/`?** Ralph writes `prd.json`, `progress.txt`, and
-logs to `ralph/docs/`. Symlinking would write into the submodule.
-
-**Update submodule and sync:**
+**Update:**
 
 ```bash
-# Pull latest template changes
+git submodule update --remote ralph
+git add ralph
+git commit -m "chore: update ralph submodule"
+```
+
+**Makefile integration:** Ralph ships a scoped `ralph/Makefile`
+with all `ralph_*` recipes using relative paths. Include it from
+your project root:
+
+```makefile
+# Project root Makefile
+-include ralph/Makefile
+```
+
+**Pros:** Scripts always in sync with SOT, no manual diff/cherry-pick,
+scoped Makefile works with any `RALPH_ROOT`.
+
+**Cons:** Full repo checkout (not just `ralph/`).
+
+#### 2b. Reference submodule with local copy
+
+The submodule lives at `.ralph-template/` as a read-only reference.
+You maintain a local `ralph/` copy and sync manually.
+
+```bash
+# Add submodule as reference
+git submodule add --branch main \
+  https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template.git \
+  .ralph-template
+
+# Copy ralph/ locally
+cp -r .ralph-template/ralph ralph
+```
+
+**Update:**
+
+```bash
 git submodule update --remote .ralph-template
-
-# Compare template scripts with local copies
 diff -r .ralph-template/ralph/scripts ralph/scripts
-
-# Cherry-pick changes, then commit
+# Cherry-pick changes manually, then commit
 git add .ralph-template
 git commit -m "chore: update .ralph-template submodule"
 ```
 
-**CI setup:** Add `submodules: recursive` to checkout steps:
+**Pros:** Full control over local `ralph/`, selective adoption.
+
+**Cons:** Manual diff/sync of script updates.
+
+#### Common setup for both approaches
+
+**CI (required for 2a, recommended for 2b):** Add
+`submodules: recursive` to all `actions/checkout` steps.
+Without this, CI clones the repo but leaves the submodule
+directory empty — any workflow running `make validate`,
+`make test`, or ralph commands will fail.
 
 ```yaml
 - uses: actions/checkout@v4
@@ -135,13 +187,9 @@ git commit -m "chore: update .ralph-template submodule"
     submodules: recursive
 ```
 
-**Pros:** SOT stays upstream, selective sync of script updates.
-
-**Cons:** Full repo checkout (not just `ralph/`), manual sync of
-script changes into local `ralph/`.
-
-For `.claude/` overrides, keep local files — Claude Code merges
-`.claude/settings.local.json` over `.claude/settings.json`.
+**`.claude/`** can be symlinked (read-only) or copied (overrides).
+Claude Code merges `.claude/settings.local.json` over
+`.claude/settings.json`.
 
 ### 3. Standalone CLI (planned)
 

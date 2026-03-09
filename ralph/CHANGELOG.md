@@ -9,6 +9,17 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Submodule consumption: direct at `ralph/` (2a) and reference at
+  `.ralph-template/` (2b) — documented in root README
+- Scoped `ralph/Makefile` with `RALPH_ROOT` variable for path-agnostic
+  recipes, includable from project root via `-include ralph/Makefile`
+- `LEARNINGS.md.example` and `REQUESTS.md.example` as starter files
+  for submodule users (gitignored originals are local state)
+- Gitignored local state files: `docs/prd.json`, `docs/progress.txt`,
+  `docs/archive/`, `LEARNINGS.md`, `REQUESTS.md`
+
+### Previously added
+
 - Status enum (`"pending"`, `"in_progress"`, `"passed"`, `"failed"`) replacing
   `passes: boolean` in prd.json schema
 - Wave computation (`compute_waves()`) for dependency-frontier tracking —
