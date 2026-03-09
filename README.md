@@ -94,26 +94,52 @@ Use "Use this template" on GitHub. Full project scaffold with `ralph/`,
 
 ### 2. Git Submodule (existing project)
 
-Add Ralph to an existing project without forking:
+Add Ralph to an existing project as a read-only reference:
 
 ```bash
+# Add submodule
 git submodule add --branch main \
   https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template.git \
   .ralph-template
 
-# Symlink into your project
+# Option A: Symlink (simple, no local overrides)
 ln -s .ralph-template/ralph ralph
 ln -s .ralph-template/.claude .claude
+
+# Option B: Copy and maintain locally (project-specific overrides)
+cp -r .ralph-template/ralph ralph
+cp -r .ralph-template/.claude .claude
 ```
 
-**Pros:** SOT stays upstream, `git submodule update --remote` pulls
-latest changes.
+**Update submodule:**
 
-**Cons:** Full repo checkout (not just `ralph/`), symlinks need
-CI/Makefile awareness.
+```bash
+# Pull latest template changes
+git submodule update --remote .ralph-template
+
+# Compare with local copies (Option B only)
+diff -r .ralph-template/ralph/scripts ralph/scripts
+
+# Commit updated submodule pointer
+git add .ralph-template
+git commit -m "chore: update .ralph-template submodule"
+```
+
+**CI setup:** Add `submodules: recursive` to checkout steps:
+
+```yaml
+- uses: actions/checkout@v4
+  with:
+    submodules: recursive
+```
+
+**Pros:** SOT stays upstream, selective sync of script updates.
+
+**Cons:** Full repo checkout (not just `ralph/`), Option A symlinks
+need CI/Makefile awareness.
 
 For project-specific `.claude/` overrides (rules, skills, settings),
-keep local files alongside the symlinked ones — Claude Code merges
+use Option B and keep local files — Claude Code merges
 `.claude/settings.local.json` over `.claude/settings.json`.
 
 ### 3. Standalone CLI (planned)
