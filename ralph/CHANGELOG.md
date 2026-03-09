@@ -9,8 +9,8 @@ versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
-- Submodule consumption: direct at `ralph/` (2a) and reference at
-  `.ralph-template/` (2b) — documented in root README
+- Submodule consumption: add as submodule at `ralph/` — documented
+  in root README
 - Scoped `ralph/Makefile` with `RALPH_ROOT` variable for path-agnostic
   recipes, includable from project root via `-include ralph/Makefile`
 - `LEARNINGS.md.example` and `REQUESTS.md.example` as starter files

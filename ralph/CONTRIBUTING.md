@@ -37,7 +37,7 @@ checked out. All `ralph_*` recipes are then available from the
 project root.
 
 For the full submodule setup, see
-[Consumption Approaches](../../README.md#2-git-submodule-existing-project)
+[Consumption Approaches](../README.md#2-git-submodule-existing-project)
 in the root README.
 
 ### Upstream Command Mapping
