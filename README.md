@@ -102,25 +102,27 @@ git submodule add --branch main \
   https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template.git \
   .ralph-template
 
-# Option A: Symlink (simple, no local overrides)
-ln -s .ralph-template/ralph ralph
-ln -s .ralph-template/.claude .claude
-
-# Option B: Copy and maintain locally (project-specific overrides)
+# Copy ralph/ locally (required — scripts write state to ralph/docs/)
 cp -r .ralph-template/ralph ralph
-cp -r .ralph-template/.claude .claude
+
+# .claude/ can be symlinked (read-only) or copied (if overrides needed)
+ln -s .ralph-template/.claude .claude   # symlink
+# cp -r .ralph-template/.claude .claude # copy for local overrides
 ```
 
-**Update submodule:**
+**Why copy `ralph/`?** Ralph writes `prd.json`, `progress.txt`, and
+logs to `ralph/docs/`. Symlinking would write into the submodule.
+
+**Update submodule and sync:**
 
 ```bash
 # Pull latest template changes
 git submodule update --remote .ralph-template
 
-# Compare with local copies (Option B only)
+# Compare template scripts with local copies
 diff -r .ralph-template/ralph/scripts ralph/scripts
 
-# Commit updated submodule pointer
+# Cherry-pick changes, then commit
 git add .ralph-template
 git commit -m "chore: update .ralph-template submodule"
 ```
@@ -135,11 +137,10 @@ git commit -m "chore: update .ralph-template submodule"
 
 **Pros:** SOT stays upstream, selective sync of script updates.
 
-**Cons:** Full repo checkout (not just `ralph/`), Option A symlinks
-need CI/Makefile awareness.
+**Cons:** Full repo checkout (not just `ralph/`), manual sync of
+script changes into local `ralph/`.
 
-For project-specific `.claude/` overrides (rules, skills, settings),
-use Option B and keep local files — Claude Code merges
+For `.claude/` overrides, keep local files — Claude Code merges
 `.claude/settings.local.json` over `.claude/settings.json`.
 
 ### 3. Standalone CLI (planned)
