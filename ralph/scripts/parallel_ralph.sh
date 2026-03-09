@@ -884,8 +884,8 @@ complete_ralph_loop() {
             log_info "Metrics selected worktree $metrics_winner"
 
             # Try judge evaluation
-            local judge_winner=$(judge_worktrees "$RUN_ID" "$N_WT")
-            if [ $? -ne 0 ] || [ -z "$judge_winner" ]; then
+            local judge_winner
+            if ! judge_winner=$(judge_worktrees "$RUN_ID" "$N_WT") || [ -z "$judge_winner" ]; then
                 log_info "Falling back to quantitative metrics..."
                 best_wt="$metrics_winner"
             else
