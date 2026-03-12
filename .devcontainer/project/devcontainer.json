@@ -15,7 +15,8 @@
     "LOAD_DOTENV": "true",
     "UV_CACHE_DIR": "/tmp/claude-1000/uv-cache"
   },
-  "postCreateCommand": "make setup_sandbox && make setup_dev",
+  "onCreateCommand": "make setup_scaffold LANG=python && make setup_toolchain",
+  "postCreateCommand": "make setup_claude_code && make setup_npm_tools && make setup_lychee",
   "customizations": {
     "vscode": {
       "extensions": [
