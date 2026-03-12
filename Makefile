@@ -135,10 +135,11 @@ ralph_init_loop:  ## Initialize Ralph loop environment. No params.
 	bash ralph/scripts/init.sh
 	$(MAKE) -s ralph_validate_json
 
-ralph_run:  ## Run Ralph loop - Usage: make ralph_run [N_WT=<N>] [ITERATIONS=<N>] [DEBUG=1] [RALPH_JUDGE_ENABLED=true] [RALPH_SECURITY_REVIEW=true] [RALPH_MERGE_INTERACTIVE=true]
+ralph_run:  ## Run Ralph loop - Usage: make ralph_run [N_WT=<N>] [ITERATIONS=<N>] [DEBUG=1] [KEEP_WORKTREES=true] [RALPH_JUDGE_ENABLED=true] [RALPH_SECURITY_REVIEW=true] [RALPH_MERGE_INTERACTIVE=true]
 	echo "Starting Ralph loop (N_WT=$${N_WT:-}, iterations=$${ITERATIONS:-}) ..."
 	$(MAKE) -s ralph_validate_json
 	DEBUG=$${DEBUG:-} \
+	RALPH_PARALLEL_KEEP_WORKTREES=$${KEEP_WORKTREES:-} \
 	RALPH_JUDGE_ENABLED=$${RALPH_JUDGE_ENABLED:-} \
 	RALPH_JUDGE_MODEL=$${RALPH_JUDGE_MODEL:-} \
 	RALPH_JUDGE_MAX_WT=$${RALPH_JUDGE_MAX_WT:-} \
@@ -149,9 +150,9 @@ ralph_run:  ## Run Ralph loop - Usage: make ralph_run [N_WT=<N>] [ITERATIONS=<N>
 ralph_run_worktree:  ## Create worktree for a Ralph branch. Usage: make ralph_run_worktree BRANCH=ralph/sprint-name
 	env -u VIRTUAL_ENV bash ralph/scripts/ralph-in-worktree.sh "$${BRANCH}"
 
-ralph_init_and_run:  ## Initialize and run Ralph loop in one command. Usage: make ralph_init_and_run [N_WT=<N>] [ITERATIONS=<N>] [DEBUG=1] [RALPH_JUDGE_ENABLED=true] [RALPH_SECURITY_REVIEW=true] [RALPH_MERGE_INTERACTIVE=true]
+ralph_init_and_run:  ## Initialize and run Ralph loop in one command. Usage: make ralph_init_and_run [N_WT=<N>] [ITERATIONS=<N>] [DEBUG=1] [KEEP_WORKTREES=true] [RALPH_JUDGE_ENABLED=true] [RALPH_SECURITY_REVIEW=true] [RALPH_MERGE_INTERACTIVE=true]
 	$(MAKE) -s ralph_init_loop
-	$(MAKE) -s ralph_run N_WT=$${N_WT:-} ITERATIONS=$${ITERATIONS:-} DEBUG=$${DEBUG:-} RALPH_JUDGE_ENABLED=$${RALPH_JUDGE_ENABLED:-} RALPH_SECURITY_REVIEW=$${RALPH_SECURITY_REVIEW:-} RALPH_MERGE_INTERACTIVE=$${RALPH_MERGE_INTERACTIVE:-}
+	$(MAKE) -s ralph_run N_WT=$${N_WT:-} ITERATIONS=$${ITERATIONS:-} DEBUG=$${DEBUG:-} KEEP_WORKTREES=$${KEEP_WORKTREES:-} RALPH_JUDGE_ENABLED=$${RALPH_JUDGE_ENABLED:-} RALPH_SECURITY_REVIEW=$${RALPH_SECURITY_REVIEW:-} RALPH_MERGE_INTERACTIVE=$${RALPH_MERGE_INTERACTIVE:-}
 
 
 ralph_reorganize_prd:  ## Archive current PRD and activate new one. Usage: make ralph_reorganize_prd NEW_PRD=docs/PRD-v2.md [VERSION=2]

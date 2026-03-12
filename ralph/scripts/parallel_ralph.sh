@@ -668,7 +668,12 @@ cleanup_on_error() {
     stop_ralph_processes || true
 
     # Cleanup worktrees and orphaned branches (bypass interactive prompts)
-    cleanup_worktrees || true
+    if [ "${RALPH_PARALLEL_KEEP_WORKTREES}" != "true" ]; then
+        cleanup_worktrees || true
+    else
+        unlock_worktrees || true
+        log_info "Worktrees preserved for debugging (RALPH_PARALLEL_KEEP_WORKTREES=true). Run 'make ralph_clean' to remove."
+    fi
 
     # Cleanup Vibe Kanban tasks
     if command -v bash &> /dev/null && [ -f "ralph/scripts/vibe.sh" ]; then
@@ -911,7 +916,12 @@ complete_ralph_loop() {
     if merge_best "$best_wt" "$N_WT" "$RUN_ID"; then
         log_info "Success! Best result merged from worktree $best_wt"
         # Cleanup worktrees after successful completion
-        cleanup_worktrees
+        if [ "${RALPH_PARALLEL_KEEP_WORKTREES}" != "true" ]; then
+            cleanup_worktrees
+        else
+            unlock_worktrees
+            log_info "Worktrees preserved (RALPH_PARALLEL_KEEP_WORKTREES=true). Run 'make ralph_clean' to remove."
+        fi
     else
         log_error "Merge failed - manual intervention required"
         # On merge failure, unlock but preserve worktrees for debugging

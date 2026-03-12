@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `RALPH_PARALLEL_KEEP_WORKTREES` config: preserve worktrees after successful runs and fatal errors for post-run inspection (`KEEP_WORKTREES=true` via Makefile)
 - `make setup_scaffold LANG=<lang>` recipe: writes `.scaffold`, validates supported languages (python, embedded)
 - `make setup_toolchain` recipe: reads `.scaffold` and installs the language-specific toolchain
 - `Makefile.python`: language-specific recipes (ruff, type_check, test, validate, docs) — auto-included when `.scaffold` contains `python`
