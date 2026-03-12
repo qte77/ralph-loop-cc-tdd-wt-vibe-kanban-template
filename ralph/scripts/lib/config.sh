@@ -53,6 +53,10 @@ RALPH_MAX_FIX_ATTEMPTS=${RALPH_MAX_FIX_ATTEMPTS:-3}  # Max validation fix attemp
 RALPH_MAX_ITERATIONS=${RALPH_MAX_ITERATIONS:-25}  # Default loop iterations
 RALPH_VALIDATION_TIMEOUT=${RALPH_VALIDATION_TIMEOUT:-300}  # Validation timeout (5 min)
 RALPH_VIBE_PORT=${RALPH_VIBE_PORT:-5173}  # Vibe Kanban port
+RALPH_DRY_RUN=${RALPH_DRY_RUN:-false}  # Skip TDD verification and quality checks
+RALPH_MODEL=${RALPH_MODEL:-}  # Override model for all story execution (bypasses classify_story)
+RALPH_INSTRUCTION=${RALPH_INSTRUCTION:-}  # Free-text steering injected into story prompt
+RALPH_DESLOPIFY=${RALPH_DESLOPIFY:-false}  # Append quality-enforcement system prompt to claude calls
 
 # =================================================
 # GIT BRANCH CONFIGURATION
@@ -90,6 +94,7 @@ RALPH_PARALLEL_USE_LOCK=${RALPH_PARALLEL_USE_LOCK:-true}
 RALPH_PARALLEL_USE_NO_TRACK=${RALPH_PARALLEL_USE_NO_TRACK:-true}
 RALPH_PARALLEL_WORKTREE_PREFIX=${RALPH_PARALLEL_WORKTREE_PREFIX:-"../${SRC_PACKAGE_DIR}-ralph-wt"}
 RALPH_PARALLEL_WORKTREE_QUIET=${RALPH_PARALLEL_WORKTREE_QUIET:-false}
+RALPH_PARALLEL_KEEP_WORKTREES=${RALPH_PARALLEL_KEEP_WORKTREES:-false}
 
 # =================================================
 # JUDGE CONFIGURATION (Claude-as-Judge for N_WT>1)

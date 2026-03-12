@@ -2,7 +2,7 @@
 title: Ralph TODO
 purpose: Consolidated backlog for Ralph loop — bugs, enhancements, and deferred items.
 created: 2026-03-08
-updated: 2026-03-08
+updated: 2026-03-12
 ---
 
 ## Adopt Now (zero cost)
@@ -18,11 +18,7 @@ None.
 - [ ] **Agent Teams for parallel story execution**: Enable with `make ralph_run TEAMS=true` (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`). Lead agent orchestrates teammates with skill-specific delegation. **Terminology**: a **wave** is the set of currently unblocked stories (all `depends_on` satisfied) — i.e., the frontier of the dependency graph. Stories within a wave run in parallel (one teammate each); the next wave starts after the current one completes.
   - [ ] **CC Agent Teams as alternative orchestrator**: Instead of Ralph's bash loop driving `claude -p` with bolted-on teams support, the CC main orchestrator agent directly spawns a team via `TeamCreate` + `Task` tool. Each story becomes a `TaskCreate` entry with `blockedBy` dependencies (both logical and file-conflict). Addresses Ralph failure modes structurally: isolated teammate contexts prevent cross-contamination (#2), `blockedBy` prevents stale snapshots (#4), no external reset eliminates Sisyphean loops (#1), lead-scoped validation prevents cross-story complexity failures (#3), and file-conflict deps in `blockedBy` prevent parallel edits to the same file (#5). Requires self-contained story descriptions in the PRD Story Breakdown (usable as `TaskCreate(description=...)`).
 
-- [ ] **Ad-hoc steering instructions**: Accept a free-text `INSTRUCTION` parameter via CLI/Make to inject user guidance into the prompt without editing tracked files. Usage: `make ralph_run INSTRUCTION="focus on error handling"`. The instruction would be appended to the story prompt so the agent factors it in during implementation.
-
-- [ ] **Rewrite Ralph engine as standalone CLI**: The bash script engine (~3k lines across 13 files) is brittle, untestable, and diverges when the template is forked. Rewrite as a standalone binary distributed as a single executable. Makefile stays as the user-facing interface, calling `ralph <subcommand>` instead of `bash ralph/scripts/*.sh`. Includes language adapter system for TDD/BDD validation across Python, Go, TypeScript, Rust, C++, and C. **Candidates** (choose one):
-  - **Go**: Static binary (10-15 MB, zero runtime deps), goroutines map directly to N-worker pattern, trivial cross-compilation. Key deps: Cobra (CLI), Viper (config). See [`docs/UserStory.md`](../docs/UserStory.md) for full requirements.
-  - **Bun/Deno**: Scripting feel + types + native JSON. Biggest wins: eliminates jq, typed story/prd interfaces, async process spawning. Maps cleanly: jq queries → JSON.parse, background monitor → async/await + AbortController, `claude -p` piping → Bun.spawn/Deno.Command. Python signature extraction via [tree-sitter](https://www.npmjs.com/package/tree-sitter) + [tree-sitter-python](https://www.npmjs.com/package/tree-sitter-python) (WASM variant works without native compilation). Needs investigation: `exec > >(tee)` dual logging, signal/trap handling, `ralph-in-worktree.sh` git coupling.
+- [ ] **Rewrite Ralph engine as standalone CLI**: The bash script engine (~4.1k lines across 25 files) is brittle, untestable, and diverges when the template is forked. Rewrite as a standalone binary distributed as a single executable. Makefile stays as the user-facing interface, calling `ralph <subcommand>` instead of `bash ralph/scripts/*.sh`. Includes language adapter system for TDD/BDD validation across Python, Go, TypeScript, Rust, C++, and C. **Research**: [`docs/research/ralph-cli-rewrite.md`](../docs/research/ralph-cli-rewrite.md) evaluates 5 options (bash hardening, Bun, Go, Deno, Python). **Recommendation: Go + Cobra/Viper** — smallest binary (10-15 MB), best cross-compilation, goroutines map to N-worker pattern, Viper replaces config.sh. See [`docs/UserStory.md`](../docs/UserStory.md) for full requirements and Go architecture.
 
 - [ ] **Streaming progress**: WebSocket-based real-time progress streaming for dashboard integrations (beyond REST polling).
 
@@ -47,6 +43,7 @@ None.
 
 ## Done
 
+- [x] **Ad-hoc steering instructions**: `RALPH_INSTRUCTION` config injected into story and fix prompts. Usage: `make ralph_run INSTRUCTION="focus on error handling"`. Also: `RALPH_MODEL` overrides `classify_story` routing, `RALPH_DESLOPIFY` appends quality-enforcement system prompt.
 - [x] **Intermediate progress visibility** — Monitor now tails agent log output at 30s intervals with `[CC]` (magenta) prefix for agent activity and red for agent errors, alongside existing phase detection from git log.
   - [x] **CC monitor log nesting** — `monitor_story_progress` now tracks byte offset (`wc -c`) between 30s cycles and reads only new log content via `tail -c +$offset`, preventing `[CC] [INFO] [CC] [INFO] ...` nesting chains.
 - [x] **Agent Teams inter-story** — `ralph.sh` appends unblocked independent stories to the prompt; `check_tdd_commits` filters by story ID in teams mode to prevent cross-story marker false positives. Completed stories caught by existing `detect_already_complete` path.
@@ -66,5 +63,5 @@ None.
 ## Sources
 
 - [Codified Context Infrastructure](https://arxiv.org/abs/2602.20478) — three-tier context architecture (constitution + specialist agents + cold-memory knowledge base), 283-session empirical study, 108K LOC C# project. Validates AGENTS.md + Skills + docs/ pattern.
-- [tree-sitter](https://github.com/tree-sitter/tree-sitter) — incremental parser generator (C + WASM); [tree-sitter-python](https://www.npmjs.com/package/tree-sitter-python) grammar. npm alternative for Python signature extraction in Bun/Deno CLI rewrite.
+- [tree-sitter](https://github.com/tree-sitter/tree-sitter) — incremental parser generator (C + WASM); [tree-sitter-python](https://www.npmjs.com/package/tree-sitter-python) grammar. Relevant if Bun/Deno chosen over Go for CLI rewrite (see [`docs/research/ralph-cli-rewrite.md`](../docs/research/ralph-cli-rewrite.md)).
 
