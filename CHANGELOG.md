@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `-include Makefile.$(shell cat .scaffold 2>/dev/null)` directive in main `Makefile` for auto-dispatch
 - `onCreateCommand` in `.devcontainer/project/devcontainer.json` runs `setup_scaffold LANG=python && setup_toolchain`
 - `.scaffold` added to `.gitignore`
+- `docs/research/ralph-cli-rewrite.md`: comprehensive research evaluating 5 rewrite options (bash hardening, Bun, Go, Deno, Python) with architecture sketches, Vibe Kanban integration analysis, and decision framework
 
 ### Removed
 
