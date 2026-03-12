@@ -145,7 +145,6 @@ ralph_run:  ## Run Ralph loop - Usage: make ralph_run [N_WT=<N>] [ITERATIONS=<N>
 	DEBUG=$${DEBUG:-} \
 	RALPH_DRY_RUN=$${DRY_RUN:-} \
 	RALPH_MODEL=$${MODEL:-} \
-	RALPH_TEAMS=$${TEAMS:-} \
 	RALPH_INSTRUCTION="$${INSTRUCTION:-}" \
 	RALPH_DESLOPIFY=$${DESLOPIFY:-} \
 	$(if $(filter true,$(TEAMS)),CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1) \
@@ -169,7 +168,6 @@ ralph_run_worktree:  ## Create worktree + run Ralph in it. Usage: make ralph_run
 	$(if $(TIMEOUT),timeout $(TIMEOUT)) \
 	env -u VIRTUAL_ENV \
 	RALPH_MODEL=$${MODEL:-} \
-	RALPH_TEAMS=$${TEAMS:-} \
 	RALPH_INSTRUCTION="$${INSTRUCTION:-}" \
 	RALPH_DRY_RUN=$${DRY_RUN:-} \
 	RALPH_DESLOPIFY=$${DESLOPIFY:-} \

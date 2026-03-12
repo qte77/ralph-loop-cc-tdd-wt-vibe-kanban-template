@@ -54,6 +54,9 @@ RALPH_MAX_ITERATIONS=${RALPH_MAX_ITERATIONS:-25}  # Default loop iterations
 RALPH_VALIDATION_TIMEOUT=${RALPH_VALIDATION_TIMEOUT:-300}  # Validation timeout (5 min)
 RALPH_VIBE_PORT=${RALPH_VIBE_PORT:-5173}  # Vibe Kanban port
 RALPH_DRY_RUN=${RALPH_DRY_RUN:-false}  # Skip TDD verification and quality checks
+RALPH_MODEL=${RALPH_MODEL:-}  # Override model for all story execution (bypasses classify_story)
+RALPH_INSTRUCTION=${RALPH_INSTRUCTION:-}  # Free-text steering injected into story prompt
+RALPH_DESLOPIFY=${RALPH_DESLOPIFY:-false}  # Append quality-enforcement system prompt to claude calls
 
 # =================================================
 # GIT BRANCH CONFIGURATION

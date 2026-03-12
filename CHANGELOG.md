@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `RALPH_DRY_RUN` config + one-shot mode in `ralph.sh`: skip TDD verification and quality checks (`DRY_RUN=true` via Makefile)
+- `RALPH_MODEL` config: override model for all claude calls, bypassing `classify_story` routing (`MODEL=opus` via Makefile)
+- `RALPH_INSTRUCTION` config: free-text steering injected into story and fix prompts (`INSTRUCTION="focus on X"` via Makefile)
+- `RALPH_DESLOPIFY` config: append quality-enforcement system prompt to all claude calls (`DESLOPIFY=true` via Makefile)
 - `ralph_create_prd_json` recipe with `DRY_RUN=1` support for parse-only validation
 - `ralph_worktree` recipe for standalone worktree creation without running Ralph
 - `RALPH_PARALLEL_KEEP_WORKTREES` config: preserve worktrees after successful runs and fatal errors for post-run inspection (`KEEP_WORKTREES=true` via Makefile)
@@ -34,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `ralph_run`, `ralph_init_and_run`: added TIMEOUT, MODEL, TEAMS, DRY_RUN, INSTRUCTION, DESLOPIFY pass-through params
+- Removed unused `RALPH_TEAMS` env var passthrough from Makefile recipes (only `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` matters downstream)
 - `ralph_run_worktree`: expanded from worktree-only to full run-in-worktree with all params
 - Main `Makefile` is now language-agnostic: ralph, scaffold, setup, lint, and vibe-kanban recipes only
 - `devcontainer.json` split `postCreateCommand` into `onCreateCommand` (toolchain) and `postCreateCommand` (CC/npm/lychee)

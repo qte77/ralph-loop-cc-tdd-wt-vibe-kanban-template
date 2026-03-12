@@ -255,6 +255,15 @@ log_progress() {
     } >> "$PROGRESS_FILE"
 }
 
+# Build extra claude CLI flags from config (RALPH_DESLOPIFY)
+build_claude_extra_flags() {
+    local flags=""
+    if [ "${RALPH_DESLOPIFY}" = "true" ]; then
+        flags='--append-system-prompt "Produce clean, production-quality code. No shortcuts, no placeholders, no TODOs. Every function must have proper error handling, types, and docstrings."'
+    fi
+    echo "$flags"
+}
+
 # Execute single story via Claude Code
 execute_story() {
     local story_id="$1"
@@ -265,9 +274,15 @@ execute_story() {
     log_info "Executing story: $story_id - $title"
     kanban_update "$story_id" "inprogress"
 
-    # Smart model selection based on story complexity
-    local model=$(classify_story "$title" "$description")
-    log_info "Using model: $model (based on story complexity)"
+    # Model selection: explicit override or smart classification
+    local model
+    if [ -n "${RALPH_MODEL}" ]; then
+        model="$RALPH_MODEL"
+        log_info "Using model: $model (explicit override via RALPH_MODEL)"
+    else
+        model=$(classify_story "$title" "$description")
+        log_info "Using model: $model (based on story complexity)"
+    fi
 
     # Create prompt for this iteration
     local iteration_prompt=$(mktemp)
@@ -296,12 +311,21 @@ execute_story() {
             echo ""
             cat "$RALPH_REQUESTS_FILE"
         fi
+
+        # Inject ad-hoc steering instruction
+        if [ -n "${RALPH_INSTRUCTION}" ]; then
+            echo ""
+            echo "## Steering Instruction"
+            echo ""
+            echo "$RALPH_INSTRUCTION"
+        fi
     } >> "$iteration_prompt"
 
     # Execute via Claude Code with selected model
     # Set PYTHONPATH to worktree's src/ for proper module isolation
+    local extra_flags=$(build_claude_extra_flags)
     log_info "Running Claude Code with story context..."
-    if PYTHONPATH="$(pwd)/src:${PYTHONPATH:-}" cat "$iteration_prompt" | claude -p --model "$model" --dangerously-skip-permissions 2>&1 | tee "$RALPH_TMP_DIR/execute_${story_id}.log"; then
+    if PYTHONPATH="$(pwd)/src:${PYTHONPATH:-}" cat "$iteration_prompt" | eval claude -p --model "$model" --dangerously-skip-permissions $extra_flags 2>&1 | tee "$RALPH_TMP_DIR/execute_${story_id}.log"; then
         log_info "Execution log saved: $RALPH_TMP_DIR/execute_${story_id}.log"
         rm "$iteration_prompt"
         return 0
@@ -354,12 +378,16 @@ fix_validation_errors() {
     while [ $attempt -le $max_attempts ]; do
         log_info "Fix attempt $attempt/$max_attempts"
 
-        # Smart model selection: use sonnet for complex fixes (threshold from config)
-        local model="$FIX_MODEL"
-        if [ "$prev_error_count" -gt "$FIX_ERROR_THRESHOLD" ]; then
+        # Model selection: explicit override or smart fix routing
+        local model
+        if [ -n "${RALPH_MODEL}" ]; then
+            model="$RALPH_MODEL"
+            log_info "Using model: $model (explicit override via RALPH_MODEL)"
+        elif [ "$prev_error_count" -gt "$FIX_ERROR_THRESHOLD" ]; then
             model="$DEFAULT_MODEL"
             log_info "Using $model for complex fixes (error count: $prev_error_count, threshold: $FIX_ERROR_THRESHOLD)"
         else
+            model="$FIX_MODEL"
             log_info "Using model: $model (validation fix)"
         fi
 
@@ -398,10 +426,19 @@ fix_validation_errors() {
                 echo ""
                 cat "$RALPH_REQUESTS_FILE"
             fi
+
+            # Inject ad-hoc steering instruction
+            if [ -n "${RALPH_INSTRUCTION}" ]; then
+                echo ""
+                echo "## Steering Instruction"
+                echo ""
+                echo "$RALPH_INSTRUCTION"
+            fi
         } >> "$fix_prompt"
 
         # Execute fix via Claude Code with timeout (set PYTHONPATH for worktree isolation)
-        if timeout "$FIX_TIMEOUT" bash -c "PYTHONPATH=\"\$(pwd)/src:\${PYTHONPATH:-}\" cat \"$fix_prompt\" | claude -p --model \"$model\" --dangerously-skip-permissions" 2>&1 | tee "$RALPH_TMP_DIR/fix_${story_id}_${attempt}.log"; then
+        local extra_flags=$(build_claude_extra_flags)
+        if timeout "$FIX_TIMEOUT" bash -c "PYTHONPATH=\"\$(pwd)/src:\${PYTHONPATH:-}\" cat \"$fix_prompt\" | eval claude -p --model \"$model\" --dangerously-skip-permissions $extra_flags" 2>&1 | tee "$RALPH_TMP_DIR/fix_${story_id}_${attempt}.log"; then
             log_info "Fix attempt log saved: $RALPH_TMP_DIR/fix_${story_id}_${attempt}.log"
             rm "$fix_prompt"
 
