@@ -5,7 +5,7 @@
 
 .SILENT:
 .ONESHELL:
-.PHONY: setup_scaffold setup_toolchain setup_dev setup_claude_code setup_npm_tools setup_lychee setup_project run_markdownlint lint_md lint_links ralph_validate_json ralph_create_userstory_md ralph_create_prd_md ralph_init_loop ralph_run ralph_run_worktree ralph_init_and_run ralph_reorganize_prd ralph_status ralph_stop ralph_clean ralph_archive ralph_watch ralph_get_log vibe_start vibe_stop_all vibe_status vibe_cleanup help
+.PHONY: setup_scaffold setup_toolchain setup_dev setup_claude_code setup_npm_tools setup_lychee setup_project run_markdownlint lint_md lint_links ralph_validate_json ralph_create_userstory_md ralph_create_prd_md ralph_create_prd_json ralph_init_loop ralph_run ralph_worktree ralph_run_worktree ralph_init_and_run ralph_reorganize_prd ralph_status ralph_stop ralph_clean ralph_archive ralph_watch ralph_get_log vibe_start vibe_stop_all vibe_status vibe_cleanup help
 .DEFAULT_GOAL := help
 
 # Auto-include language-specific Makefile when .scaffold exists
@@ -129,30 +129,57 @@ ralph_create_prd_md:  ## [Optional] Generate PRD.md from UserStory.md. No params
 	echo "Generating PRD.md from UserStory.md ..."
 	claude -p '/generating-prd-md-from-userstory-md'
 
+ralph_create_prd_json:  ## [Optional] Generate prd.json from PRD.md (DRY_RUN=1 for parse-only)
+	$(if $(DRY_RUN),python ralph/scripts/generate_prd_json.py --dry-run,echo "Generating prd.json from PRD.md ..." && claude -p '/generating-prd-json-from-prd-md')
+
 ralph_init_loop:  ## Initialize Ralph loop environment. No params.
 	echo "Initializing Ralph loop environment ..."
 	claude -p '/generating-prd-json-from-prd-md'
 	bash ralph/scripts/init.sh
 	$(MAKE) -s ralph_validate_json
 
-ralph_run:  ## Run Ralph loop - Usage: make ralph_run [N_WT=<N>] [ITERATIONS=<N>] [DEBUG=1] [KEEP_WORKTREES=true] [RALPH_JUDGE_ENABLED=true] [RALPH_SECURITY_REVIEW=true] [RALPH_MERGE_INTERACTIVE=true]
+ralph_run:  ## Run Ralph loop - Usage: make ralph_run [N_WT=<N>] [ITERATIONS=<N>] [TIMEOUT=<seconds>] [MODEL=sonnet|opus|haiku] [TEAMS=true] [DRY_RUN=true] [INSTRUCTION="..."] [DESLOPIFY=true] [DEBUG=1] [KEEP_WORKTREES=true] [RALPH_JUDGE_ENABLED=true] [RALPH_SECURITY_REVIEW=true] [RALPH_MERGE_INTERACTIVE=true]
 	echo "Starting Ralph loop (N_WT=$${N_WT:-}, iterations=$${ITERATIONS:-}) ..."
 	$(MAKE) -s ralph_validate_json
+	$(if $(TIMEOUT),timeout $(TIMEOUT)) \
 	DEBUG=$${DEBUG:-} \
+	RALPH_DRY_RUN=$${DRY_RUN:-} \
+	RALPH_MODEL=$${MODEL:-} \
+	RALPH_TEAMS=$${TEAMS:-} \
+	RALPH_INSTRUCTION="$${INSTRUCTION:-}" \
+	RALPH_DESLOPIFY=$${DESLOPIFY:-} \
+	$(if $(filter true,$(TEAMS)),CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1) \
 	RALPH_PARALLEL_KEEP_WORKTREES=$${KEEP_WORKTREES:-} \
 	RALPH_JUDGE_ENABLED=$${RALPH_JUDGE_ENABLED:-} \
 	RALPH_JUDGE_MODEL=$${RALPH_JUDGE_MODEL:-} \
 	RALPH_JUDGE_MAX_WT=$${RALPH_JUDGE_MAX_WT:-} \
 	RALPH_SECURITY_REVIEW=$${RALPH_SECURITY_REVIEW:-} \
 	RALPH_MERGE_INTERACTIVE=$${RALPH_MERGE_INTERACTIVE:-} \
-	env -u VIRTUAL_ENV bash ralph/scripts/parallel_ralph.sh "$${N_WT}" "$${ITERATIONS}"
+	env -u VIRTUAL_ENV bash ralph/scripts/parallel_ralph.sh "$${N_WT}" "$${ITERATIONS}" \
+	|| { EXIT_CODE=$$?; [ $$EXIT_CODE -eq 124 ] && echo "Ralph loop timed out after $(TIMEOUT)s"; exit $$EXIT_CODE; }
 
-ralph_run_worktree:  ## Create worktree for a Ralph branch. Usage: make ralph_run_worktree BRANCH=ralph/sprint-name
+ralph_worktree:  ## Create a git worktree for Ralph. Usage: make ralph_worktree BRANCH=ralph/sprint-name
+	$(if $(BRANCH),,$(error BRANCH is required. Usage: make ralph_worktree BRANCH=ralph/sprint-name))
 	env -u VIRTUAL_ENV bash ralph/scripts/ralph-in-worktree.sh "$${BRANCH}"
 
-ralph_init_and_run:  ## Initialize and run Ralph loop in one command. Usage: make ralph_init_and_run [N_WT=<N>] [ITERATIONS=<N>] [DEBUG=1] [KEEP_WORKTREES=true] [RALPH_JUDGE_ENABLED=true] [RALPH_SECURITY_REVIEW=true] [RALPH_MERGE_INTERACTIVE=true]
+ralph_run_worktree:  ## Create worktree + run Ralph in it. Usage: make ralph_run_worktree BRANCH=required [ITERATIONS=<N>] [TIMEOUT=<seconds>] [MODEL=sonnet|opus|haiku] [TEAMS=true] [DRY_RUN=true] [INSTRUCTION="..."] [DESLOPIFY=true]
+	$(if $(BRANCH),,$(error BRANCH is required. Usage: make ralph_run_worktree BRANCH=ralph/sprint-name))
+	env -u VIRTUAL_ENV bash ralph/scripts/ralph-in-worktree.sh "$${BRANCH}" && \
+	cd "../$$(basename $(BRANCH))" && \
+	$(if $(TIMEOUT),timeout $(TIMEOUT)) \
+	env -u VIRTUAL_ENV \
+	RALPH_MODEL=$${MODEL:-} \
+	RALPH_TEAMS=$${TEAMS:-} \
+	RALPH_INSTRUCTION="$${INSTRUCTION:-}" \
+	RALPH_DRY_RUN=$${DRY_RUN:-} \
+	RALPH_DESLOPIFY=$${DESLOPIFY:-} \
+	$(if $(filter true,$(TEAMS)),CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1) \
+	bash ralph/scripts/ralph.sh "$${ITERATIONS:-}" \
+	|| { EXIT_CODE=$$?; [ $$EXIT_CODE -eq 124 ] && echo "Ralph worktree timed out after $(TIMEOUT)s"; exit $$EXIT_CODE; }
+
+ralph_init_and_run:  ## Initialize and run Ralph loop. Usage: make ralph_init_and_run [N_WT=<N>] [ITERATIONS=<N>] [TIMEOUT=<seconds>] [MODEL=sonnet|opus|haiku] [TEAMS=true] [DRY_RUN=true] [INSTRUCTION="..."] [DESLOPIFY=true] [DEBUG=1] [KEEP_WORKTREES=true] [RALPH_JUDGE_ENABLED=true] [RALPH_SECURITY_REVIEW=true] [RALPH_MERGE_INTERACTIVE=true]
 	$(MAKE) -s ralph_init_loop
-	$(MAKE) -s ralph_run N_WT=$${N_WT:-} ITERATIONS=$${ITERATIONS:-} DEBUG=$${DEBUG:-} KEEP_WORKTREES=$${KEEP_WORKTREES:-} RALPH_JUDGE_ENABLED=$${RALPH_JUDGE_ENABLED:-} RALPH_SECURITY_REVIEW=$${RALPH_SECURITY_REVIEW:-} RALPH_MERGE_INTERACTIVE=$${RALPH_MERGE_INTERACTIVE:-}
+	$(MAKE) -s ralph_run N_WT=$${N_WT:-} ITERATIONS=$${ITERATIONS:-} TIMEOUT=$${TIMEOUT:-} MODEL=$${MODEL:-} TEAMS=$${TEAMS:-} DRY_RUN=$${DRY_RUN:-} INSTRUCTION="$${INSTRUCTION:-}" DESLOPIFY=$${DESLOPIFY:-} DEBUG=$${DEBUG:-} KEEP_WORKTREES=$${KEEP_WORKTREES:-} RALPH_JUDGE_ENABLED=$${RALPH_JUDGE_ENABLED:-} RALPH_SECURITY_REVIEW=$${RALPH_SECURITY_REVIEW:-} RALPH_MERGE_INTERACTIVE=$${RALPH_MERGE_INTERACTIVE:-}
 
 
 ralph_reorganize_prd:  ## Archive current PRD and activate new one. Usage: make ralph_reorganize_prd NEW_PRD=docs/PRD-v2.md [VERSION=2]

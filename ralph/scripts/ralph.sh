@@ -601,64 +601,73 @@ main() {
         if execute_story "$story_id" "$details"; then
             log_info "Story execution completed"
 
-            # Verify TDD commits were made (capture return code without triggering set -e)
-            local tdd_check_result=0
-            check_tdd_commits "$story_id" "$commits_before" || tdd_check_result=$?
-
-            if [ $tdd_check_result -eq 2 ]; then
-                # No commits made - check if story was already complete
-                local current_status=$(jq -r --arg sid "$story_id" '.stories[] | select(.id == $sid) | .status' "$PRD_JSON")
-                if [ "$current_status" == "passed" ]; then
-                    # Story was verified as complete (no new work needed)
-                    kanban_update "$story_id" "done"
-                    log_progress "$iteration" "$story_id" "PASS" "Verified as already complete"
-                    log_info "Story $story_id was already complete - marked as PASSING"
-
-                    # Commit state files
-                    commit_story_state "$story_id" "verified story was already complete"
-                    continue
-                else
-                    # Story incomplete, retry
-                    log_info "No commits - retrying story"
-                    log_progress "$iteration" "$story_id" "RETRY" "$TDD_ERROR_MSG"
-                    continue
-                fi
-            elif [ $tdd_check_result -ne 0 ]; then
-                # TDD verification failed
-                kanban_update "$story_id" "todo" "TDD verification failed: $TDD_ERROR_MSG"
-                log_progress "$iteration" "$story_id" "FAIL" "TDD verification failed: $TDD_ERROR_MSG"
-                continue
-            fi
-
-            # Run quality checks
-            kanban_update "$story_id" "inreview"
-            local validation_log="$RALPH_TMP_DIR/validate_${story_id}.log"
-            if run_quality_checks "$validation_log"; then
-                # Mark as passing
+            if [ "${RALPH_DRY_RUN}" = "true" ]; then
+                # Dry-run: skip TDD verification and quality checks
+                log_info "DRY_RUN: skipping TDD verification and quality checks"
                 update_story_status "$story_id" "passed"
                 kanban_update "$story_id" "done"
-                log_progress "$iteration" "$story_id" "PASS" "Completed successfully with TDD commits"
-                log_info "Story $story_id marked as PASSING"
-
-                # Commit state files with documentation
-                commit_story_state "$story_id" "update state and documentation after completion"
+                log_progress "$iteration" "$story_id" "PASS" "Completed (dry-run, no validation)"
+                commit_story_state "$story_id" "dry-run completion (no validation)"
             else
-                log_warn "Story completed but quality checks failed - attempting fixes"
+                # Verify TDD commits were made (capture return code without triggering set -e)
+                local tdd_check_result=0
+                check_tdd_commits "$story_id" "$commits_before" || tdd_check_result=$?
 
-                # Attempt to fix validation errors
-                if fix_validation_errors "$story_id" "$details" "$validation_log" "$MAX_FIX_ATTEMPTS"; then
-                    # Mark as passing after successful fixes
+                if [ $tdd_check_result -eq 2 ]; then
+                    # No commits made - check if story was already complete
+                    local current_status=$(jq -r --arg sid "$story_id" '.stories[] | select(.id == $sid) | .status' "$PRD_JSON")
+                    if [ "$current_status" == "passed" ]; then
+                        # Story was verified as complete (no new work needed)
+                        kanban_update "$story_id" "done"
+                        log_progress "$iteration" "$story_id" "PASS" "Verified as already complete"
+                        log_info "Story $story_id was already complete - marked as PASSING"
+
+                        # Commit state files
+                        commit_story_state "$story_id" "verified story was already complete"
+                        continue
+                    else
+                        # Story incomplete, retry
+                        log_info "No commits - retrying story"
+                        log_progress "$iteration" "$story_id" "RETRY" "$TDD_ERROR_MSG"
+                        continue
+                    fi
+                elif [ $tdd_check_result -ne 0 ]; then
+                    # TDD verification failed
+                    kanban_update "$story_id" "todo" "TDD verification failed: $TDD_ERROR_MSG"
+                    log_progress "$iteration" "$story_id" "FAIL" "TDD verification failed: $TDD_ERROR_MSG"
+                    continue
+                fi
+
+                # Run quality checks
+                kanban_update "$story_id" "inreview"
+                local validation_log="$RALPH_TMP_DIR/validate_${story_id}.log"
+                if run_quality_checks "$validation_log"; then
+                    # Mark as passing
                     update_story_status "$story_id" "passed"
                     kanban_update "$story_id" "done"
-                    log_progress "$iteration" "$story_id" "PASS" "Completed after fixing validation errors"
-                    log_info "Story $story_id marked as PASSING after fixes"
+                    log_progress "$iteration" "$story_id" "PASS" "Completed successfully with TDD commits"
+                    log_info "Story $story_id marked as PASSING"
 
                     # Commit state files with documentation
-                    commit_story_state "$story_id" "update state and documentation after fixing validation errors"
+                    commit_story_state "$story_id" "update state and documentation after completion"
                 else
-                    kanban_update "$story_id" "todo" "Quality checks failed after $MAX_FIX_ATTEMPTS fix attempts"
-                    log_error "Failed to fix validation errors"
-                    log_progress "$iteration" "$story_id" "FAIL" "Quality checks failed after $MAX_FIX_ATTEMPTS fix attempts"
+                    log_warn "Story completed but quality checks failed - attempting fixes"
+
+                    # Attempt to fix validation errors
+                    if fix_validation_errors "$story_id" "$details" "$validation_log" "$MAX_FIX_ATTEMPTS"; then
+                        # Mark as passing after successful fixes
+                        update_story_status "$story_id" "passed"
+                        kanban_update "$story_id" "done"
+                        log_progress "$iteration" "$story_id" "PASS" "Completed after fixing validation errors"
+                        log_info "Story $story_id marked as PASSING after fixes"
+
+                        # Commit state files with documentation
+                        commit_story_state "$story_id" "update state and documentation after fixing validation errors"
+                    else
+                        kanban_update "$story_id" "todo" "Quality checks failed after $MAX_FIX_ATTEMPTS fix attempts"
+                        log_error "Failed to fix validation errors"
+                        log_progress "$iteration" "$story_id" "FAIL" "Quality checks failed after $MAX_FIX_ATTEMPTS fix attempts"
+                    fi
                 fi
             fi
         else
