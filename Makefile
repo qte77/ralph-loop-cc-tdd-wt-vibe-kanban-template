@@ -63,14 +63,12 @@ setup_toolchain:  ## Install toolchain for the active scaffold (reads .scaffold)
 # MARK: setup
 
 
-setup_dev:  ## Install uv and deps, npm tools, lychee (python scaffold)
+setup_dev:  ## Install dev tools + language toolchain (reads .scaffold)
 	echo "Setting up dev environment ..."
-	pip install uv -q
-	uv sync --all-groups
-	echo "npm version: $$(npm --version)"
 	$(MAKE) -s setup_claude_code
 	$(MAKE) -s setup_npm_tools
 	$(MAKE) -s setup_lychee
+	$(MAKE) -s setup_toolchain
 
 setup_claude_code:  ## Setup claude code CLI, node.js and npm have to be present
 	echo "Setting up Claude Code CLI ..."

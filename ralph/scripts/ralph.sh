@@ -33,6 +33,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Source libraries
 source "$SCRIPT_DIR/lib/common.sh"
 source "$SCRIPT_DIR/lib/config.sh"
+source "$SCRIPT_DIR/lib/adapter.sh"
 source "$SCRIPT_DIR/lib/validate_json.sh"
 source "$SCRIPT_DIR/lib/generate_app_docs.sh"
 
@@ -82,20 +83,20 @@ get_log_filename() {
     echo "$LOG_DIR/${story_id}_${phase}_$(date +%Y%m%d_%H%M%S).log"
 }
 
-# Extract error count from validation log (tool-specific parsing)
+# Extract error count from validation log (multi-tool parsing)
 count_validation_errors() {
     local log_file="$1"
     local type_errors=0
     local test_failures=0
 
-    # Pyright format: "506 errors, 0 warnings, 0 informations"
-    if grep -q "errors.*warnings.*informations" "$log_file" 2>/dev/null; then
-        type_errors=$(grep -oE "^[0-9]+ errors" "$log_file" | grep -oE "[0-9]+" | tail -1)
+    # Type checker errors: pyright ("N errors") or gcc ("N error(s)")
+    if grep -qE "[0-9]+ errors?[,.]" "$log_file" 2>/dev/null; then
+        type_errors=$(grep -oE "^[0-9]+ errors?" "$log_file" | grep -oE "[0-9]+" | tail -1)
     fi
 
-    # Pytest format: "X failed" or "FAILED" markers
+    # Test failures: "FAILED <name>" markers (pytest, ctest, etc.)
     if grep -q "FAILED\|failed" "$log_file" 2>/dev/null; then
-        test_failures=$(grep -cE "^FAILED |pytest.*failed" "$log_file" || echo 0)
+        test_failures=$(grep -cE "^FAILED |failed" "$log_file" || echo 0)
     fi
 
     echo "$((${type_errors:-0} + ${test_failures:-0}))"
@@ -322,10 +323,11 @@ execute_story() {
     } >> "$iteration_prompt"
 
     # Execute via Claude Code with selected model
-    # Set PYTHONPATH to worktree's src/ for proper module isolation
+    # Set up scaffold environment (e.g., PYTHONPATH for Python projects)
+    adapter_env_setup
     local extra_flags=$(build_claude_extra_flags)
     log_info "Running Claude Code with story context..."
-    if PYTHONPATH="$(pwd)/src:${PYTHONPATH:-}" cat "$iteration_prompt" | eval claude -p --model "$model" --dangerously-skip-permissions $extra_flags 2>&1 | tee "$RALPH_TMP_DIR/execute_${story_id}.log"; then
+    if cat "$iteration_prompt" | eval claude -p --model "$model" --dangerously-skip-permissions $extra_flags 2>&1 | tee "$RALPH_TMP_DIR/execute_${story_id}.log"; then
         log_info "Execution log saved: $RALPH_TMP_DIR/execute_${story_id}.log"
         rm "$iteration_prompt"
         return 0
@@ -342,8 +344,9 @@ run_quality_checks() {
     > "$error_log"  # Truncate file first (defensive)
     log_info "Running quality checks (timeout: ${VALIDATION_TIMEOUT}s)..."
 
-    # Set PYTHONPATH to worktree's src/ for proper module isolation
-    if PYTHONPATH="$(pwd)/src:${PYTHONPATH:-}" timeout "$VALIDATION_TIMEOUT" make validate 2>&1 | tee "$error_log"; then
+    # Set up scaffold environment for validation
+    adapter_env_setup
+    if timeout "$VALIDATION_TIMEOUT" make validate 2>&1 | tee "$error_log"; then
         log_info "Quality checks passed"
         return 0
     else
@@ -436,9 +439,10 @@ fix_validation_errors() {
             fi
         } >> "$fix_prompt"
 
-        # Execute fix via Claude Code with timeout (set PYTHONPATH for worktree isolation)
+        # Execute fix via Claude Code with timeout
+        adapter_env_setup
         local extra_flags=$(build_claude_extra_flags)
-        if timeout "$FIX_TIMEOUT" bash -c "PYTHONPATH=\"\$(pwd)/src:\${PYTHONPATH:-}\" cat \"$fix_prompt\" | eval claude -p --model \"$model\" --dangerously-skip-permissions $extra_flags" 2>&1 | tee "$RALPH_TMP_DIR/fix_${story_id}_${attempt}.log"; then
+        if timeout "$FIX_TIMEOUT" bash -c "cat \"$fix_prompt\" | eval claude -p --model \"$model\" --dangerously-skip-permissions $extra_flags" 2>&1 | tee "$RALPH_TMP_DIR/fix_${story_id}_${attempt}.log"; then
             log_info "Fix attempt log saved: $RALPH_TMP_DIR/fix_${story_id}_${attempt}.log"
             rm "$fix_prompt"
 
