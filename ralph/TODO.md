@@ -7,11 +7,20 @@ updated: 2026-03-12
 
 ## Adopt Now (zero cost)
 
-None.
+- [ ] **RTK context compression for Claude Code sessions**: Install [RTK](https://github.com/rtk-ai/rtk) globally with `rtk init -g`. This adds a `PreToolUse` hook to `~/.claude/hooks/` that transparently compresses shell command output (git status/diff/log, make validate, pytest, ruff check) by 60-90% before it reaches Claude's context window. **No changes to Ralph scripts needed** — every `claude -p` session automatically benefits. RTK is complementary to Ralph (context compression, not orchestration). ~4.1 MB Rust binary.
 
 <!-- markdownlint-disable MD013 -->
 
 ## Backlog
+
+- [ ] **BUG: teams.sh scoped checks are silent no-ops (D3/C1)**: `verify_teammate_stories()` passes story ID to `run_ruff_scoped`/`run_complexity_scoped`/`run_tests_scoped`, but these functions expect a git commit hash. `git diff --name-only "STORY-003" HEAD` silently returns nothing, so all scoped quality checks pass without checking anything. **Fix**: call `get_story_base_commit "$sid"` first, pass the commit hash. See [`docs/audits/quality-audit-2026-03.md`](../docs/audits/quality-audit-2026-03.md) D3.
+- [ ] **Name collision: two verify_teammate_stories functions (D1)**: `ralph.sh:225` and `teams.sh:195` both define `verify_teammate_stories()` with completely different semantics. Whichever is sourced last wins silently. **Fix**: rename `ralph.sh` version to `verify_prd_isolation()`.
+- [ ] **Prompt construction duplicated between execute and fix (D2)**: ~30-line prompt block (story details + learnings + requests + steering) is copy-pasted between `execute_story()` and `fix_validation_errors()`. **Fix**: extract `build_story_prompt()` function.
+- [ ] **kanban_update JSON injection via string concatenation (R5/C3)**: `vibe.sh:158-175` builds JSON with string concatenation + `sed`-only escaping (misses backslashes, newlines). `kanban_init` in the same file already uses `jq --arg` correctly. **Fix**: convert `kanban_update` to use `jq --arg`.
+- [ ] **get_next_story O(n*d) subprocess spawning (K1/C4)**: `ralph.sh:167` spawns one jq per story + one per dependency. `teams.sh:15` already solves this with a single jq query. **Fix**: replace `get_next_story` with `get_unblocked_stories | head -1`.
+- [ ] **Double validation on intermediate fix attempts (K2)**: `ralph.sh:447-455` runs quick validation, then immediately runs full validation on success — lint + type-check execute twice. **Fix**: if quick passes on intermediate attempt, proceed; run full only on final attempt.
+- [ ] **Dead code: log_cc* functions (Y1)**: 4 functions in `common.sh:71-85` with zero call sites. **Fix**: delete.
+- [ ] **vibe.sh debug logging bypasses log_* system (C2)**: 6 bare `echo "[DEBUG]"` statements fire unconditionally. **Fix**: replace with `log_info` or gate behind `[ "$DEBUG" = "1" ]`.
 
 ## Future Work
 
