@@ -39,7 +39,7 @@
 # - Formula: base + coverage_bonus - penalties
 #   base = (stories × 10) + test_count + validation_bonus
 #   coverage_bonus = coverage% / 2 (0-50 points)
-#   penalties = (ruff × 2) + (pyright_err × 5) + (pyright_warn × 1) + (churn / 100)
+#   penalties = (lint × 2) + (typecheck_err × 5) + (typecheck_warn × 1) + (churn / 100)
 # - Higher score wins; N_WT=1 skips scoring overhead
 #
 # Worktree Naming:
@@ -59,6 +59,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Source libraries
 source "$SCRIPT_DIR/lib/common.sh"
 source "$SCRIPT_DIR/lib/config.sh"
+source "$SCRIPT_DIR/lib/adapter.sh"
 source "$SCRIPT_DIR/lib/validate_json.sh"
 source "$SCRIPT_DIR/lib/vibe.sh"
 source "$SCRIPT_DIR/lib/cleanup_worktrees.sh"
@@ -280,28 +281,44 @@ extract_coverage() {
     grep "TOTAL" "$log_file" 2>/dev/null | tail -1 | awk '{print $NF}' | tr -d '%' || echo 0
 }
 
-# Extract ruff violation count from validation log
+# Extract lint violation count from validation log
 # Returns: integer (violation count)
-extract_ruff_violations() {
+# Supports: ruff (path.py:line:col: CODE), gcc/clang (path:line:col: warning/error)
+extract_lint_violations() {
     local log_file="$1"
-    # ruff format: path/file.py:line:col: CODE message
-    grep -cE "\.py:[0-9]+:[0-9]+: [A-Z][0-9]+" "$log_file" 2>/dev/null || echo 0
+    local count=0
+    # ruff/pycodestyle format: path:line:col: CODE message
+    count=$((count + $(grep -cE ":[0-9]+:[0-9]+: [A-Z][0-9]+" "$log_file" 2>/dev/null || echo 0)))
+    # gcc/clang format: path:line:col: warning: or error:
+    count=$((count + $(grep -cE ":[0-9]+:[0-9]+: (warning|error):" "$log_file" 2>/dev/null || echo 0)))
+    echo "$count"
 }
 
-# Extract pyright error count from validation log
+# Extract type checker error count from validation log
 # Returns: integer (error count)
-extract_pyright_errors() {
+# Supports: pyright ("X errors"), gcc/clang ("N error(s) generated")
+extract_typecheck_errors() {
     local log_file="$1"
     # pyright format: "X errors, Y warnings, Z informations"
-    grep -oE "^[0-9]+ errors" "$log_file" 2>/dev/null | grep -oE "[0-9]+" | tail -1 || echo 0
+    local pyright_errors
+    pyright_errors=$(grep -oE "^[0-9]+ errors" "$log_file" 2>/dev/null | grep -oE "[0-9]+" | tail -1 || echo 0)
+    # gcc format: "N error(s) generated"
+    local gcc_errors
+    gcc_errors=$(grep -oE "[0-9]+ error" "$log_file" 2>/dev/null | grep -oE "[0-9]+" | tail -1 || echo 0)
+    echo "$((${pyright_errors:-0} + ${gcc_errors:-0}))"
 }
 
-# Extract pyright warning count from validation log
+# Extract type checker warning count from validation log
 # Returns: integer (warning count)
-extract_pyright_warnings() {
+extract_typecheck_warnings() {
     local log_file="$1"
     # pyright format: "X errors, Y warnings, Z informations"
-    grep -oE "[0-9]+ warnings" "$log_file" 2>/dev/null | grep -oE "[0-9]+" | tail -1 || echo 0
+    local pyright_warnings
+    pyright_warnings=$(grep -oE "[0-9]+ warnings" "$log_file" 2>/dev/null | grep -oE "[0-9]+" | tail -1 || echo 0)
+    # gcc format: "N warning(s) generated"
+    local gcc_warnings
+    gcc_warnings=$(grep -oE "[0-9]+ warning" "$log_file" 2>/dev/null | grep -oE "[0-9]+" | tail -1 || echo 0)
+    echo "$((${pyright_warnings:-0} + ${gcc_warnings:-0}))"
 }
 
 # Calculate code churn (total lines changed across all commits)
@@ -333,7 +350,14 @@ score_worktree() {
     # Base metrics
     local stories_passed=$(jq '[.stories[] | select(.status == "passed")] | length' "$prd_json" 2>/dev/null || echo 0)
     local total_stories=$(jq '.stories | length' "$prd_json" 2>/dev/null || echo 0)
-    local test_count=$(find "$worktree_path" -name "test_*.py" -type f 2>/dev/null | wc -l)
+    local _file_pattern
+    _file_pattern=$(adapter_file_pattern)
+    local test_count=0
+    for _pat in $_file_pattern; do
+        test_count=$((test_count + $(find "$worktree_path" -name "test_*.$_pat" -type f 2>/dev/null | wc -l)))
+    done
+    # Fallback: count test files matching common patterns
+    [ "$test_count" -eq 0 ] && test_count=$(find "$worktree_path/tests" -type f 2>/dev/null | wc -l)
 
     # Validation bonus
     local validation_bonus=0
@@ -345,36 +369,36 @@ score_worktree() {
 
     # New metrics (from validation log)
     local coverage=0
-    local ruff_violations=0
-    local pyright_errors=0
-    local pyright_warnings=0
+    local lint_violations=0
+    local typecheck_errors=0
+    local typecheck_warnings=0
     local code_churn=0
 
     if [ -f "$log_file" ]; then
         coverage=$(extract_coverage "$log_file")
-        ruff_violations=$(extract_ruff_violations "$log_file")
-        pyright_errors=$(extract_pyright_errors "$log_file")
-        pyright_warnings=$(extract_pyright_warnings "$log_file")
+        lint_violations=$(extract_lint_violations "$log_file")
+        typecheck_errors=$(extract_typecheck_errors "$log_file")
+        typecheck_warnings=$(extract_typecheck_warnings "$log_file")
     fi
     code_churn=$(extract_code_churn "$worktree_path")
 
     # Calculate score with new formula
     local base_score=$((stories_passed * 10 + test_count + validation_bonus))
     local coverage_bonus=$((coverage / 2))  # 0-50 points
-    local ruff_penalty=$((ruff_violations * 2))
-    local pyright_error_penalty=$((pyright_errors * 5))
-    local pyright_warning_penalty=$((pyright_warnings * 1))
+    local lint_penalty=$((lint_violations * 2))
+    local typecheck_error_penalty=$((typecheck_errors * 5))
+    local typecheck_warning_penalty=$((typecheck_warnings * 1))
     local churn_penalty=$((code_churn / 100))
 
-    local score=$((base_score + coverage_bonus - ruff_penalty - pyright_error_penalty - pyright_warning_penalty - churn_penalty))
+    local score=$((base_score + coverage_bonus - lint_penalty - typecheck_error_penalty - typecheck_warning_penalty - churn_penalty))
 
     # Ensure score doesn't go negative
     [ "$score" -lt 0 ] && score=0
 
     # Log breakdown
     log_info "Worktree $i: stories=$stories_passed/$total_stories tests=$test_count validation=$validation_status"
-    log_info "  coverage=${coverage}% ruff=-${ruff_violations} pyright_err=-${pyright_errors} pyright_warn=-${pyright_warnings} churn=-${churn_penalty}"
-    log_info "  score: $base_score + $coverage_bonus - $ruff_penalty - $pyright_error_penalty - $pyright_warning_penalty - $churn_penalty = $score"
+    log_info "  coverage=${coverage}% lint=-${lint_violations} type_err=-${typecheck_errors} type_warn=-${typecheck_warnings} churn=-${churn_penalty}"
+    log_info "  score: $base_score + $coverage_bonus - $lint_penalty - $typecheck_error_penalty - $typecheck_warning_penalty - $churn_penalty = $score"
 
     # Save metrics to file for judge consumption
     local metrics_file="$worktree_path/$RALPH_METRICS_FILE"
@@ -384,9 +408,9 @@ score_worktree() {
   "total_stories": $total_stories,
   "test_count": $test_count,
   "coverage": $coverage,
-  "ruff_violations": $ruff_violations,
-  "pyright_errors": $pyright_errors,
-  "pyright_warnings": $pyright_warnings,
+  "lint_violations": $lint_violations,
+  "typecheck_errors": $typecheck_errors,
+  "typecheck_warnings": $typecheck_warnings,
   "code_churn": $code_churn,
   "validation_status": "$validation_status",
   "score": $score

@@ -1,8 +1,9 @@
 #!/bin/bash
 #
 # Application Documentation Generator
-# Generates README.md and example.py for the application
-# NOTE: This file is sourced, not executed. Requires config.sh to be loaded first.
+# Delegates to scaffold adapter for language-specific doc generation.
+# Falls back to generic README if no adapter is loaded.
+# NOTE: This file is sourced, not executed. Requires config.sh and adapter.sh to be loaded first.
 
 # Safety check: Verify config.sh is loaded
 if [ -z "$RALPH_PRD_JSON" ] || [ -z "$SRC_BASE_DIR" ] || [ -z "$TESTS_BASE_DIR" ]; then
@@ -32,13 +33,20 @@ generate_app_readme() {
 
     # Build actual architecture from filesystem
     local architecture=""
+    local _file_pattern
+    _file_pattern=$(adapter_file_pattern)
 
     # Generate tree structure for src and tests
     if command -v tree &> /dev/null; then
-        architecture=$(tree -L 3 --noreport -I '__pycache__|*.pyc|*.pyo' "$src_dir" "$TESTS_BASE_DIR/" 2>/dev/null || echo "$src_dir/ and $TESTS_BASE_DIR/")
+        architecture=$(tree -L 3 --noreport "$src_dir" "$TESTS_BASE_DIR/" 2>/dev/null || echo "$src_dir/ and $TESTS_BASE_DIR/")
     else
-        # Fallback: manual directory listing
-        architecture=$(find "$src_dir" "$TESTS_BASE_DIR/" -type f -name "*.py" 2>/dev/null | sort | sed 's|^|  |' || echo "No files found")
+        # Fallback: list source files matching scaffold pattern
+        local _find_args=""
+        for _pat in $_file_pattern; do
+            [ -n "$_find_args" ] && _find_args="$_find_args -o"
+            _find_args="$_find_args -name $_pat"
+        done
+        architecture=$(eval "find \"$src_dir\" \"$TESTS_BASE_DIR/\" -type f \( $_find_args \)" 2>/dev/null | sort | sed 's|^|  |' || echo "No files found")
     fi
 
     # Generate concise README with actual information
@@ -56,14 +64,11 @@ $(jq -r '.stories[] | select(.status == "passed") | .description' "$RALPH_PRD_JS
 ## Quick Start
 
 \`\`\`bash
-# Run application
-python -m $app_name
-
-# Run example
-python $src_dir/example.py
+# Run validation
+make validate
 
 # Run tests
-pytest $TESTS_BASE_DIR/
+make test_all
 \`\`\`
 
 ## Architecture
@@ -81,10 +86,10 @@ EOF
     echo "$readme_path"
 }
 
-# Generate/update example.py in src directory
+# Generate/update example file in src directory via scaffold adapter.
 # Returns the path to the generated example (empty if not generated)
 generate_app_example() {
-    log_info "Generating application example.py..."
+    log_info "Generating application example..."
 
     # Find src directory (first dir in src/)
     local src_dir=$(find "$SRC_BASE_DIR" -mindepth 1 -maxdepth 1 -type d | head -1)
@@ -94,26 +99,21 @@ generate_app_example() {
         return 0
     fi
 
-    local app_name=$(basename "$src_dir")
-    local example_path="$src_dir/example.py"
+    # Delegate to adapter for language-specific example generation
+    adapter_app_docs "$src_dir"
+    local result=$?
 
-    # Generate minimal viable example
-    cat > "$example_path" <<EOF
-"""Minimal viable example demonstrating how to use this application."""
+    # Return path to example file if adapter created one
+    if [ $result -eq 0 ]; then
+        # Check common example file names
+        for candidate in "$src_dir/example.py" "$src_dir/example.c" "$src_dir/main.c" "$src_dir/example.ts"; do
+            if [ -f "$candidate" ]; then
+                echo "$candidate"
+                return 0
+            fi
+        done
+    fi
 
-import $app_name
-
-
-def main():
-    """Run the application example."""
-    # TODO: Add your example usage here
-    print("Example: Running $app_name")
-
-
-if __name__ == "__main__":
-    main()
-EOF
-
-    log_info "example.py created at $example_path"
-    echo "$example_path"
+    echo ""
+    return 0
 }
