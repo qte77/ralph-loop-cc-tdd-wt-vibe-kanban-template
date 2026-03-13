@@ -2,7 +2,7 @@
 title: Ralph TODO
 purpose: Consolidated backlog for Ralph loop — bugs, enhancements, and deferred items.
 created: 2026-03-08
-updated: 2026-03-13
+updated: 2026-03-14
 ---
 
 ## Adopt Now (zero cost)
@@ -28,6 +28,8 @@ updated: 2026-03-13
   - [ ] **CC Agent Teams as alternative orchestrator**: Instead of Ralph's bash loop driving `claude -p` with bolted-on teams support, the CC main orchestrator agent directly spawns a team via `TeamCreate` + `Task` tool. Each story becomes a `TaskCreate` entry with `blockedBy` dependencies (both logical and file-conflict). Addresses Ralph failure modes structurally: isolated teammate contexts prevent cross-contamination (#2), `blockedBy` prevents stale snapshots (#4), no external reset eliminates Sisyphean loops (#1), lead-scoped validation prevents cross-story complexity failures (#3), and file-conflict deps in `blockedBy` prevent parallel edits to the same file (#5). Requires self-contained story descriptions in the PRD Story Breakdown (usable as `TaskCreate(description=...)`).
 
 - [ ] **Rewrite Ralph engine as standalone CLI**: The bash script engine (~4.1k lines across 25 files) is brittle, untestable, and diverges when the template is forked. Rewrite as a standalone binary distributed as a single executable. Makefile stays as the user-facing interface, calling `ralph <subcommand>` instead of `bash ralph/scripts/*.sh`. Includes language adapter system for TDD/BDD validation across Python, Go, TypeScript, Rust, C++, and C. **Research**: [`docs/research/ralph-cli-rewrite.md`](../docs/research/ralph-cli-rewrite.md) evaluates 5 options (bash hardening, Bun, Go, Deno, Python). **Recommendation: Go + Cobra/Viper** — smallest binary (10-15 MB), best cross-compilation, goroutines map to N-worker pattern, Viper replaces config.sh. See [`docs/UserStory.md`](../docs/UserStory.md) for full requirements and Go architecture.
+
+- [ ] **Per-run cost guardrails**: Abort autonomous execution when token/cost threshold is exceeded. Track cumulative usage per story and per run. Configurable via `RALPH_COST_LIMIT` (e.g., USD cap or token cap). Prevents runaway API spend during unattended `make ralph_run`. Prior art: [Paperclip](https://github.com/paperclipai/paperclip) implements per-agent monthly budgets with throttling.
 
 - [ ] **Streaming progress**: WebSocket-based real-time progress streaming for dashboard integrations (beyond REST polling).
 
@@ -73,4 +75,5 @@ updated: 2026-03-13
 
 - [Codified Context Infrastructure](https://arxiv.org/abs/2602.20478) — three-tier context architecture (constitution + specialist agents + cold-memory knowledge base), 283-session empirical study, 108K LOC C# project. Validates AGENTS.md + Skills + docs/ pattern.
 - [tree-sitter](https://github.com/tree-sitter/tree-sitter) — incremental parser generator (C + WASM); [tree-sitter-python](https://www.npmjs.com/package/tree-sitter-python) grammar. Relevant if Bun/Deno chosen over Go for CLI rewrite (see [`docs/research/ralph-cli-rewrite.md`](../docs/research/ralph-cli-rewrite.md)).
+- [PentAGI](https://github.com/vxcontrol/pentagi) — Go-based multi-agent orchestration (Orchestrator → Researcher → Developer → Executor pipeline). Validates Go for subprocess-heavy agent loops. Notable patterns: chain summarization for context window management, Flow → Task → SubTask → Action hierarchy, vector-based memory for learning from past runs.
 
