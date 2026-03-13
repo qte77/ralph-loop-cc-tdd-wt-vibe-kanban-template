@@ -2,7 +2,7 @@
 title: Ralph TODO
 purpose: Consolidated backlog for Ralph loop — bugs, enhancements, and deferred items.
 created: 2026-03-08
-updated: 2026-03-12
+updated: 2026-03-13
 ---
 
 ## Adopt Now (zero cost)
