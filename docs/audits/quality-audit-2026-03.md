@@ -472,4 +472,4 @@ Each finding is tagged with:
 
 - Source files: `ralph/scripts/` (all 25 files)
 - Related: [CLI rewrite research](../research/ralph-cli-rewrite.md) (security bugs, rewrite rationale)
-- Related: [ralph/TODO.md](../../ralph/TODO.md) (backlog items from this audit)
+- Related: [ralph/TODO.md](/ralph/TODO.md) (backlog items from this audit)
