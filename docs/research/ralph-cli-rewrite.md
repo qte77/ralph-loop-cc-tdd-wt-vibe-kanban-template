@@ -320,8 +320,7 @@ system, and CLI scaffolding. Total: ~11-16 sessions.
 
 ### Architecture Sketch
 
-See `docs/UserStory.md` for the complete Go module structure (already designed).
-Summary:
+Proposed module structure:
 
 ```text
 ralph-cli/
@@ -404,7 +403,6 @@ Go structs replace `jq` response parsing.
 - Cobra/Viper solve CLI + config elegantly
 - 15+ years of production subprocess management maturity
 - No runtime dependencies, no env pollution
-- UserStory.md already has complete Go architecture designed
 
 ### Cons
 
@@ -420,11 +418,6 @@ Go structs replace `jq` response parsing.
 scaffolding. Total: ~13-18 sessions. Slightly higher than Bun due to JSON
 struct definitions and error handling boilerplate. Offset by Cobra/Viper doing
 heavy lifting for CLI and config.
-
-**Note:** The existing `docs/UserStory.md` provides a complete Go architecture
-with module structure, interfaces, adapter TOML specs, and Makefile integration.
-This significantly reduces design effort -- implementation can start directly
-from the UserStory.
 
 ## Option 4: Deno -- Bun Alternative
 
@@ -659,14 +652,12 @@ to-flag mapping via Makefile `$(if ...)` conditionals.
 | **Cross-compile** | N/A | Newer, needs matrix | One command, 15yr mature | Newer, needs matrix | Per-platform fragile |
 | **Binary size** | N/A | 56 MB | 10-15 MB | 60-135 MB | 50-100 MB |
 | **Subprocess ergonomics** | Native (bash's job) | Bun.spawn (good) | exec.CommandContext (excellent) | Deno.Command (good) | asyncio (complex) |
-| **Existing architecture** | N/A | None | UserStory.md complete | None | Partial (prd_json.py) |
 | **Release tooling** | N/A | Custom CI | goreleaser (mature) | Custom CI | Fragile CI |
 
 ### Decision Scenarios
 
 **"We need binary distribution and cross-platform reliability"** --> Go.
-Smallest binary, best cross-compilation, most mature tooling. UserStory.md
-already provides the complete architecture.
+Smallest binary, best cross-compilation, most mature tooling.
 
 **"Team only knows TypeScript, binary size doesn't matter"** --> Bun (or Deno
 for stricter defaults). Native JSON handling eliminates the biggest pain point
@@ -702,23 +693,17 @@ Go is the recommended rewrite language for Ralph CLI. The rationale:
    unmatched. Bun/Deno at 56-135 MB and Python's fragile bundling options
    don't compete.
 
-2. **Architecture is already designed.** `docs/UserStory.md` contains a
-   complete Go architecture: module structure, Cobra subcommands, Viper config,
-   language adapter TOML specs, agent driver interface, and Makefile
-   integration. This eliminates design overhead -- implementation can start
-   immediately.
-
-3. **Concurrency model fits perfectly.** Ralph's N-worker parallel worktree
+2. **Concurrency model fits perfectly.** Ralph's N-worker parallel worktree
    pattern maps directly to goroutines + `errgroup.Group`. Go's structured
    concurrency replaces bash's `disown` + PID polling with proper cancellation,
    timeouts, and error propagation.
 
-4. **Subprocess management is Go's strength.** Ralph spends 99% of its time
+3. **Subprocess management is Go's strength.** Ralph spends 99% of its time
    waiting on `claude -p` subprocesses. Go's `exec.CommandContext()` with
    `context.WithTimeout()` is the most mature and well-tested option for this
    workload.
 
-5. **Viper replaces config.sh completely.** The TOML + env var + CLI flag
+4. **Viper replaces config.sh completely.** The TOML + env var + CLI flag
    layering with precedence is exactly what Viper does. No custom config
    code needed.
 
@@ -740,14 +725,12 @@ via subprocess. They're called infrequently and work well as-is.
 ### Next Steps
 
 1. Fix `eval` injection and `exit 0` bugs in current bash (prerequisite for any merge)
-2. Create `docs/PRD.md` for Ralph CLI Go rewrite, derived from `docs/UserStory.md`
-3. Bootstrap: use current Ralph loop to implement its own Go replacement
+2. Create UserStory.md and PRD.md for the CLI rewrite (language-neutral until decision is finalized)
+3. Bootstrap: use current Ralph loop to implement its own replacement
 4. Milestone: `ralph run --workers 1 --iterations 1` completes a single story
 
 ## Sources
 
-- [`docs/UserStory.md`](../UserStory.md) -- Complete Go CLI architecture, user stories, adapter TOML specs, Makefile integration
-- [`docs/NAMING.md`](../NAMING.md) -- CLI naming candidates, taglines, availability research
 - [`ralph/TODO.md`](../../ralph/TODO.md) -- Consolidated backlog including rewrite item
 - [Cobra](https://github.com/spf13/cobra) -- Go CLI framework
 - [Viper](https://github.com/spf13/viper) -- Go config hierarchy (TOML + env + flags)
