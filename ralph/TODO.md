@@ -31,6 +31,10 @@ updated: 2026-03-14
 
 - [ ] **Per-run cost guardrails**: Abort autonomous execution when token/cost threshold is exceeded. Track cumulative usage per story and per run. Configurable via `RALPH_COST_LIMIT` (e.g., USD cap or token cap). Prevents runaway API spend during unattended `make ralph_run`. Prior art: [Paperclip](https://github.com/paperclipai/paperclip) implements per-agent monthly budgets with throttling.
 
+- [ ] **Optional PR creation per worktree**: Create a GitHub PR instead of auto-merging when `RALPH_CREATE_PR=true`. Auto-merge remains default. PR title from story ID + title, body from diff stats and story AC. When combined with judge mode (`RALPH_JUDGE_ENABLED=true`), judge scores worktrees and creates PR for the best one. Enables CI checks before merge. Inspired by [devteam](https://github.com/agent-era/devteam).
+
+- [ ] **Diff stats in status and scoring**: Show insertions/deletions per worktree in `ralph_status` output via `git diff --stat`. Include as display metric in scoring phase (N_WT>1) for transparency — not as a scoring factor. Inspired by [devteam](https://github.com/agent-era/devteam).
+
 - [ ] **Streaming progress**: WebSocket-based real-time progress streaming for dashboard integrations (beyond REST polling).
 
 - [ ] **PRD versioning**: First-class support for PRD iterations with diff-based story carry-over between versions.
