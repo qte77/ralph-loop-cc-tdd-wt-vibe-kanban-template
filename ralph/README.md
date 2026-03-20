@@ -672,6 +672,16 @@ enhancements, deferred items, and done).
 - **Max iterations reached**: Loop stops, check progress.txt
 - **Ralph skips stories**: Check `depends_on` in prd.json
 
+## Related Tools
+
+- [JetBrains Air](https://air.dev) (public preview March 2026) — Agentic
+  development environment for running multiple AI agents (Codex, Claude,
+  Gemini, Junie) concurrently. Agent orchestrator with GUI; different focus
+  from Ralph's autonomous TDD loop with story tracking and compound
+  engineering.
+- [devteam](https://github.com/agent-era/devteam) — Open-source TUI for
+  running multiple coding agents in parallel via tmux.
+
 ## Sources
 
 - [Ralph Wiggum technique](https://ghuntley.com/ralph/) — Geoffrey Huntley
