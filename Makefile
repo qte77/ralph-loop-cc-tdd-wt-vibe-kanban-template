@@ -5,7 +5,7 @@
 
 .SILENT:
 .ONESHELL:
-.PHONY: setup_scaffold setup_toolchain setup_dev setup_claude_code setup_npm_tools setup_lychee setup_project run_markdownlint lint_md lint_links ralph_validate_json ralph_create_userstory_md ralph_create_prd_md ralph_create_prd_json ralph_init_loop ralph_run ralph_worktree ralph_run_worktree ralph_init_and_run ralph_reorganize_prd ralph_status ralph_stop ralph_clean ralph_archive ralph_watch ralph_get_log vibe_start vibe_stop_all vibe_status vibe_cleanup help
+.PHONY: setup_scaffold setup_toolchain setup_dev setup_claude_code setup_npm_tools setup_lychee validate run_markdownlint lint_md lint_links ralph_validate_json ralph_create_userstory_md ralph_create_prd_md ralph_create_prd_json ralph_init_loop ralph_run ralph_worktree ralph_run_worktree ralph_init_and_run ralph_reorganize_prd ralph_status ralph_stop ralph_clean ralph_archive ralph_watch ralph_get_log vibe_start vibe_stop_all vibe_status vibe_cleanup help
 .DEFAULT_GOAL := help
 
 # Auto-include language-specific Makefile when .scaffold exists
@@ -84,8 +84,14 @@ setup_lychee:  ## Install lychee link checker (Rust binary, requires sudo)
 	curl -sL https://github.com/lycheeverse/lychee/releases/latest/download/lychee-x86_64-unknown-linux-gnu.tar.gz | sudo tar xz -C /usr/local/bin lychee
 	echo "lychee version: $$(lychee --version)"
 
-setup_project:  ## Customize template with your project details. Run with help: bash ralph/scripts/setup_project.sh help
-	bash ralph/scripts/setup_project.sh || { echo ""; echo "ERROR: Project setup failed. Please check the error messages above."; exit 1; }
+validate:  ## Run validation (delegates to scaffold adapter, no-op without scaffold)
+	if [ -f .scaffold ] && type adapter_validate >/dev/null 2>&1; then \
+		adapter_validate; \
+	elif [ -f .scaffold ]; then \
+		echo "No adapter_validate found — source ralph/scripts/lib/adapter.sh first"; \
+	else \
+		echo "No scaffold set — skipping validation (run 'make setup_scaffold LANG=<lang>' first)"; \
+	fi
 
 
 # MARK: run markdownlint

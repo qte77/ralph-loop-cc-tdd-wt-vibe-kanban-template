@@ -1,3 +1,5 @@
+# TEMPLATE: Replace [PLACEHOLDERS] with your project values after forking.
+# Run `make setup_scaffold LANG=python && make setup_toolchain` to initialize.
 [project]
 name = "[PROJECT NAME]"
 version = "0.0.0"
