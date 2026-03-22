@@ -12,8 +12,10 @@
 # Anti-absorption: Baselines persist per-story, so restarting doesn't
 # absorb a story's own prior failures into the baseline.
 #
-# Source this file after common.sh:
+# Source this file after common.sh and adapter.sh:
 #   source "$SCRIPT_DIR/lib/common.sh"
+#   source "$SCRIPT_DIR/lib/config.sh"
+#   source "$SCRIPT_DIR/lib/adapter.sh"
 #   source "$SCRIPT_DIR/lib/baseline.sh"
 
 # =================================================
@@ -65,9 +67,9 @@ capture_test_baseline() {
 
   log_info "Capturing test baseline ($label) -> $baseline_file"
 
-  # Run pytest in dry-fail mode: collect failures without stopping
+  # Run tests in dry-fail mode: collect failures without stopping
   local test_output
-  test_output=$(uv run pytest --tb=no -q 2>&1 || true)
+  test_output=$(adapter_test 2>&1 || true)
 
   # Extract FAILED test names (pytest format: "FAILED tests/test_foo.py::test_bar")
   echo "$test_output" \
@@ -105,7 +107,7 @@ compare_test_failures() {
 
   # Capture current failures
   local test_output
-  test_output=$(uv run pytest --tb=no -q 2>&1 || true)
+  test_output=$(adapter_test 2>&1 || true)
 
   echo "$test_output" \
     | grep -E "^FAILED " \
@@ -155,31 +157,32 @@ compare_test_failures() {
 # Scoped Quality Checks (Teams Mode)
 # =================================================
 
-# Run ruff only on files changed by the current story.
+# Run lint only on files changed by the current story.
 # Prevents cross-story lint failures from blocking progress.
 #
-# Usage: run_ruff_scoped "$base_commit"
+# Usage: run_lint_scoped "$base_commit"
 run_ruff_scoped() {
   local base_commit="$1"
+  local _file_pattern
+  _file_pattern=$(adapter_file_pattern)
 
-  local changed_files
-  changed_files=$(git diff --name-only "$base_commit" HEAD -- '*.py' 2>/dev/null)
-
-  # Include untracked Python files
-  local untracked
-  untracked=$(git ls-files --others --exclude-standard -- '*.py' 2>/dev/null)
+  local changed_files=""
+  local untracked=""
+  for _pat in $_file_pattern; do
+    changed_files="${changed_files}$(git diff --name-only "$base_commit" HEAD -- "$_pat" 2>/dev/null)"$'\n'
+    untracked="${untracked}$(git ls-files --others --exclude-standard -- "$_pat" 2>/dev/null)"$'\n'
+  done
 
   local all_files
   all_files=$(echo -e "${changed_files}\n${untracked}" | sort -u | grep -v '^$')
 
   if [ -z "$all_files" ]; then
-    log_info "No Python files changed — skipping ruff"
+    log_info "No source files changed — skipping lint"
     return 0
   fi
 
-  log_info "Running ruff on $(echo "$all_files" | wc -l | tr -d ' ') changed file(s)"
-  echo "$all_files" | xargs uv run ruff format
-  echo "$all_files" | xargs uv run ruff check --fix
+  log_info "Running lint on $(echo "$all_files" | wc -l | tr -d ' ') changed file(s)"
+  adapter_lint $all_files
 }
 
 # Run complexity check only on files changed by the current story.
@@ -187,9 +190,14 @@ run_ruff_scoped() {
 # Usage: run_complexity_scoped "$base_commit"
 run_complexity_scoped() {
   local base_commit="$1"
+  local _file_pattern
+  _file_pattern=$(adapter_file_pattern)
 
-  local changed_files
-  changed_files=$(git diff --name-only "$base_commit" HEAD -- 'src/*.py' 2>/dev/null)
+  local changed_files=""
+  for _pat in $_file_pattern; do
+    changed_files="${changed_files}$(git diff --name-only "$base_commit" HEAD -- "src/$_pat" 2>/dev/null)"$'\n'
+  done
+  changed_files=$(echo "$changed_files" | grep -v '^$')
 
   if [ -z "$changed_files" ]; then
     log_info "No src files changed — skipping complexity check"
@@ -197,7 +205,7 @@ run_complexity_scoped() {
   fi
 
   log_info "Running complexity check on $(echo "$changed_files" | wc -l | tr -d ' ') file(s)"
-  echo "$changed_files" | xargs uv run complexipy --max-complexity 10
+  adapter_complexity $changed_files
 }
 
 # Run tests scoped to the current story's test files.
@@ -205,24 +213,27 @@ run_complexity_scoped() {
 # Usage: run_tests_scoped "$base_commit"
 run_tests_scoped() {
   local base_commit="$1"
+  local _file_pattern
+  _file_pattern=$(adapter_file_pattern)
 
-  local changed_tests
-  changed_tests=$(git diff --name-only "$base_commit" HEAD -- 'tests/*.py' 2>/dev/null)
-
-  local untracked_tests
-  untracked_tests=$(git ls-files --others --exclude-standard -- 'tests/*.py' 2>/dev/null)
+  local changed_tests=""
+  local untracked_tests=""
+  for _pat in $_file_pattern; do
+    changed_tests="${changed_tests}$(git diff --name-only "$base_commit" HEAD -- "tests/$_pat" 2>/dev/null)"$'\n'
+    untracked_tests="${untracked_tests}$(git ls-files --others --exclude-standard -- "tests/$_pat" 2>/dev/null)"$'\n'
+  done
 
   local all_tests
   all_tests=$(echo -e "${changed_tests}\n${untracked_tests}" | sort -u | grep -v '^$')
 
   if [ -z "$all_tests" ]; then
     log_info "No test files changed — running full test suite"
-    uv run pytest --tb=short -q
+    adapter_test
     return $?
   fi
 
   log_info "Running $(echo "$all_tests" | wc -l | tr -d ' ') changed test file(s)"
-  echo "$all_tests" | xargs uv run pytest --tb=short -q
+  adapter_test $all_tests
 }
 
 # =================================================
@@ -251,14 +262,13 @@ run_quality_checks_baseline() {
 
     log_info "Phase 1: Scoped lint + type + complexity"
     run_ruff_scoped "$base_commit" || return 1
-    uv run pyright || return 1
+    adapter_typecheck || return 1
     run_complexity_scoped "$base_commit" || return 1
   else
     log_info "Phase 1: Full lint + type + complexity"
-    uv run ruff format --exclude tests || return 1
-    uv run ruff check --fix --exclude tests || return 1
-    uv run pyright || return 1
-    uv run complexipy || return 1
+    adapter_lint || return 1
+    adapter_typecheck || return 1
+    adapter_complexity || return 1
   fi
 
   log_success "Phase 1 passed"

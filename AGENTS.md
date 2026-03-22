@@ -52,7 +52,7 @@ All agent outputs must meet minimum quality scores:
 Agents MUST NOT:
 
 - [ ] **Assume missing context** - Ask or research, never guess
-- [ ] **Hallucinate libraries** - Only use dependencies in `pyproject.toml`
+- [ ] **Hallucinate libraries** - Only use verified dependencies in the project manifest
 - [ ] **Delete code without instruction** - Preserve existing functionality
 - [ ] **Over-engineer solutions** - Match complexity to task scope
 - [ ] **Skip validation** - Always run `make validate` before completion

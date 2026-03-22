@@ -17,10 +17,9 @@
 # Customize these for your project setup
 # =================================================
 
-# Source package directory name (relative to src/)
-# Change this to adapt Ralph to different projects
-# This determines worktree prefix: ../${SRC_PACKAGE_DIR}-ralph-wt
-SRC_PACKAGE_DIR="your_project_name"
+# Project name (used for worktree prefix: ../${SRC_PACKAGE_DIR}-ralph-wt)
+# Override via environment or change after setup_project.sh runs
+SRC_PACKAGE_DIR="${SRC_PACKAGE_DIR:-your_project_name}"
 
 # Base directory paths
 DOCS_BASE_DIR="docs"

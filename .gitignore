@@ -1,5 +1,7 @@
-# Scaffold state
+# Scaffold state (local dev choice)
 .scaffold
+# Scaffold adapter scripts (deployed by plugins)
+.scaffolds/
 
 # Python bytecode
 __pycache__/

@@ -183,7 +183,7 @@ teams_revert_primary_commits() {
 }
 
 # Verify teammate stories after primary story passes.
-# Runs TDD commit check + scoped quality (ruff, complexity, tests) for each
+# Runs TDD commit check + scoped quality (lint, complexity, tests) for each
 # wave peer, then a single type_check for the whole batch.
 # Args:
 #   $1 - Primary story ID (excluded from verification)
@@ -221,11 +221,11 @@ verify_teammate_stories() {
             continue
         fi
 
-        # Scoped quality checks (ruff, complexity, tests)
+        # Scoped quality checks (lint, complexity, tests)
         local sid_failed=false
 
         if ! run_ruff_scoped "$sid" "$PRD_JSON"; then
-            log_warn "Teammate story $sid: ruff check failed"
+            log_warn "Teammate story $sid: lint check failed"
             sid_failed=true
         fi
 

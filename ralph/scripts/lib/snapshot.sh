@@ -12,7 +12,6 @@
 CODEBASE_MAP_FILE="$RALPH_DOCS_DIR/codebase-map.md"
 CODEBASE_MAP_SHA="$RALPH_DOCS_DIR/.codebase-map.sha"
 STORY_CONTEXT_FILE="$RALPH_DOCS_DIR/story-context.md"
-_EXTRACT_SIGS="$(dirname "${BASH_SOURCE[0]}")/extract_signatures.py"
 SNAPSHOT_SIG_LIMIT="${SNAPSHOT_SIG_LIMIT:-100}"
 
 # Configurable source prefix for test path mapping (default: "src/")
@@ -65,18 +64,26 @@ generate_codebase_map() {
         echo "### File Tree"
         echo ""
         echo '```'
-        find src/ -type f -name '*.py' | sort | sed 's|^|  |'
+        local _file_pattern
+        _file_pattern=$(adapter_file_pattern)
+        # Reason: find with multiple -name patterns requires -o grouping
+        local _find_args=""
+        for _pat in $_file_pattern; do
+            [ -n "$_find_args" ] && _find_args="$_find_args -o"
+            _find_args="$_find_args -name $_pat"
+        done
+        eval "find src/ -type f \( $_find_args \)" 2>/dev/null | sort | sed 's|^|  |'
         echo '```'
         echo ""
         echo "### Signatures"
         echo ""
         # Global overview: all src/ signatures, capped per file
-        find src/ -type f -name '*.py' | sort | while IFS= read -r pyfile; do
+        eval "find src/ -type f \( $_find_args \)" 2>/dev/null | sort | while IFS= read -r srcfile; do
             local sigs
-            sigs=$(python3 "$_EXTRACT_SIGS" "$pyfile" 2>/dev/null | head -"$SNAPSHOT_SIG_LIMIT" || true)
+            sigs=$(adapter_signatures "$srcfile" 2>/dev/null | head -"$SNAPSHOT_SIG_LIMIT" || true)
             if [ -n "$sigs" ]; then
-                echo "**$pyfile**:"
-                echo '```python'
+                echo "**$srcfile**:"
+                echo '```'
                 echo "$sigs" | sed 's/^/  /'
                 echo '```'
                 echo ""
@@ -165,7 +172,7 @@ generate_story_context() {
                     # Story-scoped source file: full signatures (no cap — agent edits these)
                     echo "**$filepath** ($lines lines, signatures only):"
                     echo '```'
-                    python3 "$_EXTRACT_SIGS" "$filepath" 2>/dev/null | sed 's/^/  /' || true
+                    adapter_signatures "$filepath" 2>/dev/null | sed 's/^/  /' || true
                     echo '```'
                 fi
                 echo ""
@@ -183,7 +190,9 @@ generate_story_context() {
             while IFS= read -r filepath; do
                 local test_path
                 # Map src path to test path using configurable prefix
-                test_path=$(echo "$filepath" | sed "s|^${RALPH_SRC_PREFIX}|tests/|; s|/\([^/]*\)\.py$|/test_\1.py|")
+                # Reason: Replace src prefix with tests/ and add test_ prefix to filename
+                local _ext="${filepath##*.}"
+                test_path=$(echo "$filepath" | sed "s|^${RALPH_SRC_PREFIX}|tests/|; s|/\([^/]*\)\.${_ext}$|/test_\1.${_ext}|")
                 [ -f "$test_path" ] || continue
                 found_tests=true
                 local tlines
@@ -197,7 +206,7 @@ generate_story_context() {
                     # Story-scoped test file: full signatures (no cap — agent edits these)
                     echo "**$test_path** ($tlines lines, signatures only):"
                     echo '```'
-                    python3 "$_EXTRACT_SIGS" "$test_path" 2>/dev/null | sed 's/^/  /' || true
+                    adapter_signatures "$test_path" 2>/dev/null | sed 's/^/  /' || true
                     echo '```'
                 fi
                 echo ""
