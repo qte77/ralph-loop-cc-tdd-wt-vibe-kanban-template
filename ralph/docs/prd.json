@@ -1,20 +1,214 @@
 {
-  "project": "[PROJECT NAME]",
-  "desciption": "A concise project desctipion",
-  "source": "docs/PRD.md",
-  "generated": "TEMPLATE",
+  "project": "Ralph Bug-Fix Sprint: BATS TDD",
+  "description": "Fix 8 confirmed bugs from quality-audit-2026-03.md using BATS test-driven development. Critical security fixes first (eval injection, exit 0 masking), then teams.sh correctness, then medium/low improvements. Each story requires a BATS test written first (RED), then the minimal fix (GREEN), then optional refactor.",
+  "source": "ralph/TODO.md + docs/audits/quality-audit-2026-03.md",
+  "generated": "2026-03-24T00:00:00Z",
   "stories": [
     {
-      "id": "STORY-EXAMPLE",
-      "title": "Example story - replace with real stories",
-      "description": "This is a placeholder. Use /generating-prd-json-from-prd-md skill to populate from PRD.md",
+      "id": "STORY-001",
+      "title": "Scaffold BATS test infrastructure for Ralph scripts",
+      "description": "Set up BATS test framework for Ralph script testing. Create test directory structure, shared test helpers (setup/teardown with tmp dirs, mock claude binary, mock prd.json fixtures), and a Makefile recipe. This is the foundation all other stories depend on.",
       "depends_on": [],
       "acceptance": [
-        "Run: claude -p '/generating-prd-json-from-prd-md' or make ralph_init_loop",
-        "Skill will parse PRD.md and populate real stories here"
+        "BATS installed and runnable: `bats --version` succeeds",
+        "`ralph/scripts/tests/` contains `test_helper/` with `common-setup.bash` (shared setup/teardown)",
+        "`common-setup.bash` creates isolated tmp dir per test, exports `RALPH_TMP_DIR`, stubs `claude` binary as no-op",
+        "`common-setup.bash` provides `create_mock_prd()` helper that writes a minimal valid prd.json to tmp dir",
+        "`common-setup.bash` sets `git config user.name/email` for tests that create commits",
+        "Makefile recipe `test_bats` runs `bats ralph/scripts/tests/` with TAP output",
+        "Existing `test_parallel_ralph.sh` is NOT deleted (coexists until migrated)",
+        "At least one smoke test passes: `test_common_sh_sources_without_error`"
       ],
-      "files": ["ralph/docs/prd.json"],
-      "passes": false,
+      "files": [
+        "ralph/scripts/tests/test_helper/common-setup.bash",
+        "ralph/scripts/tests/test_scaffold.bats",
+        "Makefile"
+      ],
+      "status": "pending",
+      "wave": 1,
+      "completed_at": null
+    },
+    {
+      "id": "STORY-002",
+      "title": "Fix eval injection in execute_story and fix_validation_errors",
+      "description": "CRITICAL SECURITY. ralph.sh:330 and ralph.sh:445 use `eval` to expand `$extra_flags` in `claude -p` invocations. If any RALPH_* env var contains shell metacharacters (e.g., RALPH_INSTRUCTION='; rm -rf /'), arbitrary commands execute. Replace `eval` with safe array expansion.",
+      "depends_on": ["STORY-001"],
+      "acceptance": [
+        "[RED] BATS test `test_eval_injection.bats` exists with tests that: (1) set RALPH_INSTRUCTION to a string containing shell metacharacters (`;`, `$()`, backticks), (2) invoke `execute_story` or `fix_validation_errors` in a sandboxed env, (3) assert the metacharacters are NOT executed (e.g., a canary file is NOT created)",
+        "[GREEN] `execute_story()` at ralph.sh:330 replaces `eval claude -p ... $extra_flags` with safe array expansion: `local -a flags_array; read -ra flags_array <<< \"$extra_flags\"; claude -p --model \"$model\" --dangerously-skip-permissions \"${flags_array[@]}\" ...`",
+        "[GREEN] `fix_validation_errors()` at ralph.sh:445 applies the same safe array expansion pattern",
+        "[GREEN] `build_claude_extra_flags()` returns a space-separated string (no shell metacharacters needed)",
+        "All existing functionality preserved: RALPH_DESLOPIFY, RALPH_MODEL, teams flags still work",
+        "BATS injection tests pass (metacharacters in env vars are harmless)"
+      ],
+      "files": [
+        "ralph/scripts/tests/test_eval_injection.bats",
+        "ralph/scripts/ralph.sh"
+      ],
+      "status": "pending",
+      "wave": 2,
+      "completed_at": null
+    },
+    {
+      "id": "STORY-003",
+      "title": "Fix exit 0 masking worker failures in parallel_ralph.sh",
+      "description": "HIGH. parallel_ralph.sh:264 hardcodes `WORKTREE_EXIT_CODES[$i]=0` for all completed disowned processes because exit codes cannot be retrieved from disowned PIDs. This means parallel runs always report success even when workers fail. Fix by using a sentinel file written by the worker subshell.",
+      "depends_on": ["STORY-001"],
+      "acceptance": [
+        "[RED] BATS test `test_parallel_exit_codes.bats` exists: (1) creates a mock worker script that exits with code 1, (2) launches it via the same disown pattern as parallel_ralph.sh, (3) asserts the exit code is captured as non-zero",
+        "[GREEN] Worker subshell (parallel_ralph.sh:235-240) writes exit code to a sentinel file: `echo $? > \"$worktree_path/.ralph-exit-code\"` after ralph.sh completes",
+        "[GREEN] `wait_and_monitor()` reads `$worktree_path/.ralph-exit-code` instead of hardcoding 0",
+        "[GREEN] If sentinel file missing (worker killed), exit code defaults to 137 (SIGKILL)",
+        "Final summary correctly reports failed worktrees",
+        "Cleanup removes sentinel files"
+      ],
+      "files": [
+        "ralph/scripts/tests/test_parallel_exit_codes.bats",
+        "ralph/scripts/parallel_ralph.sh"
+      ],
+      "status": "pending",
+      "wave": 2,
+      "completed_at": null
+    },
+    {
+      "id": "STORY-004",
+      "title": "Rename verify_teammate_stories in ralph.sh to verify_prd_isolation",
+      "description": "HIGH. ralph.sh:226 and teams.sh:195 both define `verify_teammate_stories()` with completely different semantics. ralph.sh version checks that only the current story was modified in prd.json (isolation check). teams.sh version verifies TDD commits and scoped quality for teammate stories. Whichever is sourced last silently wins. Rename the ralph.sh version.",
+      "depends_on": ["STORY-001"],
+      "acceptance": [
+        "[RED] BATS test `test_name_collision.bats` exists: (1) sources both ralph.sh and teams.sh, (2) asserts `type verify_teammate_stories` resolves to the teams.sh version, (3) asserts `type verify_prd_isolation` resolves to the ralph.sh version (currently fails because the function doesn't exist yet)",
+        "[GREEN] ralph.sh:226 function renamed from `verify_teammate_stories` to `verify_prd_isolation`",
+        "[GREEN] All call sites of the old name in ralph.sh updated to `verify_prd_isolation`",
+        "[GREEN] teams.sh `verify_teammate_stories` unchanged",
+        "No behavioral change in either function's logic"
+      ],
+      "files": [
+        "ralph/scripts/tests/test_name_collision.bats",
+        "ralph/scripts/ralph.sh"
+      ],
+      "status": "pending",
+      "wave": 2,
+      "completed_at": null
+    },
+    {
+      "id": "STORY-005",
+      "title": "Fix scoped checks passing story ID instead of commit hash in teams.sh",
+      "description": "HIGH. teams.sh:227-238 passes story ID (e.g., 'STORY-003') to `run_ruff_scoped`, `run_complexity_scoped`, `run_tests_scoped`. These functions expect a git commit hash for `git diff --name-only`. `git diff --name-only 'STORY-003' HEAD` silently returns nothing, so all scoped quality checks pass without checking anything.",
+      "depends_on": ["STORY-001", "STORY-004"],
+      "acceptance": [
+        "[RED] BATS test `test_scoped_checks.bats` exists: (1) creates a test git repo with a known commit, (2) calls `run_ruff_scoped` with a story ID string, (3) asserts the scoped check actually operates on changed files (currently returns empty/passes vacuously)",
+        "[GREEN] `verify_teammate_stories()` in teams.sh calls `get_story_base_commit \"$sid\"` before passing to scoped check functions",
+        "[GREEN] `get_story_base_commit` returns the commit hash before the story's first [RED] commit",
+        "[GREEN] `run_ruff_scoped`, `run_complexity_scoped`, `run_tests_scoped` receive a valid commit hash",
+        "Scoped checks actually detect lint/complexity/test failures in story-changed files"
+      ],
+      "files": [
+        "ralph/scripts/tests/test_scoped_checks.bats",
+        "ralph/scripts/lib/teams.sh"
+      ],
+      "status": "pending",
+      "wave": 3,
+      "completed_at": null
+    },
+    {
+      "id": "STORY-006",
+      "title": "Fix kanban_update JSON injection via jq --arg",
+      "description": "MEDIUM. vibe.sh:158-175 builds JSON payload with string concatenation and sed-only escaping (misses backslashes, newlines). `kanban_init` in the same file already uses `jq --arg` correctly. Convert `kanban_update` to the same pattern.",
+      "depends_on": ["STORY-001"],
+      "acceptance": [
+        "[RED] BATS test `test_vibe_json.bats` exists: (1) calls `kanban_update` with a reason containing backslashes, newlines, double quotes, and single quotes, (2) captures the JSON payload, (3) validates it with `jq .` (currently fails on malformed JSON)",
+        "[GREEN] `kanban_update()` in vibe.sh:158-175 replaced with `jq -n --arg status ... --arg executor ... --arg notes ...` construction",
+        "[GREEN] `sed` escaping removed — `jq --arg` handles all special characters",
+        "[GREEN] Payload structure unchanged (same keys: status, has_in_progress_attempt, last_attempt_failed, executor, attempt_count, notes)",
+        "Existing Kanban integration works unchanged for normal inputs"
+      ],
+      "files": [
+        "ralph/scripts/tests/test_vibe_json.bats",
+        "ralph/scripts/lib/vibe.sh"
+      ],
+      "status": "pending",
+      "wave": 2,
+      "completed_at": null
+    },
+    {
+      "id": "STORY-007",
+      "title": "Replace get_next_story O(n*d) loop with single jq query",
+      "description": "MEDIUM. ralph.sh:168 spawns one jq per story plus one per dependency — O(n*d) subprocess invocations. teams.sh:15 already solves this with `get_unblocked_stories` (single jq query). Replace `get_next_story` with `get_unblocked_stories | head -1`.",
+      "depends_on": ["STORY-001"],
+      "acceptance": [
+        "[RED] BATS test `test_story_scheduling.bats` exists: (1) creates a prd.json with 10 stories and a dependency chain, (2) calls `get_next_story`, (3) asserts correct story returned, (4) counts jq subprocess invocations (instrument with wrapper) — currently O(n*d)",
+        "[GREEN] `get_next_story()` body replaced with: `get_unblocked_stories | head -1`",
+        "[GREEN] Output is identical: returns the first unblocked story ID",
+        "[GREEN] jq invocations reduced from O(n*d) to O(1) per call",
+        "Dependency resolution correctness preserved: blocked stories are never returned"
+      ],
+      "files": [
+        "ralph/scripts/tests/test_story_scheduling.bats",
+        "ralph/scripts/ralph.sh"
+      ],
+      "status": "pending",
+      "wave": 2,
+      "completed_at": null
+    },
+    {
+      "id": "STORY-008",
+      "title": "Fix double validation on intermediate fix attempts",
+      "description": "MEDIUM. ralph.sh:449-458 runs quick validation, then immediately runs full validation on success — lint + type-check execute twice on intermediate attempts. If quick passes on intermediate attempt, proceed directly; run full only on the final attempt.",
+      "depends_on": ["STORY-001"],
+      "acceptance": [
+        "[RED] BATS test `test_fix_validation.bats` exists: (1) stubs `make validate_quick` and `run_quality_checks` to log invocations, (2) calls `fix_validation_errors` with attempt < max_attempts, (3) asserts `run_quality_checks` is NOT called after `make validate_quick` passes (currently it is)",
+        "[GREEN] ralph.sh:449-458: when `attempt < max_attempts` and `make validate_quick` passes, return 0 without calling `run_quality_checks`",
+        "[GREEN] When `attempt == max_attempts`, run full `run_quality_checks` (unchanged)",
+        "[GREEN] When `make validate_quick` fails on any attempt, proceed to next attempt (unchanged)",
+        "Final attempt still runs full validation as safety gate"
+      ],
+      "files": [
+        "ralph/scripts/tests/test_fix_validation.bats",
+        "ralph/scripts/ralph.sh"
+      ],
+      "status": "pending",
+      "wave": 2,
+      "completed_at": null
+    },
+    {
+      "id": "STORY-009",
+      "title": "Delete dead log_cc* functions and fix unconditional debug echo",
+      "description": "LOW. common.sh:71-85 defines 4 `log_cc*` functions with zero call sites (confirmed by grep). vibe.sh has 6 bare `echo \"[DEBUG]\"` statements that fire unconditionally. Clean up both.",
+      "depends_on": ["STORY-001"],
+      "acceptance": [
+        "[RED] BATS test `test_logging_cleanup.bats` exists: (1) sources common.sh, (2) asserts `log_cc` is NOT defined (currently fails because it exists), (3) sources vibe.sh with DEBUG unset, (4) captures stderr, (5) asserts no `[DEBUG]` output appears (currently fails because echos are unconditional)",
+        "[GREEN] `log_cc`, `log_cc_warn`, `log_cc_error`, `log_cc_success` deleted from common.sh:71-85",
+        "[GREEN] 6 bare `echo \"[DEBUG]\"` in vibe.sh replaced with `[ \"${DEBUG:-}\" = \"1\" ] && log_info \"...\"` or deleted if not useful",
+        "No other scripts break (zero call sites for log_cc* confirmed)"
+      ],
+      "files": [
+        "ralph/scripts/tests/test_logging_cleanup.bats",
+        "ralph/scripts/lib/common.sh",
+        "ralph/scripts/lib/vibe.sh"
+      ],
+      "status": "pending",
+      "wave": 2,
+      "completed_at": null
+    },
+    {
+      "id": "STORY-010",
+      "title": "Extract build_story_prompt to deduplicate execute and fix prompts",
+      "description": "LOW/REFACTOR. ~30-line prompt construction block is copy-pasted between `execute_story()` and `fix_validation_errors()` in ralph.sh. Both inject story details, learnings, requests, and steering instruction. Extract into `build_story_prompt()` function.",
+      "depends_on": ["STORY-002", "STORY-008"],
+      "acceptance": [
+        "[RED] BATS test `test_prompt_construction.bats` exists: (1) calls `build_story_prompt` with known story ID, learnings content, and RALPH_INSTRUCTION, (2) asserts output contains story acceptance criteria, learnings section, and steering instruction (currently fails because function doesn't exist)",
+        "[GREEN] New function `build_story_prompt()` in ralph.sh accepts story_id and output_file params",
+        "[GREEN] `execute_story()` calls `build_story_prompt` instead of inline prompt construction",
+        "[GREEN] `fix_validation_errors()` calls `build_story_prompt` with additional error context appended",
+        "[GREEN] Prompt content is byte-for-byte identical to pre-refactor output (no behavioral change)",
+        "Depends on STORY-002 (eval fix changes the same lines) and STORY-008 (fix validation changes adjacent code)"
+      ],
+      "files": [
+        "ralph/scripts/tests/test_prompt_construction.bats",
+        "ralph/scripts/ralph.sh"
+      ],
+      "status": "pending",
+      "wave": 4,
       "completed_at": null
     }
   ]
