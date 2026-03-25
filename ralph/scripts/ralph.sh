@@ -521,13 +521,6 @@ check_tdd_commits() {
     local story_id="$1"
     local commits_before="$2"
 
-    # Skip TDD verification for first story being executed to allow ramp-up
-    local completed_stories=$(jq '[.stories[] | select(.status == "passed")] | length' "$PRD_JSON")
-    if [ "$completed_stories" -eq 0 ]; then
-        log_info "Skipping TDD verification for first story (ramp-up)"
-        return 0
-    fi
-
     # Skip TDD verification for STORY-000 (foundation story - establishes baseline)
     if [ "$story_id" = "STORY-000" ]; then
         log_info "Skipping TDD verification for STORY-000 (foundation story)"
