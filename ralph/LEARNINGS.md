@@ -13,6 +13,7 @@ Accumulated knowledge from previous Ralph runs. Read this before starting each s
 <!-- Format: "- Pattern description (discovered in STORY-XXX)" -->
 - Safe flag expansion pattern: `local -a flags_array; read -ra flags_array <<< "$flag_string"; command "${flags_array[@]}"` avoids eval injection (from STORY-002)
 - Sentinel file pattern for exit codes: Worker subshell writes `echo $? > "$path/.sentinel-file"` and parent reads it back; fallback to default value (137) if missing (from STORY-003)
+- Function name collisions across sourced scripts silently resolve to whichever was sourced last — use distinct names per script when semantics differ (from STORY-004)
 
 ## Common Mistakes
 
