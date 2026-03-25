@@ -14,8 +14,7 @@ Accumulated knowledge from previous Ralph runs. Read this before starting each s
 
 ## Common Mistakes
 
-<!-- Append mistakes to avoid -->
-<!-- Format: "- Mistake description (from STORY-XXX)" -->
+- `claude -p` spawned from within a CC session (Bash tool or `!` prompt) inherits the read-only sandbox — `.git` is read-only, `git commit` fails silently. The agent falls back to `gitStatus` context instead of running the actual command. Always run `ralph.sh` from an independent terminal (Codespace terminal tab), never from within CC. (discovered during STORY-001 dogfooding, validated 2026-03-25)
 
 ## Testing Strategies
 
