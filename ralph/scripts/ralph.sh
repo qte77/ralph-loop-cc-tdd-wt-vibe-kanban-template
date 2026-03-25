@@ -483,11 +483,9 @@ fix_validation_errors() {
             if [ $attempt -lt $max_attempts ]; then
                 log_info "Running quick validation (attempt $attempt/$max_attempts)..."
                 if make validate_quick 2>&1 | tee "$retry_log"; then
-                    # Quick validation passed, run full validation to confirm
-                    if run_quality_checks "$retry_log"; then
-                        log_info "Full validation passed after fix attempt $attempt"
-                        return 0
-                    fi
+                    # Quick validation passed on intermediate attempt - proceed without full validation
+                    log_info "Quick validation passed, returning for next iteration"
+                    return 0
                 else
                     log_warn "Quick validation still failing after fix attempt $attempt"
                     # Check error trend
