@@ -121,7 +121,7 @@ RALPH_METRICS_FILE="metrics.json"
 # RUNTIME TEMPORARY FILES
 # Used for inter-process coordination and logging
 # =================================================
-RALPH_TMP_DIR="/tmp/ralph"
+RALPH_TMP_DIR="${RALPH_TMP_DIR:-/tmp/ralph}"
 
 # =================================================
 # TEMPLATE PATHS
