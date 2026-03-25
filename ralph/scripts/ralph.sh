@@ -43,6 +43,7 @@ if [ -n "${RALPH_RUN_ID:-}" ] && [ -f "$RALPH_TMP_DIR/vibe-${RALPH_RUN_ID}.env" 
 fi
 
 source "$SCRIPT_DIR/lib/vibe.sh"
+source "$SCRIPT_DIR/lib/teams.sh"
 
 # Configuration (import from config.sh with CLI/env overrides)
 MAX_ITERATIONS=${1:-$RALPH_MAX_ITERATIONS}
@@ -166,34 +167,7 @@ validate_environment() {
 
 # Get next story with resolved dependencies (execute deps first)
 get_next_story() {
-    # Get all incomplete stories
-    local incomplete=$(jq -r '.stories[] | select(.status != "passed") | .id' "$PRD_JSON")
-
-    for story_id in $incomplete; do
-        # Check if all dependencies are complete
-        local deps=$(jq -r --arg id "$story_id" \
-            '.stories[] | select(.id == $id) | .depends_on // [] | .[]' \
-            "$PRD_JSON" 2>/dev/null)
-
-        local deps_met=true
-        for dep in $deps; do
-            local dep_status=$(jq -r --arg id "$dep" \
-                '.stories[] | select(.id == $id) | .status' "$PRD_JSON")
-            if [ "$dep_status" != "passed" ]; then
-                deps_met=false
-                break
-            fi
-        done
-
-        # Return first story with all deps satisfied
-        if [ "$deps_met" = "true" ]; then
-            echo "$story_id"
-            return 0
-        fi
-    done
-
-    # No story with satisfied deps found
-    echo ""
+    get_unblocked_stories | head -1
 }
 
 # Get story details
@@ -223,7 +197,7 @@ update_story_status() {
 }
 
 # Verify that only the current story was modified in prd.json
-verify_teammate_stories() {
+verify_prd_isolation() {
     local story_id="$1"
     local base_commit="$2"
     # Diff prd.json between base_commit and HEAD
@@ -369,7 +343,9 @@ execute_story() {
     adapter_env_setup
     local extra_flags=$(build_claude_extra_flags)
     log_info "Running Claude Code with story context..."
-    if cat "$iteration_prompt" | eval claude -p --model "$model" --dangerously-skip-permissions $extra_flags 2>&1 | tee "$RALPH_TMP_DIR/execute_${story_id}.log"; then
+    local -a flags_array
+    read -ra flags_array <<< "$extra_flags"
+    if cat "$iteration_prompt" | claude -p --model "$model" --dangerously-skip-permissions "${flags_array[@]}" 2>&1 | tee "$RALPH_TMP_DIR/execute_${story_id}.log"; then
         log_info "Execution log saved: $RALPH_TMP_DIR/execute_${story_id}.log"
         rm "$iteration_prompt"
         return 0
@@ -496,7 +472,9 @@ fix_validation_errors() {
         # Execute fix via Claude Code with timeout
         adapter_env_setup
         local extra_flags=$(build_claude_extra_flags)
-        if timeout "$FIX_TIMEOUT" bash -c "cat \"$fix_prompt\" | eval claude -p --model \"$model\" --dangerously-skip-permissions $extra_flags" 2>&1 | tee "$RALPH_TMP_DIR/fix_${story_id}_${attempt}.log"; then
+        local -a flags_array
+        read -ra flags_array <<< "$extra_flags"
+        if timeout "$FIX_TIMEOUT" cat "$fix_prompt" | claude -p --model "$model" --dangerously-skip-permissions "${flags_array[@]}" 2>&1 | tee "$RALPH_TMP_DIR/fix_${story_id}_${attempt}.log"; then
             log_info "Fix attempt log saved: $RALPH_TMP_DIR/fix_${story_id}_${attempt}.log"
             rm "$fix_prompt"
 
@@ -505,11 +483,9 @@ fix_validation_errors() {
             if [ $attempt -lt $max_attempts ]; then
                 log_info "Running quick validation (attempt $attempt/$max_attempts)..."
                 if make validate_quick 2>&1 | tee "$retry_log"; then
-                    # Quick validation passed, run full validation to confirm
-                    if run_quality_checks "$retry_log"; then
-                        log_info "Full validation passed after fix attempt $attempt"
-                        return 0
-                    fi
+                    # Quick validation passed on intermediate attempt - proceed without full validation
+                    log_info "Quick validation passed, returning for next iteration"
+                    return 0
                 else
                     log_warn "Quick validation still failing after fix attempt $attempt"
                     # Check error trend

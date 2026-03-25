@@ -2,11 +2,11 @@
 
 ## What
 
-Fix 8 confirmed bugs from quality-audit-2026-03.md using BATS test-driven development. Critical security fixes first (eval injection, exit 0 masking), then teams.sh correctness, then medium/low improvements. Each story requires a BATS test written first (RED), then the minimal fix (GREEN), then optional refactor.
+Test PRD for BATS tests
 
 ## Why
 
-- Set up BATS test framework for Ralph script testing. Create test directory structure, shared test helpers (setup/teardown with tmp dirs, mock claude binary, mock prd.json fixtures), and a Makefile recipe. This is the foundation all other stories depend on.
+- Test story for testing
 
 ## Quick Start
 
@@ -22,9 +22,12 @@ make test_all
 
 ```text
 src/your_project_name
-└── __init__.py
-tests/  [error opening dir]
-src/your_project_name/ and tests/
+├── __init__.py
+└── README.md
+tests/
+├── __pycache__
+│   └── test_test_001.cpython-313-pytest-9.0.2.pyc
+└── test_test_001.py
 ```
 
 ## Development
