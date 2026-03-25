@@ -345,11 +345,15 @@ execute_story() {
     log_info "Running Claude Code with story context..."
     local -a flags_array
     read -ra flags_array <<< "$extra_flags"
+    # Protect orchestration files from agent overwrites
+    chmod -w "$PRD_JSON" 2>/dev/null || true
     if cat "$iteration_prompt" | claude -p --model "$model" --dangerously-skip-permissions "${flags_array[@]}" 2>&1 | tee "$RALPH_TMP_DIR/execute_${story_id}.log"; then
+        chmod +w "$PRD_JSON" 2>/dev/null || true
         log_info "Execution log saved: $RALPH_TMP_DIR/execute_${story_id}.log"
         rm "$iteration_prompt"
         return 0
     else
+        chmod +w "$PRD_JSON" 2>/dev/null || true
         log_error "Execution failed, log saved: $RALPH_TMP_DIR/execute_${story_id}.log"
         rm "$iteration_prompt"
         return 1
@@ -474,7 +478,10 @@ fix_validation_errors() {
         local extra_flags=$(build_claude_extra_flags)
         local -a flags_array
         read -ra flags_array <<< "$extra_flags"
+        # Protect orchestration files from agent overwrites
+        chmod -w "$PRD_JSON" 2>/dev/null || true
         if timeout "$FIX_TIMEOUT" cat "$fix_prompt" | claude -p --model "$model" --dangerously-skip-permissions "${flags_array[@]}" 2>&1 | tee "$RALPH_TMP_DIR/fix_${story_id}_${attempt}.log"; then
+            chmod +w "$PRD_JSON" 2>/dev/null || true
             log_info "Fix attempt log saved: $RALPH_TMP_DIR/fix_${story_id}_${attempt}.log"
             rm "$fix_prompt"
 
@@ -508,6 +515,7 @@ fix_validation_errors() {
                 fi
             fi
         else
+            chmod +w "$PRD_JSON" 2>/dev/null || true
             log_error "Fix execution failed, log saved: $RALPH_TMP_DIR/fix_${story_id}_${attempt}.log"
             rm "$fix_prompt"
             return 1
