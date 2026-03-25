@@ -313,6 +313,18 @@ execute_story() {
             cat "$RALPH_REQUESTS_FILE"
         fi
 
+        # Inject recent run history for self-correction
+        if [[ -f "$PROGRESS_FILE" ]]; then
+            local recent_progress
+            recent_progress=$(tail -50 "$PROGRESS_FILE")
+            if [[ -n "$recent_progress" ]]; then
+                echo ""
+                echo "## Recent Run History"
+                echo ""
+                echo "$recent_progress"
+            fi
+        fi
+
         # Inject ad-hoc steering instruction
         if [ -n "${RALPH_INSTRUCTION}" ]; then
             echo ""
@@ -428,6 +440,18 @@ fix_validation_errors() {
                 echo "## Human Requests"
                 echo ""
                 cat "$RALPH_REQUESTS_FILE"
+            fi
+
+            # Inject recent run history for self-correction
+            if [[ -f "$PROGRESS_FILE" ]]; then
+                local recent_progress
+                recent_progress=$(tail -50 "$PROGRESS_FILE")
+                if [[ -n "$recent_progress" ]]; then
+                    echo ""
+                    echo "## Recent Run History"
+                    echo ""
+                    echo "$recent_progress"
+                fi
             fi
 
             # Inject ad-hoc steering instruction
