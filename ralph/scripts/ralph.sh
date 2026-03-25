@@ -655,9 +655,24 @@ main() {
         # Record commit count before execution
         local commits_before=$(git rev-list --count HEAD)
 
+        # Record LEARNINGS.md hash before execution (compound learning check)
+        local learnings_hash_before=""
+        if [[ -f "$RALPH_LEARNINGS_FILE" ]]; then
+            learnings_hash_before=$(sha256sum "$RALPH_LEARNINGS_FILE" | cut -d' ' -f1)
+        fi
+
         # Execute story
         if execute_story "$story_id" "$details"; then
             log_info "Story execution completed"
+
+            # Check if agent updated LEARNINGS.md (compound learning discipline)
+            if [[ -f "$RALPH_LEARNINGS_FILE" ]]; then
+                local learnings_hash_after
+                learnings_hash_after=$(sha256sum "$RALPH_LEARNINGS_FILE" | cut -d' ' -f1)
+                if [[ "$learnings_hash_before" == "$learnings_hash_after" ]]; then
+                    log_warn "LEARNINGS.md not updated during $story_id — COMPOUND phase skipped"
+                fi
+            fi
 
             if [ "${RALPH_DRY_RUN}" = "true" ]; then
                 # Dry-run: skip TDD verification and quality checks
