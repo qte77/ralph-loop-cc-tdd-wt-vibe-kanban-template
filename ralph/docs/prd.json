@@ -164,9 +164,9 @@
         "ralph/scripts/tests/test_story_scheduling.bats",
         "ralph/scripts/ralph.sh"
       ],
-      "status": "pending",
+      "status": "passed",
       "wave": 1,
-      "completed_at": null,
+      "completed_at": "2026-03-25T20:47:24Z",
       "content_hash": "94d20701b59415928c13c549981bd507bcdff74456c6b41e3fc118bac044a6f8"
     },
     {
