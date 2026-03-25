@@ -118,9 +118,9 @@
         "ralph/scripts/tests/test_scoped_checks.bats",
         "ralph/scripts/lib/teams.sh"
       ],
-      "status": "pending",
+      "status": "passed",
       "wave": 2,
-      "completed_at": null,
+      "completed_at": "2026-03-25T20:35:46Z",
       "content_hash": "4ba280b4af9a0e65576ded234e9e66ac4cfb32926eade74e12b3a4d18054109f"
     },
     {
