@@ -43,6 +43,7 @@ if [ -n "${RALPH_RUN_ID:-}" ] && [ -f "$RALPH_TMP_DIR/vibe-${RALPH_RUN_ID}.env" 
 fi
 
 source "$SCRIPT_DIR/lib/vibe.sh"
+source "$SCRIPT_DIR/lib/teams.sh"
 
 # Configuration (import from config.sh with CLI/env overrides)
 MAX_ITERATIONS=${1:-$RALPH_MAX_ITERATIONS}
@@ -166,34 +167,7 @@ validate_environment() {
 
 # Get next story with resolved dependencies (execute deps first)
 get_next_story() {
-    # Get all incomplete stories
-    local incomplete=$(jq -r '.stories[] | select(.status != "passed") | .id' "$PRD_JSON")
-
-    for story_id in $incomplete; do
-        # Check if all dependencies are complete
-        local deps=$(jq -r --arg id "$story_id" \
-            '.stories[] | select(.id == $id) | .depends_on // [] | .[]' \
-            "$PRD_JSON" 2>/dev/null)
-
-        local deps_met=true
-        for dep in $deps; do
-            local dep_status=$(jq -r --arg id "$dep" \
-                '.stories[] | select(.id == $id) | .status' "$PRD_JSON")
-            if [ "$dep_status" != "passed" ]; then
-                deps_met=false
-                break
-            fi
-        done
-
-        # Return first story with all deps satisfied
-        if [ "$deps_met" = "true" ]; then
-            echo "$story_id"
-            return 0
-        fi
-    done
-
-    # No story with satisfied deps found
-    echo ""
+    get_unblocked_stories | head -1
 }
 
 # Get story details
