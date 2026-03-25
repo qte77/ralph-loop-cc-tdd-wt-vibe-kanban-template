@@ -27,3 +27,12 @@ Story: STORY-001
 Status: PASS
 Notes: Completed successfully with TDD commits
 
+
+## Resumed: Wed Mar 25 08:20:46 PM UTC 2026
+
+## Iteration 2 - Wed Mar 25 2026
+Story: STORY-002
+Title: Fix eval injection in execute_story and fix_validation_errors
+Status: PASS
+Notes: Fixed critical security vulnerability by replacing eval with safe array expansion (read -ra) in both execute_story and fix_validation_errors functions. RED phase: created test_eval_injection.bats with injection tests. GREEN phase: replaced unsafe eval with safe array expansion. Added learnings about eval injection and safe flag expansion patterns.
+
