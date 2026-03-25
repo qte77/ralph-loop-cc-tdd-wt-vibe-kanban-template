@@ -14,12 +14,14 @@ Accumulated knowledge from previous Ralph runs. Read this before starting each s
 - Safe flag expansion pattern: `local -a flags_array; read -ra flags_array <<< "$flag_string"; command "${flags_array[@]}"` avoids eval injection (from STORY-002)
 - Sentinel file pattern for exit codes: Worker subshell writes `echo $? > "$path/.sentinel-file"` and parent reads it back; fallback to default value (137) if missing (from STORY-003)
 - Function name collisions across sourced scripts silently resolve to whichever was sourced last — use distinct names per script when semantics differ (from STORY-004)
+- Use `get_story_base_commit "$story_id"` to convert story IDs to git commit hashes before passing to git diff operations (from STORY-005)
 
 ## Common Mistakes
 
 - `claude -p` spawned from within a CC session (Bash tool or `!` prompt) inherits the read-only sandbox — `.git` is read-only, `git commit` fails silently. The agent falls back to `gitStatus` context instead of running the actual command. Always run `ralph.sh` from an independent terminal (Codespace terminal tab), never from within CC. (discovered during STORY-001 dogfooding, validated 2026-03-25)
 - Never use `eval` to expand command-line flags, even if current values look safe. Indirect injection through env vars becomes possible. Always use safe array expansion. (from STORY-002)
 - Don't hardcode exit codes for disowned processes — use sentinel files to capture actual exit codes. `disown` prevents `wait` from capturing the exit code, so subshells must write to a sentinel file. (from STORY-003)
+- Passing story IDs (e.g., "STORY-005") instead of git commit hashes to `git diff` functions causes silent failures — git treats invalid refs as empty diffs, so quality checks pass vacuously. Always convert story IDs to commit hashes with `get_story_base_commit` before passing to scoped check functions. (from STORY-005)
 
 ## Testing Strategies
 
