@@ -26,6 +26,7 @@ Accumulated knowledge from previous Ralph runs. Read this before starting each s
 - Don't hardcode exit codes for disowned processes — use sentinel files to capture actual exit codes. `disown` prevents `wait` from capturing the exit code, so subshells must write to a sentinel file. (from STORY-003)
 - Passing story IDs (e.g., "STORY-005") instead of git commit hashes to `git diff` functions causes silent failures — git treats invalid refs as empty diffs, so quality checks pass vacuously. Always convert story IDs to commit hashes with `get_story_base_commit` before passing to scoped check functions. (from STORY-005)
 - Using sed to escape JSON strings (e.g., `sed 's/"/\\"/g'`) is insufficient — it misses backslashes, newlines, and other special characters, enabling JSON injection. Always use `jq --arg` which properly escapes all JSON special characters. (from STORY-006)
+- **CRITICAL: Agent overwrites prd.json with test fixture.** When a story involves BATS tests that need mock prd.json data, the agent may write the mock to the real `ralph/docs/prd.json` instead of `$BATS_TEST_TMPDIR/prd.json`. Ralph's `commit_story_state()` then commits the corrupted file, replacing all stories with a single test entry. Not BATS-specific — any story where the agent creates a mock/fixture version of an orchestration file can trigger this. Mitigation: protect `prd.json` from agent writes (read-only during execution), or validate story count hasn't decreased before committing. (from STORY-008 dogfooding, 2026-03-25)
 
 ## Testing Strategies
 
