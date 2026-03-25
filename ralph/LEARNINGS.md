@@ -33,3 +33,4 @@ Accumulated knowledge from previous Ralph runs. Read this before starting each s
 - Test exit code capture by creating sentinel files in isolated test directories and verifying their contents (from STORY-003)
 - Test JSON payload construction by validating with `jq .` after construction, including special characters (quotes, newlines, backslashes) to catch injection vulnerabilities (from STORY-006)
 - Count jq subprocess invocations via PATH-priority stub that increments a counter file; reset counter after sourcing to avoid counting setup overhead (from STORY-007)
+- Verify code patterns in shell functions using sed/awk to extract blocks and grep to detect bug patterns (e.g., checking "does NOT call run_quality_checks after make validate_quick"); avoids complex function extraction and mocking (from STORY-008)
