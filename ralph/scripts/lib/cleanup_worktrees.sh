@@ -41,6 +41,9 @@ cleanup_worktrees() {
 
             local branch_name="${RALPH_PARALLEL_BRANCH_PREFIX}-${wt_num}"
 
+            # Remove sentinel file if it exists
+            [ -f "$worktree_path/.ralph-exit-code" ] && rm "$worktree_path/.ralph-exit-code" 2>/dev/null || true
+
             log_info "Removing worktree $wt_num at $worktree_path..."
             git worktree unlock "$worktree_path" 2>/dev/null || true
             git worktree remove "$worktree_path" --force 2>/dev/null || true
