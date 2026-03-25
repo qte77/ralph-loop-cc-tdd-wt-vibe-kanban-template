@@ -47,9 +47,9 @@
         "ralph/scripts/tests/test_eval_injection.bats",
         "ralph/scripts/ralph.sh"
       ],
-      "status": "pending",
+      "status": "passed",
       "wave": 1,
-      "completed_at": null,
+      "completed_at": "2026-03-25T20:23:26Z",
       "content_hash": "9bb673d17ec2d70874c61e73e112c2608dfc212eb99c5540892f72b00de70c58"
     },
     {
@@ -133,7 +133,7 @@
       "acceptance": [
         "[RED] BATS test `test_vibe_json.bats` exists: (1) calls `kanban_update` with a reason containing backslashes, newlines, double quotes, and single quotes, (2) captures the JSON payload, (3) validates it with `jq .` (currently fails on malformed JSON)",
         "[GREEN] `kanban_update()` in vibe.sh:158-175 replaced with `jq -n --arg status ... --arg executor ... --arg notes ...` construction",
-        "[GREEN] `sed` escaping removed \u2014 `jq --arg` handles all special characters",
+        "[GREEN] `sed` escaping removed — `jq --arg` handles all special characters",
         "[GREEN] Payload structure unchanged (same keys: status, has_in_progress_attempt, last_attempt_failed, executor, attempt_count, notes)",
         "Existing Kanban integration works unchanged for normal inputs"
       ],
@@ -149,12 +149,12 @@
     {
       "id": "STORY-007",
       "title": "Replace get_next_story O(n*d) loop with single jq query",
-      "description": "MEDIUM. ralph.sh:168 spawns one jq per story plus one per dependency \u2014 O(n*d) subprocess invocations. teams.sh:15 already solves this with `get_unblocked_stories` (single jq query). Replace `get_next_story` with `get_unblocked_stories | head -1`.",
+      "description": "MEDIUM. ralph.sh:168 spawns one jq per story plus one per dependency — O(n*d) subprocess invocations. teams.sh:15 already solves this with `get_unblocked_stories` (single jq query). Replace `get_next_story` with `get_unblocked_stories | head -1`.",
       "depends_on": [
         "STORY-001"
       ],
       "acceptance": [
-        "[RED] BATS test `test_story_scheduling.bats` exists: (1) creates a prd.json with 10 stories and a dependency chain, (2) calls `get_next_story`, (3) asserts correct story returned, (4) counts jq subprocess invocations (instrument with wrapper) \u2014 currently O(n*d)",
+        "[RED] BATS test `test_story_scheduling.bats` exists: (1) creates a prd.json with 10 stories and a dependency chain, (2) calls `get_next_story`, (3) asserts correct story returned, (4) counts jq subprocess invocations (instrument with wrapper) — currently O(n*d)",
         "[GREEN] `get_next_story()` body replaced with: `get_unblocked_stories | head -1`",
         "[GREEN] Output is identical: returns the first unblocked story ID",
         "[GREEN] jq invocations reduced from O(n*d) to O(1) per call",
@@ -172,7 +172,7 @@
     {
       "id": "STORY-008",
       "title": "Fix double validation on intermediate fix attempts",
-      "description": "MEDIUM. ralph.sh:449-458 runs quick validation, then immediately runs full validation on success \u2014 lint + type-check execute twice on intermediate attempts. If quick passes on intermediate attempt, proceed directly; run full only on the final attempt.",
+      "description": "MEDIUM. ralph.sh:449-458 runs quick validation, then immediately runs full validation on success — lint + type-check execute twice on intermediate attempts. If quick passes on intermediate attempt, proceed directly; run full only on the final attempt.",
       "depends_on": [
         "STORY-001"
       ],
