@@ -1,8 +1,8 @@
 {
-  "project": "Ralph Bug-Fix Sprint: BATS TDD",
-  "description": "Fix 8 confirmed bugs from quality-audit-2026-03.md using BATS test-driven development. Critical security fixes first (eval injection, exit 0 masking), then teams.sh correctness, then medium/low improvements. Each story requires a BATS test written first (RED), then the minimal fix (GREEN), then optional refactor.",
-  "source": "ralph/TODO.md + docs/audits/quality-audit-2026-03.md",
-  "generated": "2026-03-24T00:00:00Z",
+  "project": "\"Ralph Bug-Fix + Self-Evolving Loop Sprint\"",
+  "description": "",
+  "source": "PRD.md",
+  "generated": "2026-03-25 18:36:44",
   "stories": [
     {
       "id": "STORY-001",
@@ -25,7 +25,7 @@
         "Makefile"
       ],
       "status": "passed",
-      "wave": 1,
+      "wave": 0,
       "completed_at": "2026-03-25T17:33:28Z"
     },
     {
@@ -48,8 +48,9 @@
         "ralph/scripts/ralph.sh"
       ],
       "status": "pending",
-      "wave": 2,
-      "completed_at": null
+      "wave": 1,
+      "completed_at": null,
+      "content_hash": "9bb673d17ec2d70874c61e73e112c2608dfc212eb99c5540892f72b00de70c58"
     },
     {
       "id": "STORY-003",
@@ -71,8 +72,9 @@
         "ralph/scripts/parallel_ralph.sh"
       ],
       "status": "pending",
-      "wave": 2,
-      "completed_at": null
+      "wave": 1,
+      "completed_at": null,
+      "content_hash": "2474ef13ee381e5f5be2bf086b4ba4a68dc2856b61697f68ff3d1d5355d9ea55"
     },
     {
       "id": "STORY-004",
@@ -93,8 +95,9 @@
         "ralph/scripts/ralph.sh"
       ],
       "status": "pending",
-      "wave": 2,
-      "completed_at": null
+      "wave": 1,
+      "completed_at": null,
+      "content_hash": "05b0df57ec43bdae1f90b6a9eaf4d8bb2ec309d0ea5dbbd4c6368ca63202f8eb"
     },
     {
       "id": "STORY-005",
@@ -116,8 +119,9 @@
         "ralph/scripts/lib/teams.sh"
       ],
       "status": "pending",
-      "wave": 3,
-      "completed_at": null
+      "wave": 2,
+      "completed_at": null,
+      "content_hash": "4ba280b4af9a0e65576ded234e9e66ac4cfb32926eade74e12b3a4d18054109f"
     },
     {
       "id": "STORY-006",
@@ -129,7 +133,7 @@
       "acceptance": [
         "[RED] BATS test `test_vibe_json.bats` exists: (1) calls `kanban_update` with a reason containing backslashes, newlines, double quotes, and single quotes, (2) captures the JSON payload, (3) validates it with `jq .` (currently fails on malformed JSON)",
         "[GREEN] `kanban_update()` in vibe.sh:158-175 replaced with `jq -n --arg status ... --arg executor ... --arg notes ...` construction",
-        "[GREEN] `sed` escaping removed — `jq --arg` handles all special characters",
+        "[GREEN] `sed` escaping removed \u2014 `jq --arg` handles all special characters",
         "[GREEN] Payload structure unchanged (same keys: status, has_in_progress_attempt, last_attempt_failed, executor, attempt_count, notes)",
         "Existing Kanban integration works unchanged for normal inputs"
       ],
@@ -138,18 +142,19 @@
         "ralph/scripts/lib/vibe.sh"
       ],
       "status": "pending",
-      "wave": 2,
-      "completed_at": null
+      "wave": 1,
+      "completed_at": null,
+      "content_hash": "5ed3e17c0a2ae01bad2c050f5151e0147d1ac36e10a5f2f15ba67e1eeb27a0b9"
     },
     {
       "id": "STORY-007",
       "title": "Replace get_next_story O(n*d) loop with single jq query",
-      "description": "MEDIUM. ralph.sh:168 spawns one jq per story plus one per dependency — O(n*d) subprocess invocations. teams.sh:15 already solves this with `get_unblocked_stories` (single jq query). Replace `get_next_story` with `get_unblocked_stories | head -1`.",
+      "description": "MEDIUM. ralph.sh:168 spawns one jq per story plus one per dependency \u2014 O(n*d) subprocess invocations. teams.sh:15 already solves this with `get_unblocked_stories` (single jq query). Replace `get_next_story` with `get_unblocked_stories | head -1`.",
       "depends_on": [
         "STORY-001"
       ],
       "acceptance": [
-        "[RED] BATS test `test_story_scheduling.bats` exists: (1) creates a prd.json with 10 stories and a dependency chain, (2) calls `get_next_story`, (3) asserts correct story returned, (4) counts jq subprocess invocations (instrument with wrapper) — currently O(n*d)",
+        "[RED] BATS test `test_story_scheduling.bats` exists: (1) creates a prd.json with 10 stories and a dependency chain, (2) calls `get_next_story`, (3) asserts correct story returned, (4) counts jq subprocess invocations (instrument with wrapper) \u2014 currently O(n*d)",
         "[GREEN] `get_next_story()` body replaced with: `get_unblocked_stories | head -1`",
         "[GREEN] Output is identical: returns the first unblocked story ID",
         "[GREEN] jq invocations reduced from O(n*d) to O(1) per call",
@@ -160,13 +165,14 @@
         "ralph/scripts/ralph.sh"
       ],
       "status": "pending",
-      "wave": 2,
-      "completed_at": null
+      "wave": 1,
+      "completed_at": null,
+      "content_hash": "94d20701b59415928c13c549981bd507bcdff74456c6b41e3fc118bac044a6f8"
     },
     {
       "id": "STORY-008",
       "title": "Fix double validation on intermediate fix attempts",
-      "description": "MEDIUM. ralph.sh:449-458 runs quick validation, then immediately runs full validation on success — lint + type-check execute twice on intermediate attempts. If quick passes on intermediate attempt, proceed directly; run full only on the final attempt.",
+      "description": "MEDIUM. ralph.sh:449-458 runs quick validation, then immediately runs full validation on success \u2014 lint + type-check execute twice on intermediate attempts. If quick passes on intermediate attempt, proceed directly; run full only on the final attempt.",
       "depends_on": [
         "STORY-001"
       ],
@@ -182,8 +188,9 @@
         "ralph/scripts/ralph.sh"
       ],
       "status": "pending",
-      "wave": 2,
-      "completed_at": null
+      "wave": 1,
+      "completed_at": null,
+      "content_hash": "ad8762f780f99a9cf9c6760557b70b8d1a7aeacda4610fd0b7d071da552a8f93"
     },
     {
       "id": "STORY-009",
@@ -204,8 +211,9 @@
         "ralph/scripts/lib/vibe.sh"
       ],
       "status": "pending",
-      "wave": 2,
-      "completed_at": null
+      "wave": 1,
+      "completed_at": null,
+      "content_hash": "eb6924e0febb686e99a19403fe30b516ef5340172cd446418eb3d27542059d74"
     },
     {
       "id": "STORY-010",
@@ -228,8 +236,104 @@
         "ralph/scripts/ralph.sh"
       ],
       "status": "pending",
-      "wave": 4,
-      "completed_at": null
+      "wave": 2,
+      "completed_at": null,
+      "content_hash": "715597a47758f920ab05c1e1e69208ac06b86743c9454d50018f73d821f03c60"
+    },
+    {
+      "id": "STORY-011",
+      "title": "Feed progress.txt into prompts",
+      "description": "Close the feedback gap: inject recent run history into every story and fix prompt so the agent can see prior iteration outcomes and self-correct.",
+      "acceptance": [
+        "[RED] BATS test `test_progress_injection.bats` asserts prompt file contains \"Recent Run History\" section",
+        "[GREEN] `execute_story()` injects `tail -50` of progress.txt after LEARNINGS injection",
+        "[GREEN] `fix_validation_errors()` applies same injection",
+        "Agent sees patterns like \"STORY-003 failed 3x with same error\"",
+        "Inject after LEARNINGS.md block, before INSTRUCTION block",
+        "Use `tail -50` to limit context (~10 iterations at ~5 lines each)"
+      ],
+      "files": [
+        "ralph/scripts/tests/test_progress_injection.bats",
+        "ralph/scripts/ralph.sh"
+      ],
+      "status": "pending",
+      "wave": 1,
+      "completed_at": null,
+      "content_hash": "ad189adc55703663cb1744a64ed67e8a8228fc4c0d8581307b6ae86dfdf57bc2",
+      "depends_on": [
+        "STORY-001"
+      ]
+    },
+    {
+      "id": "STORY-012",
+      "title": "Add LEARNINGS.md update check",
+      "description": "Enforce compound learning discipline by detecting when the agent skips writing to LEARNINGS.md after a story.",
+      "acceptance": [
+        "[RED] BATS test `test_learnings_check.bats` asserts warning emitted when LEARNINGS.md unchanged",
+        "[GREEN] Hash LEARNINGS.md via `sha256sum` before and after `execute_story()`",
+        "[GREEN] `log_warn` when hashes match (COMPOUND phase skipped)",
+        "Warning surfaces in logs and feeds back via M1 into subsequent prompts"
+      ],
+      "files": [
+        "ralph/scripts/tests/test_learnings_check.bats",
+        "ralph/scripts/ralph.sh"
+      ],
+      "status": "pending",
+      "wave": 1,
+      "completed_at": null,
+      "content_hash": "5f4a5e8b28cd379f167c063b160e43a4eed5ea29225d182ec58f093b316c0db1",
+      "depends_on": [
+        "STORY-001"
+      ]
+    },
+    {
+      "id": "STORY-013",
+      "title": "Add compress_progress distillation",
+      "description": "The self-evolving mechanism. After every 3rd completed story, invoke a cheap `claude -p --model haiku` call to extract durable patterns from progress.txt into LEARNINGS.md. Combined with the compound learning promotion path (LEARNINGS -> rules -> skills), patterns discovered by ralph become permanent infrastructure.",
+      "acceptance": [
+        "[RED] BATS test `test_compress_progress.bats` asserts function skips when <3 stories completed",
+        "[RED] BATS test asserts function triggers on exactly 3rd, 6th, 9th completion",
+        "[GREEN] `compress_progress()` function reads progress.txt + LEARNINGS.md, invokes haiku",
+        "[GREEN] Called at end of `main()` after the while loop",
+        "Uses `|| true` to prevent blocking the main run on failure",
+        "Use `claude -p --model haiku --dangerously-skip-permissions`",
+        "Guard with `[[ \"$completed\" -lt 3 ]] && return 0` and modulo check",
+        "Log output to `$RALPH_TMP_DIR/compress_progress.log`"
+      ],
+      "files": [
+        "ralph/scripts/tests/test_compress_progress.bats",
+        "ralph/scripts/ralph.sh"
+      ],
+      "status": "pending",
+      "wave": 2,
+      "completed_at": null,
+      "content_hash": "0b1fd9e0da12484195c75e8c7f03742ff90ae55719bb1aadc1026c74ca5b9cb3",
+      "depends_on": [
+        "STORY-011",
+        "STORY-012"
+      ]
+    },
+    {
+      "id": "STORY-014",
+      "title": "Remove TDD ramp-up skip",
+      "description": "The generic \"skip TDD for first story\" bypass at `ralph.sh:523-527` masks real failures. STORY-000 foundation check already handles legitimate cases. Remove the bypass.",
+      "acceptance": [
+        "[RED] BATS test `test_tdd_skip_removal.bats` asserts TDD verification runs on first non-STORY-000 story",
+        "[GREEN] 4-line bypass block deleted from `check_tdd_commits()`",
+        "[GREEN] STORY-000 check remains unchanged",
+        "Future first stories correctly fail TDD if no RED/GREEN commits exist"
+      ],
+      "files": [
+        "ralph/scripts/tests/test_tdd_skip_removal.bats",
+        "ralph/scripts/ralph.sh"
+      ],
+      "status": "pending",
+      "wave": 1,
+      "completed_at": null,
+      "content_hash": "39f2f7969e6a6bfe8834bd6e5985a8bc17f42bb73800c91538633e43c8c953fa",
+      "depends_on": [
+        "STORY-001"
+      ]
     }
   ]
 }
