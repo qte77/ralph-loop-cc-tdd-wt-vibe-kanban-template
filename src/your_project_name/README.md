@@ -6,7 +6,7 @@ Test PRD for BATS tests
 
 ## Why
 
-
+- Test story for testing
 
 ## Quick Start
 
@@ -24,8 +24,10 @@ make test_all
 src/your_project_name
 ├── __init__.py
 └── README.md
-tests/  [error opening dir]
-src/your_project_name/ and tests/
+tests/
+├── __pycache__
+│   └── test_test_001.cpython-313-pytest-9.0.2.pyc
+└── test_test_001.py
 ```
 
 ## Development
