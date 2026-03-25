@@ -529,6 +529,16 @@ commit_story_state() {
     local app_readme=$(generate_app_readme)
     local app_example=$(generate_app_example)
 
+    # Guard: detect if agent overwrote prd.json with test fixture
+    local expected_count
+    expected_count=$(git show HEAD:"$PRD_JSON" 2>/dev/null | jq '.stories | length' 2>/dev/null || echo 0)
+    local current_count
+    current_count=$(jq '.stories | length' "$PRD_JSON" 2>/dev/null || echo 0)
+    if [[ "$expected_count" -gt 0 && "$current_count" -lt "$expected_count" ]]; then
+        log_error "prd.json story count dropped ($expected_count → $current_count) — agent likely overwrote with test fixture. Restoring from HEAD."
+        git checkout HEAD -- "$PRD_JSON"
+    fi
+
     # Commit state files (prd.json, progress.txt, README.md, example.py)
     log_info "Committing state files..."
     git add "$PRD_JSON" "$PROGRESS_FILE"
@@ -779,6 +789,16 @@ main() {
 
     # Commit any remaining uncommitted tracking files
     if ! git diff --quiet "$PRD_JSON" "$PROGRESS_FILE" 2>/dev/null; then
+        # Guard: detect if agent overwrote prd.json with test fixture
+        local expected_count
+        expected_count=$(git show HEAD:"$PRD_JSON" 2>/dev/null | jq '.stories | length' 2>/dev/null || echo 0)
+        local current_count
+        current_count=$(jq '.stories | length' "$PRD_JSON" 2>/dev/null || echo 0)
+        if [[ "$expected_count" -gt 0 && "$current_count" -lt "$expected_count" ]]; then
+            log_error "prd.json story count dropped ($expected_count → $current_count) — restoring from HEAD."
+            git checkout HEAD -- "$PRD_JSON"
+        fi
+
         log_info "Committing final tracking file changes..."
         git add "$PRD_JSON" "$PROGRESS_FILE"
 
