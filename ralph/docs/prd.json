@@ -71,9 +71,9 @@
         "ralph/scripts/tests/test_parallel_exit_codes.bats",
         "ralph/scripts/parallel_ralph.sh"
       ],
-      "status": "pending",
+      "status": "passed",
       "wave": 1,
-      "completed_at": null,
+      "completed_at": "2026-03-25T20:27:07Z",
       "content_hash": "2474ef13ee381e5f5be2bf086b4ba4a68dc2856b61697f68ff3d1d5355d9ea55"
     },
     {

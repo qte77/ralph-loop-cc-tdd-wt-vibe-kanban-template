@@ -8,6 +8,7 @@
 
 - Set up BATS test framework for Ralph script testing. Create test directory structure, shared test helpers (setup/teardown with tmp dirs, mock claude binary, mock prd.json fixtures), and a Makefile recipe. This is the foundation all other stories depend on.
 - CRITICAL SECURITY. ralph.sh:330 and ralph.sh:445 use `eval` to expand `$extra_flags` in `claude -p` invocations. If any RALPH_* env var contains shell metacharacters (e.g., RALPH_INSTRUCTION='; rm -rf /'), arbitrary commands execute. Replace `eval` with safe array expansion.
+- HIGH. parallel_ralph.sh:264 hardcodes `WORKTREE_EXIT_CODES[$i]=0` for all completed disowned processes because exit codes cannot be retrieved from disowned PIDs. This means parallel runs always report success even when workers fail. Fix by using a sentinel file written by the worker subshell.
 
 ## Quick Start
 
