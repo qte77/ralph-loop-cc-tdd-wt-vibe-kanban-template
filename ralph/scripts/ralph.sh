@@ -223,7 +223,7 @@ update_story_status() {
 }
 
 # Verify that only the current story was modified in prd.json
-verify_teammate_stories() {
+verify_prd_isolation() {
     local story_id="$1"
     local base_commit="$2"
     # Diff prd.json between base_commit and HEAD
