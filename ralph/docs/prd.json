@@ -141,9 +141,9 @@
         "ralph/scripts/tests/test_vibe_json.bats",
         "ralph/scripts/lib/vibe.sh"
       ],
-      "status": "pending",
+      "status": "passed",
       "wave": 1,
-      "completed_at": null,
+      "completed_at": "2026-03-25T20:39:02Z",
       "content_hash": "5ed3e17c0a2ae01bad2c050f5151e0147d1ac36e10a5f2f15ba67e1eeb27a0b9"
     },
     {
