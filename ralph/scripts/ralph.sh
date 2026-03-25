@@ -256,6 +256,36 @@ log_progress() {
     } >> "$PROGRESS_FILE"
 }
 
+# Distill durable patterns from progress.txt into LEARNINGS.md
+# Runs after every 3rd completed story — the self-evolving mechanism
+compress_progress() {
+    local completed
+    completed=$(jq '[.stories[] | select(.status == "passed")] | length' "$PRD_JSON")
+    [[ "$completed" -lt 3 ]] && return 0
+    [[ $((completed % 3)) -ne 0 ]] && return 0
+
+    log_info "Compressing progress into LEARNINGS.md (${completed} stories completed)..."
+
+    local compress_prompt
+    compress_prompt=$(cat <<COMPRESS_EOF
+Review the recent run history below. Extract patterns that should become
+permanent learnings. For each pattern seen 2+ times, append ONE concise entry
+to ralph/LEARNINGS.md in the appropriate section (Validation Fixes, Code Patterns,
+Common Mistakes, or Testing Strategies). Do NOT add entries for one-off events.
+Do NOT duplicate existing entries. If no patterns qualify, do nothing.
+
+Recent run history:
+$(tail -100 "$PROGRESS_FILE")
+
+Current LEARNINGS.md:
+$(cat "$RALPH_LEARNINGS_FILE" 2>/dev/null || echo "(empty)")
+COMPRESS_EOF
+    )
+
+    echo "$compress_prompt" | claude -p --model haiku --dangerously-skip-permissions \
+        >> "$RALPH_TMP_DIR/compress_progress.log" 2>&1 || true
+}
+
 # Build extra claude CLI flags from config (RALPH_DESLOPIFY)
 build_claude_extra_flags() {
     local flags=""
@@ -783,6 +813,9 @@ main() {
 
 Summary: $passing/$total stories passing"
     fi
+
+    # Distill learnings from run history (self-evolving loop)
+    compress_progress
 
     # Summary
     local total=$(jq '.stories | length' "$PRD_JSON")
