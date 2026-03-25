@@ -12,13 +12,16 @@ Accumulated knowledge from previous Ralph runs. Read this before starting each s
 <!-- Append discovered codebase conventions -->
 <!-- Format: "- Pattern description (discovered in STORY-XXX)" -->
 - Safe flag expansion pattern: `local -a flags_array; read -ra flags_array <<< "$flag_string"; command "${flags_array[@]}"` avoids eval injection (from STORY-002)
+- Sentinel file pattern for exit codes: Worker subshell writes `echo $? > "$path/.sentinel-file"` and parent reads it back; fallback to default value (137) if missing (from STORY-003)
 
 ## Common Mistakes
 
 - `claude -p` spawned from within a CC session (Bash tool or `!` prompt) inherits the read-only sandbox — `.git` is read-only, `git commit` fails silently. The agent falls back to `gitStatus` context instead of running the actual command. Always run `ralph.sh` from an independent terminal (Codespace terminal tab), never from within CC. (discovered during STORY-001 dogfooding, validated 2026-03-25)
 - Never use `eval` to expand command-line flags, even if current values look safe. Indirect injection through env vars becomes possible. Always use safe array expansion. (from STORY-002)
+- Don't hardcode exit codes for disowned processes — use sentinel files to capture actual exit codes. `disown` prevents `wait` from capturing the exit code, so subshells must write to a sentinel file. (from STORY-003)
 
 ## Testing Strategies
 
 <!-- Append effective testing approaches -->
 <!-- Format: "- Strategy description (from STORY-XXX)" -->
+- Test exit code capture by creating sentinel files in isolated test directories and verifying their contents (from STORY-003)
