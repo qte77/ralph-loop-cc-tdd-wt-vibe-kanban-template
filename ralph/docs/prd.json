@@ -9,8 +9,12 @@
       "title": "Test Story",
       "description": "Test story for testing",
       "depends_on": [],
-      "acceptance": ["Acceptance criterion 1"],
-      "files": ["test_file.txt"],
+      "acceptance": [
+        "Acceptance criterion 1"
+      ],
+      "files": [
+        "test_file.txt"
+      ],
       "status": "pending",
       "wave": 1,
       "completed_at": null
