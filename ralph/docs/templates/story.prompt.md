@@ -128,6 +128,10 @@ Add to appropriate section in `ralph/LEARNINGS.md`:
 
 **Note**: LEARNINGS.md is periodically reviewed using `/review-learnings` command to prune duplicates and obsolete entries.
 
+**Cross-repo context**: When `## Compound Learnings` appears below, it contains
+story-relevant patterns from related projects. Apply them only if directly
+applicable — they are informational, not prescriptive.
+
 ## Current Story Details
 
 (Will be appended by ralph.sh for each iteration)
