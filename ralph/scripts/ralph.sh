@@ -44,6 +44,7 @@ fi
 
 source "$SCRIPT_DIR/lib/vibe.sh"
 source "$SCRIPT_DIR/lib/teams.sh"
+source "$SCRIPT_DIR/lib/compound.sh"
 
 # Configuration (import from config.sh with CLI/env overrides)
 MAX_ITERATIONS=${1:-$RALPH_MAX_ITERATIONS}
@@ -279,6 +280,9 @@ execute_story() {
     log_info "Executing story: $story_id - $title"
     kanban_update "$story_id" "inprogress"
 
+    # Aggregate cross-repo compound learning context for this story
+    compound_aggregate "$story_id" "$title" "$description"
+
     # Model selection: explicit override or smart classification
     local model
     if [ -n "${RALPH_MODEL}" ]; then
@@ -307,6 +311,12 @@ execute_story() {
             echo "## Agent Learnings"
             echo ""
             cat "$RALPH_LEARNINGS_FILE"
+        fi
+
+        # Inject cross-repo compound learning context (if aggregated)
+        if [[ -f "$COMPOUND_CONTEXT_FILE" ]]; then
+            echo ""
+            cat "$COMPOUND_CONTEXT_FILE"
         fi
 
         # Inject human requests
@@ -442,6 +452,12 @@ fix_validation_errors() {
                 echo "## Agent Learnings"
                 echo ""
                 cat "$RALPH_LEARNINGS_FILE"
+            fi
+
+            # Inject cross-repo compound learning context (if aggregated)
+            if [[ -f "$COMPOUND_CONTEXT_FILE" ]]; then
+                echo ""
+                cat "$COMPOUND_CONTEXT_FILE"
             fi
 
             # Inject human requests
@@ -745,6 +761,15 @@ main() {
                     log_progress "$iteration" "$story_id" "PASS" "Completed successfully with TDD commits"
                     log_info "Story $story_id marked as PASSING"
 
+                    # Compound write-back: propagate novel Ralph learnings to shared hub (opt-in)
+                    if [ "${COMPOUND_WRITEBACK_ENABLED:-false}" = "true" ]; then
+                        local passed_count
+                        passed_count=$(jq '[.stories[] | select(.status == "passed")] | length' "$PRD_JSON")
+                        if (( passed_count % COMPOUND_WRITEBACK_INTERVAL == 0 )); then
+                            compound_writeback "$passed_count"
+                        fi
+                    fi
+
                     # Commit state files with documentation
                     commit_story_state "$story_id" "update state and documentation after completion"
                 else
@@ -757,6 +782,15 @@ main() {
                         kanban_update "$story_id" "done"
                         log_progress "$iteration" "$story_id" "PASS" "Completed after fixing validation errors"
                         log_info "Story $story_id marked as PASSING after fixes"
+
+                        # Compound write-back: propagate novel Ralph learnings to shared hub (opt-in)
+                        if [ "${COMPOUND_WRITEBACK_ENABLED:-false}" = "true" ]; then
+                            local passed_count
+                            passed_count=$(jq '[.stories[] | select(.status == "passed")] | length' "$PRD_JSON")
+                            if (( passed_count % COMPOUND_WRITEBACK_INTERVAL == 0 )); then
+                                compound_writeback "$passed_count"
+                            fi
+                        fi
 
                         # Commit state files with documentation
                         commit_story_state "$story_id" "update state and documentation after fixing validation errors"

@@ -118,6 +118,23 @@ RALPH_REQUESTS_FILE="ralph/REQUESTS.md"
 RALPH_METRICS_FILE="metrics.json"
 
 # =================================================
+# COMPOUND LEARNING CONFIGURATION (CRLA)
+# Cross-repo context aggregation for story execution
+# All paths optional — unset paths are silently skipped
+# =================================================
+COMPOUND_ENABLED=${COMPOUND_ENABLED:-true}
+COMPOUND_LEARNINGS_PATH="${COMPOUND_LEARNINGS_PATH:-}"          # path to ai-agents-research/docs/learnings/
+COMPOUND_MEMORY_PATH="${COMPOUND_MEMORY_PATH:-}"                # path to ~/.claude/projects/*/memory/
+COMPOUND_PLANS_PATH="${COMPOUND_PLANS_PATH:-}"                  # path to ~/.claude/plans/
+COMPOUND_CONTEXT_FILE="$RALPH_TMP_DIR/compound-context.md"
+COMPOUND_CONTEXT_SHA="$RALPH_TMP_DIR/.compound-context.sha"
+COMPOUND_MAX_LINES=${COMPOUND_MAX_LINES:-50}
+COMPOUND_WRITEBACK_ENABLED=${COMPOUND_WRITEBACK_ENABLED:-false}
+COMPOUND_WRITEBACK_INTERVAL=${COMPOUND_WRITEBACK_INTERVAL:-5}
+COMPOUND_WRITEBACK_TARGET="${COMPOUND_WRITEBACK_TARGET:-}"      # path to ai-agents-research/docs/learnings/per-repo/
+COMPOUND_MODEL="${COMPOUND_MODEL:-$RALPH_SIMPLE_MODEL}"
+
+# =================================================
 # RUNTIME TEMPORARY FILES
 # Used for inter-process coordination and logging
 # =================================================
