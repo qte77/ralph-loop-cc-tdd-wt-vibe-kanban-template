@@ -256,6 +256,36 @@ log_progress() {
     } >> "$PROGRESS_FILE"
 }
 
+# Distill durable patterns from progress.txt into LEARNINGS.md
+# Runs after every 3rd completed story — the self-evolving mechanism
+compress_progress() {
+    local completed
+    completed=$(jq '[.stories[] | select(.status == "passed")] | length' "$PRD_JSON")
+    [[ "$completed" -lt 3 ]] && return 0
+    [[ $((completed % 3)) -ne 0 ]] && return 0
+
+    log_info "Compressing progress into LEARNINGS.md (${completed} stories completed)..."
+
+    local compress_prompt
+    compress_prompt=$(cat <<COMPRESS_EOF
+Review the recent run history below. Extract patterns that should become
+permanent learnings. For each pattern seen 2+ times, append ONE concise entry
+to ralph/LEARNINGS.md in the appropriate section (Validation Fixes, Code Patterns,
+Common Mistakes, or Testing Strategies). Do NOT add entries for one-off events.
+Do NOT duplicate existing entries. If no patterns qualify, do nothing.
+
+Recent run history:
+$(tail -100 "$PROGRESS_FILE")
+
+Current LEARNINGS.md:
+$(cat "$RALPH_LEARNINGS_FILE" 2>/dev/null || echo "(empty)")
+COMPRESS_EOF
+    )
+
+    echo "$compress_prompt" | claude -p --model haiku --dangerously-skip-permissions \
+        >> "$RALPH_TMP_DIR/compress_progress.log" 2>&1 || true
+}
+
 # Build extra claude CLI flags from config (RALPH_DESLOPIFY)
 build_claude_extra_flags() {
     local flags=""
@@ -311,6 +341,18 @@ execute_story() {
             echo "## Human Requests"
             echo ""
             cat "$RALPH_REQUESTS_FILE"
+        fi
+
+        # Inject recent run history for self-correction
+        if [[ -f "$PROGRESS_FILE" ]]; then
+            local recent_progress
+            recent_progress=$(tail -50 "$PROGRESS_FILE")
+            if [[ -n "$recent_progress" ]]; then
+                echo ""
+                echo "## Recent Run History"
+                echo ""
+                echo "$recent_progress"
+            fi
         fi
 
         # Inject ad-hoc steering instruction
@@ -430,6 +472,18 @@ fix_validation_errors() {
                 cat "$RALPH_REQUESTS_FILE"
             fi
 
+            # Inject recent run history for self-correction
+            if [[ -f "$PROGRESS_FILE" ]]; then
+                local recent_progress
+                recent_progress=$(tail -50 "$PROGRESS_FILE")
+                if [[ -n "$recent_progress" ]]; then
+                    echo ""
+                    echo "## Recent Run History"
+                    echo ""
+                    echo "$recent_progress"
+                fi
+            fi
+
             # Inject ad-hoc steering instruction
             if [ -n "${RALPH_INSTRUCTION}" ]; then
                 echo ""
@@ -520,13 +574,6 @@ commit_story_state() {
 check_tdd_commits() {
     local story_id="$1"
     local commits_before="$2"
-
-    # Skip TDD verification for first story being executed to allow ramp-up
-    local completed_stories=$(jq '[.stories[] | select(.status == "passed")] | length' "$PRD_JSON")
-    if [ "$completed_stories" -eq 0 ]; then
-        log_info "Skipping TDD verification for first story (ramp-up)"
-        return 0
-    fi
 
     # Skip TDD verification for STORY-000 (foundation story - establishes baseline)
     if [ "$story_id" = "STORY-000" ]; then
@@ -638,9 +685,24 @@ main() {
         # Record commit count before execution
         local commits_before=$(git rev-list --count HEAD)
 
+        # Record LEARNINGS.md hash before execution (compound learning check)
+        local learnings_hash_before=""
+        if [[ -f "$RALPH_LEARNINGS_FILE" ]]; then
+            learnings_hash_before=$(sha256sum "$RALPH_LEARNINGS_FILE" | cut -d' ' -f1)
+        fi
+
         # Execute story
         if execute_story "$story_id" "$details"; then
             log_info "Story execution completed"
+
+            # Check if agent updated LEARNINGS.md (compound learning discipline)
+            if [[ -f "$RALPH_LEARNINGS_FILE" ]]; then
+                local learnings_hash_after
+                learnings_hash_after=$(sha256sum "$RALPH_LEARNINGS_FILE" | cut -d' ' -f1)
+                if [[ "$learnings_hash_before" == "$learnings_hash_after" ]]; then
+                    log_warn "LEARNINGS.md not updated during $story_id — COMPOUND phase skipped"
+                fi
+            fi
 
             if [ "${RALPH_DRY_RUN}" = "true" ]; then
                 # Dry-run: skip TDD verification and quality checks
@@ -751,6 +813,9 @@ main() {
 
 Summary: $passing/$total stories passing"
     fi
+
+    # Distill learnings from run history (self-evolving loop)
+    compress_progress
 
     # Summary
     local total=$(jq '.stories | length' "$PRD_JSON")
