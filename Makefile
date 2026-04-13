@@ -5,7 +5,7 @@
 
 .SILENT:
 .ONESHELL:
-.PHONY: setup_scaffold setup_toolchain setup_dev setup_claude_code setup_npm_tools setup_lychee validate run_markdownlint lint_md lint_links ralph_validate_json ralph_create_userstory_md ralph_create_prd_md ralph_create_prd_json ralph_init_loop ralph_run ralph_worktree ralph_run_worktree ralph_init_and_run ralph_reorganize_prd ralph_status ralph_stop ralph_clean ralph_archive ralph_watch ralph_get_log vibe_start vibe_stop_all vibe_status vibe_cleanup help
+.PHONY: setup_scaffold setup_toolchain setup_dev setup_claude_code setup_npm_tools setup_lychee validate run_markdownlint lint_md lint_links ralph_validate_json ralph_create_userstory_md ralph_create_prd_md ralph_create_prd_json ralph_init_loop ralph_run ralph_worktree ralph_run_worktree ralph_init_and_run ralph_reorganize_prd ralph_status ralph_stop ralph_clean ralph_archive ralph_watch ralph_get_log test_bats vibe_start vibe_stop_all vibe_status vibe_cleanup help
 .DEFAULT_GOAL := help
 
 # Auto-include language-specific Makefile when .scaffold exists
@@ -124,6 +124,13 @@ lint_links:  ## Check for broken links with lychee. Usage: make lint_links [INPU
 
 ralph_validate_json:  ## Internal: Validate prd.json syntax
 	bash ralph/scripts/lib/validate_json.sh
+
+test_bats:  ## Run BATS tests for Ralph scripts
+	if command -v bats > /dev/null 2>&1; then \
+		bats ralph/scripts/tests/*.bats --tap; \
+	else \
+		echo "bats not installed — skipping BATS tests"; \
+	fi
 
 ralph_create_userstory_md:  ## [Optional] Create UserStory.md interactively. No params.
 	echo "Creating UserStory.md through interactive Q&A ..."
