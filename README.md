@@ -57,7 +57,7 @@ Supported languages:
 | `embedded` | cmake, C compiler | cmake build |
 
 Language-specific Claude Code skills are **not** checked into the template.
-Install them from [claude-code-utils-plugin](https://github.com/qte77/claude-code-utils-plugin)
+Install them from [claude-code-plugins](https://github.com/qte77/claude-code-plugins)
 as needed for your language.
 
 ## Quick Start
