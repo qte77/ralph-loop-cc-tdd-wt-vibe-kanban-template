@@ -5,7 +5,7 @@ updated: 2026-03-13
 status: in-progress
 target_repos:
   - qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template
-  - qte77/claude-code-utils-plugin
+  - qte77/claude-code-plugins
 phases: 8
 ---
 
