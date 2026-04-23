@@ -66,7 +66,7 @@ RALPH_STORY_BRANCH_PREFIX=${RALPH_STORY_BRANCH_PREFIX:-"ralph/story-"}
 # =================================================
 # LOGGING CONFIGURATION
 # =================================================
-RALPH_LOG_DIR="/tmp"
+RALPH_LOG_DIR="${RALPH_LOG_DIR:-/tmp}"
 RALPH_LOG_PATTERN="ralph_*.log"
 RALPH_LOOP_LOG_SUBDIR="ralph_logs"
 RALPH_LOOP_LOG_DIR="$RALPH_LOG_DIR/$RALPH_LOOP_LOG_SUBDIR"
@@ -121,7 +121,24 @@ RALPH_METRICS_FILE="metrics.json"
 # RUNTIME TEMPORARY FILES
 # Used for inter-process coordination and logging
 # =================================================
-RALPH_TMP_DIR="/tmp/ralph"
+RALPH_TMP_DIR="${RALPH_TMP_DIR:-/tmp/ralph}"
+
+# =================================================
+# COMPOUND LEARNING CONFIGURATION
+# Cross-repo context aggregation for story execution
+# All paths optional — unset paths are silently skipped
+# =================================================
+COMPOUND_ENABLED=${COMPOUND_ENABLED:-true}
+COMPOUND_LEARNINGS_PATH="${COMPOUND_LEARNINGS_PATH:-}"          # path to ai-agents-research/docs/learnings/
+COMPOUND_MEMORY_PATH="${COMPOUND_MEMORY_PATH:-}"                # path to ~/.claude/projects/*/memory/
+COMPOUND_PLANS_PATH="${COMPOUND_PLANS_PATH:-}"                  # path to ~/.claude/plans/
+COMPOUND_CONTEXT_FILE="$RALPH_TMP_DIR/compound-context.md"
+COMPOUND_CONTEXT_SHA="$RALPH_TMP_DIR/.compound-context.sha"
+COMPOUND_MAX_LINES=${COMPOUND_MAX_LINES:-50}
+COMPOUND_WRITEBACK_ENABLED=${COMPOUND_WRITEBACK_ENABLED:-false}
+COMPOUND_WRITEBACK_INTERVAL=${COMPOUND_WRITEBACK_INTERVAL:-5}
+COMPOUND_WRITEBACK_TARGET="${COMPOUND_WRITEBACK_TARGET:-}"      # path to ai-agents-research/docs/learnings/per-repo/
+COMPOUND_MODEL="${COMPOUND_MODEL:-$RALPH_SIMPLE_MODEL}"
 
 # =================================================
 # TEMPLATE PATHS
