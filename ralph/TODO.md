@@ -80,4 +80,3 @@ updated: 2026-03-14
 - [Codified Context Infrastructure](https://arxiv.org/abs/2602.20478) — three-tier context architecture (constitution + specialist agents + cold-memory knowledge base), 283-session empirical study, 108K LOC C# project. Validates AGENTS.md + Skills + docs/ pattern.
 - [tree-sitter](https://github.com/tree-sitter/tree-sitter) — incremental parser generator (C + WASM); [tree-sitter-python](https://www.npmjs.com/package/tree-sitter-python) grammar. Relevant if Bun/Deno chosen over Go for CLI rewrite (see [`docs/research/ralph-cli-rewrite.md`](../docs/research/ralph-cli-rewrite.md)).
 - [PentAGI](https://github.com/vxcontrol/pentagi) — Go-based multi-agent orchestration (Orchestrator → Researcher → Developer → Executor pipeline). Validates Go for subprocess-heavy agent loops. Notable patterns: chain summarization for context window management, Flow → Task → SubTask → Action hierarchy, vector-based memory for learning from past runs.
-
