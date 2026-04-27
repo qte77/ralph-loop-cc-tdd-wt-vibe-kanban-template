@@ -82,14 +82,14 @@ no package manager, no runtime.
 **I want to** build Ralph from source as a single binary,
 **so that** I don't need to manage bash script dependencies.
 
-**Acceptance criteria:**
+### Acceptance criteria:
 
 - `make setup_ralph` runs `go build -o ralph ./cmd/ralph` (requires Go)
 - `ralph --version` and `ralph version` both print version and build info
 - Built binary has no runtime dependencies (no Node, no jq, no flock)
 - Works on Linux amd64, Linux arm64, macOS amd64, macOS arm64
 
-**Future (not in initial scope):**
+### Future (not in initial scope):
 
 - `goreleaser` for pre-built multi-platform binaries on GitHub Releases
 - `curl | sh` installer for users without Go toolchain
@@ -100,7 +100,7 @@ no package manager, no runtime.
 **I want to** run `make ralph_run N_WT=3 ITERATIONS=2`,
 **so that** Ralph executes the TDD loop across 3 worktrees for 2 iterations.
 
-**Acceptance criteria:**
+### Acceptance criteria:
 
 - `ralph run --workers 3 --iterations 2` replicates `parallel_ralph.sh`
 - Creates N worktrees, invokes coding agent in each, validates, scores,
@@ -117,7 +117,7 @@ no package manager, no runtime.
 **I want** all current `make ralph_*` recipes to work unchanged,
 **so that** the rewrite is invisible to my workflow.
 
-**Acceptance criteria:**
+### Acceptance criteria:
 
 - Every current Makefile recipe produces equivalent behavior:
 
@@ -134,7 +134,7 @@ no package manager, no runtime.
   make vibe_stop_all       -> ralph vibe stop
   make vibe_status         -> ralph vibe status
   make vibe_cleanup        -> ralph vibe cleanup
-  ```
+  ```bash
 
 - `make ralph_init_loop` is multi-step (Claude skill + `generate_prd_json.py`
   - `ralph init` + `ralph prd validate`), not a 1:1 delegation — see
@@ -148,7 +148,7 @@ no package manager, no runtime.
 **I want** Ralph to enforce TDD commit ordering,
 **so that** each story produces `[RED]` then `[GREEN]` commits.
 
-**Acceptance criteria:**
+### Acceptance criteria:
 
 - Detects `[RED]`/`[GREEN]` commit markers in git log
 - Rejects stories where `[GREEN]` appears before `[RED]`
@@ -162,7 +162,7 @@ no package manager, no runtime.
 **I want** Ralph to schedule stories respecting dependencies,
 **so that** blocked stories wait for their prerequisites.
 
-**Acceptance criteria:**
+### Acceptance criteria:
 
 - Reads `prd.json` dependency graph
 - Assigns ready stories to idle workers
@@ -176,7 +176,7 @@ no package manager, no runtime.
 **I want** Ralph to score worktree results and merge the best,
 **so that** parallel runs converge to the highest-quality branch.
 
-**Acceptance criteria:**
+### Acceptance criteria:
 
 - Weighted scoring: test pass rate, complexity delta, lint cleanliness
 - Optional Claude-as-Judge evaluation (`--judge` flag)
@@ -194,7 +194,7 @@ no package manager, no runtime.
 is an HTTP client only — it calls the Kanban REST API. `ralph vibe start`
 launches the pre-installed Kanban server as a subprocess.
 
-**Acceptance criteria:**
+### Acceptance criteria:
 
 Subcommands:
 
@@ -243,12 +243,12 @@ Real-time status sync:
 **I want** Ralph to read config from multiple sources with clear precedence,
 **so that** I can override defaults per-project or per-run.
 
-**Acceptance criteria:**
+### Acceptance criteria:
 
 - Precedence: CLI flags > env vars > `ralph.toml` > built-in defaults
 - `ralph config show` dumps resolved config with source attribution
 
-**`ralph.toml` schema:**
+### `ralph.toml` schema:
 
 ```toml
 # ralph.toml — project-level Wiggly configuration
@@ -288,7 +288,7 @@ port = 5173
 **I want** Ralph's engine to have unit and integration tests,
 **so that** changes don't break the loop.
 
-**Acceptance criteria:**
+### Acceptance criteria:
 
 - Unit tests for: story scheduler, TDD commit parser, scorer, config loader,
   JSON state machine, dependency resolver
@@ -307,7 +307,7 @@ TypeScript, Rust, C++, C, or C#.
 
 **Future:** BDD support (Cucumber, behave, Gherkin) via adapter hooks.
 
-**Context:**
+### Context:
 
 The `make validate` pipeline is a core USP of Ralph. Currently it's hardcoded
 to Python (ruff + pyright + complexipy + pytest). When Ralph creates or works
@@ -319,7 +319,7 @@ common languages and accept custom adapters for anything else.
 validation hooks to language-specific CLI tools. They are unrelated to Claude
 Code's MCP plugin/server system.
 
-**Acceptance criteria:**
+### Acceptance criteria:
 
 - `ralph.toml` declares project language: `language = "python"` (see US-8)
 - `ralph init` scaffolds the correct validation pipeline for the language,
@@ -356,7 +356,7 @@ Code's MCP plugin/server system.
 **Future:** Adapter inheritance (`base = "c"` in C++ adapter) to DRY up
 similar adapters. YAGNI until a third similar adapter appears.
 
-**Adapter `[prerequisites]` section:**
+### Adapter `[prerequisites]` section:
 
 Each adapter declares required tools. `ralph init` checks them and prints
 actionable install instructions on failure:
@@ -367,7 +367,7 @@ commands = ["uv", "ruff", "pyright"]
 install_hint = "pip install uv && uv sync --all-groups"
 ```
 
-**Built-in adapters:**
+### Built-in adapters:
 
 **Python** (reference implementation, based on
 [Agents-eval](https://github.com/qte77/Agents-eval)):
@@ -408,7 +408,7 @@ red_pattern = "FAILED"
 green_pattern = "passed"
 ```
 
-**Go:**
+### Go:
 
 ```toml
 [adapter]
@@ -445,7 +445,7 @@ red_pattern = "FAIL"
 green_pattern = "PASS"
 ```
 
-**TypeScript:**
+### TypeScript:
 
 ```toml
 [adapter]
@@ -482,7 +482,7 @@ red_pattern = "FAIL"
 green_pattern = "✓"
 ```
 
-**Rust:**
+### Rust:
 
 ```toml
 [adapter]
@@ -518,7 +518,7 @@ red_pattern = "FAILED"
 green_pattern = "ok"
 ```
 
-**C++:**
+### C++:
 
 ```toml
 [adapter]
@@ -553,7 +553,7 @@ red_pattern = "Failed"
 green_pattern = "Passed"
 ```
 
-**C:**
+### C:
 
 ```toml
 [adapter]
@@ -586,7 +586,7 @@ red_pattern = "Failed"
 green_pattern = "Passed"
 ```
 
-**C#:**
+### C#:
 
 ```toml
 [adapter]
@@ -622,7 +622,7 @@ red_pattern = "Failed!"
 green_pattern = "Passed!"
 ```
 
-**Adapter resolution order:**
+### Adapter resolution order:
 
 1. `ralph/adapters/<language>.toml` in project (user override)
 2. Built-in adapters embedded in the `ralph` binary (Go `embed`)

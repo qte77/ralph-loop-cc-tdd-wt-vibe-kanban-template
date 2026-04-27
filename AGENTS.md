@@ -5,6 +5,8 @@ applies-to: all-agents
 purpose: Define Agent Neutrality Requirements and task execution protocol
 ---
 
+# Agent Guidelines
+
 ## Agent Guidelines
 
 For general contribution guidelines (core principles, testing, validation),

@@ -47,7 +47,7 @@ make setup_toolchain
 
 # Validate — dispatches to the active scaffold's validate recipe
 make validate
-```
+```bash
 
 Supported languages:
 
@@ -113,7 +113,7 @@ Mandatory for Both:
   CONTRIBUTING.md - Core principles (KISS, DRY, YAGNI)
   Makefile        - Build automation and validation
   .gitmessage     - Commit message format
-```
+```bash
 
 ## Consumption Approaches
 
@@ -147,13 +147,13 @@ echo '-include ralph/Makefile' >> Makefile
 git config -f .gitmodules submodule.ralph.ignore dirty
 ```
 
-**Update:**
+### Update:
 
 ```bash
 git submodule update --remote ralph
 git add ralph
 git commit -m "chore: update ralph submodule"
-```
+```text
 
 **Makefile integration:** Ralph ships a scoped `Makefile` with all
 `ralph_*` recipes using relative paths. Include it from your
@@ -173,7 +173,7 @@ leaves `ralph/` empty — any workflow running `make validate`,
 - uses: actions/checkout@v4
   with:
     submodules: recursive
-```
+```bash
 
 **`.claude/`** can be symlinked (read-only) or copied (overrides).
 Claude Code merges `.claude/settings.local.json` over

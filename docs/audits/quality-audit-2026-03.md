@@ -58,7 +58,7 @@ Each finding is tagged with:
   run_ruff_scoped "$base"
   run_complexity_scoped "$base"
   run_tests_scoped "$base"
-  ```
+  ```bash
 
 ### D1: Two functions named `verify_teammate_stories` with different semantics
 

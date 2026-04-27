@@ -5,6 +5,8 @@ applies-to: Agents and humans
 purpose: Developer setup, workflow, and contribution guidelines
 ---
 
+# Contributing
+
 Contributions welcome! Follow these guidelines for both human and agent
 contributors.
 
@@ -19,7 +21,7 @@ make setup_dev
 
 # Run validation
 make validate
-```
+```bash
 
 ## Core Principles
 
@@ -71,7 +73,7 @@ Follow TDD: Write tests before implementing features.
 make validate       # Run all checks (required before committing)
 make validate_quick # Quick validation (faster iteration)
 make test_all       # Run tests only
-```
+```bash
 
 ### 4. Commit
 
@@ -100,7 +102,7 @@ Follow [Conventional Commits](https://www.conventionalcommits.org/):
 [optional body]
 
 [optional footer]
-```
+```bash
 
 ### Types
 

@@ -68,7 +68,7 @@ vibe.sh (lifecycle)
 init.sh
   |-- sources: lib/config.sh, lib/common.sh, lib/validate_json.sh
   |-- calls:   generate_prd_json.py (optional)
-```
+```bash
 
 ### External Binary Dependencies
 
@@ -334,7 +334,7 @@ ralph-cli/
     prd/                      # prd.json state machine with file locking
     vibe/                     # Kanban REST client + server launcher
   go.mod, go.sum
-```
+```bash
 
 ### Bash-to-Go Component Mapping
 
