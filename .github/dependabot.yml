@@ -1,0 +1,28 @@
+---
+# https://docs.github.com/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+#
+# Two ecosystems:
+# - "uv" parses pyproject.toml + uv.lock (the dependabot pip ecosystem would
+#   be a no-op here since this repo is uv-managed, not requirements.txt-based).
+# - "github-actions" keeps SHA-pinned action references in .github/workflows/
+#   up to date. Repo rule requires full commit SHA pins.
+version: 2
+updates:
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+      - "python"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(ci)"
+    labels:
+      - "dependencies"
+      - "github-actions"
