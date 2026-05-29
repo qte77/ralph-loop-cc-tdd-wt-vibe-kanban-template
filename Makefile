@@ -15,15 +15,15 @@
 # MARK: scaffold
 
 
-setup_scaffold:  ## Initialize scaffold for a language. Usage: make setup_scaffold LANG=python|embedded
+setup_scaffold:  ## Initialize scaffold for a language. Usage: make setup_scaffold LANG=python|embedded|typescript
 	if [ -z "$(LANG)" ]; then
-		echo "ERROR: LANG is required. Usage: make setup_scaffold LANG=python|embedded"
+		echo "ERROR: LANG is required. Usage: make setup_scaffold LANG=python|embedded|typescript"
 		exit 1
 	fi
 	case "$(LANG)" in
-		python|embedded) ;;
+		python|embedded|typescript) ;;
 		*)
-			echo "ERROR: Unsupported LANG '$(LANG)'. Supported: python, embedded"
+			echo "ERROR: Unsupported LANG '$(LANG)'. Supported: python, embedded, typescript"
 			exit 1
 		;;
 	esac
@@ -52,6 +52,20 @@ setup_toolchain:  ## Install toolchain for the active scaffold (reads .scaffold)
 				exit 1
 			fi
 			echo "Embedded toolchain ready (cmake: $$(cmake --version | head -1))"
+		;;
+		typescript)
+			if ! command -v node > /dev/null 2>&1; then
+				echo "ERROR: node not found — install Node.js first"
+				exit 1
+			fi
+			if [ ! -f package.json ]; then
+				echo "ERROR: package.json not found — run 'npm init' first"
+				exit 1
+			fi
+			npm install
+			$(MAKE) -s setup_npm_tools
+			$(MAKE) -s setup_lychee
+			echo "TypeScript toolchain ready (node: $$(node --version))"
 		;;
 		*)
 			echo "ERROR: Unknown language '$$LANG' in .scaffold"
