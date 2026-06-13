@@ -473,6 +473,42 @@ def _resolve_acceptance_and_files(
     return feature["acceptance"], feature["files"]
 
 
+def _lookup_feature(
+    spec: StorySpec, features: dict[str, Feature]
+) -> tuple[Feature | None, str | None]:
+    """Resolve a spec's feature, handling dotted IDs (e.g. "11.1" -> parent "11").
+
+    Returns:
+        Tuple of (feature_or_None, sub_number_or_None).
+    """
+    feature = features.get(spec["feature_id"])
+    # Reason: Dotted IDs like "11.1" reference sub-features under parent "11"
+    if not feature and "." in spec["feature_id"]:
+        parent_id, _ = spec["feature_id"].split(".", 1)
+        return features.get(parent_id), spec["feature_id"]
+    return feature, None
+
+
+def _resolve_sub_or_fallback(
+    spec: StorySpec,
+    feature: Feature,
+    specs: list[StorySpec],
+    sub_number: str | None,
+) -> tuple[list[str], list[str]]:
+    """Resolve acceptance/files, preferring an exact sub-feature number match.
+
+    For dotted IDs, match the specific sub-feature by number; otherwise (or on
+    no match) fall back to label/merge resolution.
+    """
+    if sub_number:
+        sub_features: dict[str, SubFeature] | None = feature.get("sub_features")  # type: ignore[typeddict-item]
+        if sub_features:
+            for sf_data in sub_features.values():
+                if sf_data["number"] == sub_number:
+                    return sf_data["acceptance"], sf_data["files"]
+    return _resolve_acceptance_and_files(spec, feature, specs)
+
+
 def resolve_stories(specs: list[StorySpec], features: dict[str, Feature]) -> list[Story]:
     """Resolve story specs into complete Story objects using feature data.
 
@@ -486,32 +522,12 @@ def resolve_stories(specs: list[StorySpec], features: dict[str, Feature]) -> lis
     stories: list[Story] = []
 
     for spec in specs:
-        feature = features.get(spec["feature_id"])
-        # Reason: Dotted IDs like "11.1" reference sub-features under parent "11"
-        sub_number: str | None = None
-        if not feature and "." in spec["feature_id"]:
-            parent_id, _ = spec["feature_id"].split(".", 1)
-            feature = features.get(parent_id)
-            sub_number = spec["feature_id"]
+        feature, sub_number = _lookup_feature(spec, features)
         if not feature:
             print(f"Warning: Feature {spec['feature_id']} not found for {spec['id']}")
             continue
 
-        # Reason: When breakdown uses dotted ID, match the specific sub-feature
-        # by number instead of relying on label-based fuzzy matching
-        if sub_number:
-            sub_features: dict[str, SubFeature] | None = feature.get("sub_features")  # type: ignore[typeddict-item]
-            if sub_features:
-                for _, sf_data in sub_features.items():
-                    if sf_data["number"] == sub_number:
-                        acceptance, files = sf_data["acceptance"], sf_data["files"]
-                        break
-                else:
-                    acceptance, files = _resolve_acceptance_and_files(spec, feature, specs)
-            else:
-                acceptance, files = _resolve_acceptance_and_files(spec, feature, specs)
-        else:
-            acceptance, files = _resolve_acceptance_and_files(spec, feature, specs)
+        acceptance, files = _resolve_sub_or_fallback(spec, feature, specs, sub_number)
         description = feature["description"]
 
         stories.append(
@@ -532,11 +548,38 @@ def resolve_stories(specs: list[StorySpec], features: dict[str, Feature]) -> lis
     return stories
 
 
+def _migrate_legacy_passes(story: Story) -> bool:
+    """Migrate legacy ``passes: bool`` to ``status: str``. Returns True if changed."""
+    # Reason: Migrate legacy `passes: bool` -> `status: str`
+    if "passes" in story and "status" not in story:
+        story["status"] = "passed" if story["passes"] else "pending"  # type: ignore[typeddict-item]
+        del story["passes"]  # type: ignore[typeddict-item]
+        return True
+    return False
+
+
+def _fill_missing_fields(story: Story) -> bool:
+    """Add content_hash/depends_on/status to an incomplete story. Returns True if changed."""
+    modified = False
+    if "content_hash" not in story:
+        story["content_hash"] = compute_hash(
+            story["title"], story["description"], story["acceptance"]
+        )
+        modified = True
+    if "depends_on" not in story:
+        story["depends_on"] = []
+        modified = True
+    if "status" not in story:
+        story["status"] = "pending"
+        modified = True
+    return modified
+
+
 def _backfill_existing_stories(existing_stories: list[Story]) -> tuple[int, int]:
     """Backfill missing fields and migrate legacy schema on existing stories.
 
     Handles migration from legacy ``passes: bool`` to ``status: str`` enum,
-    and adds ``wave: int`` field when missing.
+    and adds ``wave: int`` field when missing. Mutates stories in place.
 
     Args:
         existing_stories: List of existing story dicts (mutated in place).
@@ -547,34 +590,20 @@ def _backfill_existing_stories(existing_stories: list[Story]) -> tuple[int, int]
     passed_count = 0
     updated_count = 0
     for story in existing_stories:
-        modified = False
-
-        # Reason: Migrate legacy `passes: bool` -> `status: str`
-        if "passes" in story and "status" not in story:
-            story["status"] = "passed" if story["passes"] else "pending"  # type: ignore[typeddict-item]
-            del story["passes"]  # type: ignore[typeddict-item]
-            modified = True
+        modified = _migrate_legacy_passes(story)
 
         if "wave" not in story:
             story["wave"] = 0
             modified = True
 
+        # Reason: passed stories are protected — never add/overwrite their fields
         if story.get("status") == "passed":
             passed_count += 1
             if modified:
                 updated_count += 1
             continue
 
-        if "content_hash" not in story:
-            story["content_hash"] = compute_hash(
-                story["title"], story["description"], story["acceptance"]
-            )
-            modified = True
-        if "depends_on" not in story:
-            story["depends_on"] = []
-            modified = True
-        if "status" not in story:
-            story["status"] = "pending"
+        if _fill_missing_fields(story):
             modified = True
         if modified:
             updated_count += 1
@@ -715,6 +744,39 @@ def _print_summary(output_path: Path, all_stories: list[Story]) -> None:
             print(f"  Wave {wave_num}: {', '.join(waves[wave_num])}")
 
 
+def _check_declared_story_count(prd_content: str, parsed_count: int) -> None:
+    """Warn if the PRD's declared story count differs from the parsed count."""
+    # Reason: Cross-check declared story count against parsed count
+    declared_match = re.search(r"Story Breakdown[^\n]*\((\d+) stories", prd_content)
+    if declared_match:
+        declared = int(declared_match.group(1))
+        if declared != parsed_count:
+            print(f"WARNING: PRD declares {declared} stories but parser found {parsed_count}")
+
+
+def _write_prd_json(
+    output_path: Path,
+    project_name: str,
+    description: str,
+    source_name: str,
+    all_stories: list[Story],
+) -> None:
+    """Write the prd.json document to disk (creates parent directories)."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w") as f:
+        json.dump(
+            {
+                "project": project_name,
+                "description": description,
+                "source": source_name,
+                "generated": datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S"),
+                "stories": all_stories,
+            },
+            f,
+            indent=2,
+        )
+
+
 def main() -> int:
     """Parse PRD markdown and generate ralph/docs/prd.json.
 
@@ -753,12 +815,7 @@ def main() -> int:
     specs = parse_story_breakdown(prd_content)
     print(f"Found {len(specs)} story specs")
 
-    # Reason: Cross-check declared story count against parsed count
-    declared_match = re.search(r"Story Breakdown[^\n]*\((\d+) stories", prd_content)
-    if declared_match:
-        declared = int(declared_match.group(1))
-        if declared != len(specs):
-            print(f"WARNING: PRD declares {declared} stories but parser found {len(specs)}")
+    _check_declared_story_count(prd_content, len(specs))
 
     print("Resolving stories...")
     new_parsed_stories = resolve_stories(specs, features)
@@ -773,19 +830,7 @@ def main() -> int:
     all_stories = _merge_with_existing(output_path, new_parsed_stories)
     compute_waves(all_stories)
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, "w") as f:
-        json.dump(
-            {
-                "project": project_name,
-                "description": description,
-                "source": prd_path.name,
-                "generated": datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S"),
-                "stories": all_stories,
-            },
-            f,
-            indent=2,
-        )
+    _write_prd_json(output_path, project_name, description, prd_path.name, all_stories)
 
     _print_summary(output_path, all_stories)
     return 0
