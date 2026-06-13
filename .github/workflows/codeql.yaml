@@ -4,9 +4,17 @@ name: "CodeQL"
 
 on:
   push:
+  pull_request:
   schedule:
     - cron: '27 11 * * 0'
   workflow_dispatch:
+
+# Reason: pull_request trigger lets CodeQL report on the PR merge-ref that branch
+# protection waits for (push-only left some PRs BLOCKED). cancel-in-progress
+# tames the merge-ref-SHA churn the push-only variant was avoiding.
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   analyze:
