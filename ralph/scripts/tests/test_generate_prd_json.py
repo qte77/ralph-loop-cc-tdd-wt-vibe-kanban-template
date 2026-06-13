@@ -242,3 +242,75 @@ def test_backfill_fills_missing_fields_on_incomplete():
     assert stories[0]["depends_on"] == []
     assert stories[0]["wave"] == 0
     assert updated == 1
+
+
+# --- Unit tests for the newly extracted helpers ----------------------------
+
+def test_lookup_feature_direct_dotted_missing():
+    feats = g.parse_features(PRD)
+    direct = {"id": "S", "title": "t", "feature_id": "1", "label": "", "depends_on": []}
+    f, sub = g._lookup_feature(direct, feats)  # type: ignore[arg-type]
+    assert f is feats["1"] and sub is None
+
+    dotted = {"id": "S", "title": "t", "feature_id": "2.1", "label": "", "depends_on": []}
+    f2, sub2 = g._lookup_feature(dotted, feats)  # type: ignore[arg-type]
+    assert f2 is feats["2"] and sub2 == "2.1"
+
+    missing = {"id": "S", "title": "t", "feature_id": "99", "label": "", "depends_on": []}
+    f3, sub3 = g._lookup_feature(missing, feats)  # type: ignore[arg-type]
+    assert f3 is None and sub3 is None
+
+
+def test_resolve_sub_or_fallback_exact_and_fallback():
+    feats = g.parse_features(PRD)
+    feature2 = feats["2"]
+    spec = {"id": "S", "title": "t", "feature_id": "2", "label": "", "depends_on": []}
+    acc, files = g._resolve_sub_or_fallback(spec, feature2, [spec], "2.1")  # type: ignore[arg-type]
+    assert acc == ["Cache hits"] and files == ["src/cache.py"]
+    # No sub_number -> fallback; single story on feature 2 merges all sub-features.
+    acc2, _ = g._resolve_sub_or_fallback(spec, feature2, [spec], None)  # type: ignore[arg-type]
+    assert "Saves data" in acc2
+
+
+def test_migrate_legacy_passes():
+    s = {"id": "X", "passes": True}
+    assert g._migrate_legacy_passes(s) is True  # type: ignore[arg-type]
+    assert s["status"] == "passed" and "passes" not in s
+
+    s2 = {"id": "X", "passes": False}
+    assert g._migrate_legacy_passes(s2) is True  # type: ignore[arg-type]
+    assert s2["status"] == "pending"
+
+    # status already present -> no migration
+    s3 = {"id": "X", "status": "pending", "passes": True}
+    assert g._migrate_legacy_passes(s3) is False  # type: ignore[arg-type]
+    assert g._migrate_legacy_passes({"id": "X"}) is False  # type: ignore[arg-type]
+
+
+def test_fill_missing_fields_is_idempotent():
+    s = {"id": "X", "title": "t", "description": "d", "acceptance": ["a"]}
+    assert g._fill_missing_fields(s) is True  # type: ignore[arg-type]
+    assert s["content_hash"] and s["depends_on"] == [] and s["status"] == "pending"
+    assert g._fill_missing_fields(s) is False  # type: ignore[arg-type]
+
+
+def test_check_declared_story_count_warns(capsys):
+    g._check_declared_story_count("Story Breakdown (3 stories):", 2)
+    out = capsys.readouterr().out
+    assert "WARNING" in out and "3" in out and "2" in out
+    g._check_declared_story_count("Story Breakdown (3 stories):", 3)
+    assert "WARNING" not in capsys.readouterr().out
+
+
+def test_write_prd_json_roundtrip(tmp_path):
+    import json
+
+    out = tmp_path / "sub" / "prd.json"
+    stories = [{"id": "STORY-001", "title": "t"}]
+    g._write_prd_json(out, "Proj", "desc", "PRD.md", stories)  # type: ignore[arg-type]
+    data = json.loads(out.read_text())
+    assert data["project"] == "Proj"
+    assert data["description"] == "desc"
+    assert data["source"] == "PRD.md"
+    assert "generated" in data
+    assert data["stories"] == stories
