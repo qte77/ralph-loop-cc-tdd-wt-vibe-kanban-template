@@ -1,0 +1,32 @@
+---
+# Dependabot — uv + github-actions, grouped per ecosystem.
+# Mirrors qte77/analyze-stock-kpi (the baseline's uv exemplar): one group per
+# ecosystem so weekly updates land as a single reviewable PR each. Shell scripts
+# have no Dependabot ecosystem; use shellcheck in CI.
+version: 2
+updates:
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+      - "python"
+    groups:
+      python-deps:
+        patterns: ["*"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(ci)"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    groups:
+      github-actions:
+        patterns: ["*"]

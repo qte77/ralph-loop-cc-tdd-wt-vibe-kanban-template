@@ -94,7 +94,7 @@ All changes must pass `make validate` before committing.
 
 Follow [Conventional Commits](https://www.conventionalcommits.org/):
 
-```
+```text
 <type>(<scope>): <description>
 
 [optional body]
