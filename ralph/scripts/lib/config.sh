@@ -66,7 +66,7 @@ RALPH_STORY_BRANCH_PREFIX=${RALPH_STORY_BRANCH_PREFIX:-"ralph/story-"}
 # =================================================
 # LOGGING CONFIGURATION
 # =================================================
-RALPH_LOG_DIR="/tmp"
+RALPH_LOG_DIR="${RALPH_LOG_DIR:-/tmp}"
 RALPH_LOG_PATTERN="ralph_*.log"
 RALPH_LOOP_LOG_SUBDIR="ralph_logs"
 RALPH_LOOP_LOG_DIR="$RALPH_LOG_DIR/$RALPH_LOOP_LOG_SUBDIR"
@@ -121,7 +121,7 @@ RALPH_METRICS_FILE="metrics.json"
 # RUNTIME TEMPORARY FILES
 # Used for inter-process coordination and logging
 # =================================================
-RALPH_TMP_DIR="/tmp/ralph"
+RALPH_TMP_DIR="${RALPH_TMP_DIR:-/tmp/ralph}"
 
 # =================================================
 # TEMPLATE PATHS
