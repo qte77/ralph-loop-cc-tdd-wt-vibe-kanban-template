@@ -1,0 +1,25 @@
+---
+# Dependabot — uv ecosystem variant (from qte77/repo-baseline L2-ci-files/dependabot/uv.yml).
+# Covers uv-managed Python and GitHub Actions. Shell scripts have no Dependabot
+# ecosystem; use shellcheck in CI.
+version: 2
+updates:
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - "dependencies"
+      - "python"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore(ci)"
+    labels:
+      - "dependencies"
+      - "github-actions"
