@@ -237,6 +237,7 @@ start_parallel() {
         export WORKTREE_NUM="$i"
         export RALPH_RUN_ID="$run_id"
         ./ralph/scripts/ralph.sh "$MAX_ITERATIONS" > "$log_file" 2>&1
+        echo $? > "$worktree_path/.ralph-exit-code"
     ) &
 
     WORKTREE_PIDS[$i]=$!
@@ -260,9 +261,15 @@ wait_and_monitor() {
             if ps -p "$pid" > /dev/null 2>&1; then
                 all_done=false
             elif [ -z "${WORKTREE_EXIT_CODES[$i]:-}" ]; then
-                # Process finished, record exit code (can't get actual code from disowned process)
-                WORKTREE_EXIT_CODES[$i]=0
-                log_info "Worktree $i completed"
+                # Process finished, read exit code from sentinel file
+                local worktree_path=$(get_worktree_path "$i" "$run_id" "$N_WT")
+                if [ -f "$worktree_path/.ralph-exit-code" ]; then
+                    WORKTREE_EXIT_CODES[$i]=$(cat "$worktree_path/.ralph-exit-code")
+                else
+                    # Default to 137 (SIGKILL) if sentinel missing (worker killed)
+                    WORKTREE_EXIT_CODES[$i]=137
+                fi
+                log_info "Worktree $i completed with exit code ${WORKTREE_EXIT_CODES[$i]}"
             fi
         done
 

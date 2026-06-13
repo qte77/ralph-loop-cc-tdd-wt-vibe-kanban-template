@@ -27,6 +27,8 @@ Research keeps plugins current.
 | **6** | Plugin | Skill protection: metadata, content-hash, CODEOWNERS, CI | in-progress |
 | **7** | Plugin | GTM market-research plugin: skills + rules + hook + config | in-progress |
 | **8** | Research | Improve research-compare.py, feedback loop | future |
+| **9** | Template | Bug-fix sprint: 8 audit bugs + BATS TDD (see `docs/PRD.md`) | in-progress |
+| **10** | Template | Self-evolving loop: progress injection, LEARNINGS check, distillation | in-progress |
 
 ## Adapter Interface
 

@@ -1,10 +1,10 @@
 # TEMPLATE: Replace [PLACEHOLDERS] with your project values after forking.
 # Run `make setup_scaffold LANG=python && make setup_toolchain` to initialize.
 [project]
-name = "[PROJECT NAME]"
-version = "0.0.0"
-description = "[PROJECT DESCRIPTION]"
-requires-python = ">=[PYTHON VERSION]"
+name = "ralph-loop"
+version = "0.0.1"
+description = "Ralph Loop - Self-Evolving Development Loop"
+requires-python = ">=3.8"
 readme = "README.md"
 license = { file = "LICENSE.md" }
 dependencies = [

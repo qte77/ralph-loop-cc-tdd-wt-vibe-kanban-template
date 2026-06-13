@@ -8,7 +8,7 @@
 #
 # Source order: common.sh → baseline.sh → teams.sh
 # Requires globals from ralph.sh: PRD_JSON
-# Requires functions from baseline.sh: run_ruff_scoped, run_complexity_scoped, run_tests_scoped
+# Requires functions from baseline.sh: run_ruff_scoped, run_complexity_scoped, run_tests_scoped, get_story_base_commit
 # Requires functions from ralph.sh: get_story_details, update_story_status, check_tdd_commits
 
 # Return all unblocked incomplete story IDs (the current wave frontier).
@@ -221,21 +221,25 @@ verify_teammate_stories() {
             continue
         fi
 
+        # Get the commit hash before the story's first [RED] commit
+        local story_base_commit
+        story_base_commit=$(get_story_base_commit "$sid")
+
         # Scoped quality checks (lint, complexity, tests)
         local sid_failed=false
 
-        if ! run_ruff_scoped "$sid" "$PRD_JSON"; then
+        if ! run_ruff_scoped "$story_base_commit"; then
             log_warn "Teammate story $sid: lint check failed"
             sid_failed=true
         fi
 
-        if ! run_complexity_scoped "$sid" "$PRD_JSON"; then
+        if ! run_complexity_scoped "$story_base_commit"; then
             log_warn "Teammate story $sid: complexity check failed"
             sid_failed=true
         fi
 
         local teammate_test_log="$RALPH_TMP_DIR/teammate_${sid}_tests.log"
-        if ! run_tests_scoped "$sid" "$PRD_JSON" "$teammate_test_log"; then
+        if ! run_tests_scoped "$story_base_commit"; then
             log_warn "Teammate story $sid: tests failed"
             sid_failed=true
         fi
