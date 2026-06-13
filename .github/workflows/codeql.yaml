@@ -1,12 +1,9 @@
 ---
-# https://github.blog/changelog/2023-01-18-code-scanning-codeql-action-v1-is-now-deprecated/
+# https://github.blog/changelog/2025-10-28-upcoming-deprecation-of-codeql-action-v3/
 name: "CodeQL"
 
 on:
   push:
-  pull_request:
-    types: [closed]
-    branches: [ main ]
   schedule:
     - cron: '27 11 * * 0'
   workflow_dispatch:
@@ -22,22 +19,26 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@95e58e9a2cdfd71adc6e0353d5c52f41a045d225  # v4
       with:
         languages: ${{ vars.CODEQL_LANGUAGES || 'python' }}
 
     - name: Autobuild
-      uses: github/codeql-action/autobuild@v3
-    # if autobuild fails
-    #- run: |
-    #   make bootstrap
-    #   make release
+      uses: github/codeql-action/autobuild@95e58e9a2cdfd71adc6e0353d5c52f41a045d225  # v4
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
-    #- name: sarif
-    #  uses: github/codeql-action/upload-sarif@v2
-...
+      id: analyze
+      uses: github/codeql-action/analyze@95e58e9a2cdfd71adc6e0353d5c52f41a045d225  # v4
+      with:
+        output: sarif-results
+
+    - name: Dismiss alerts with inline suppression comments
+      uses: advanced-security/dismiss-alerts@046d6b48d2e43cf563f96f67332c47c432eff83e  # v2.0.2
+      with:
+        sarif-id: ${{ steps.analyze.outputs.sarif-id }}
+        sarif-file: sarif-results
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

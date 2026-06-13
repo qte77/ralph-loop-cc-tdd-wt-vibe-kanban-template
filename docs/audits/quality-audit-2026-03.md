@@ -25,6 +25,7 @@ JSON injection).
 ## Methodology
 
 Each finding is tagged with:
+
 - **ID**: `{Dimension initial}{sequence}` (e.g., D1 = DRY finding #1)
 - **Severity**: High / Medium / Low
 - **Dimension**: DRY, KISS, YAGNI, Rigor, Coherence, Clarity, Simplicity
@@ -51,6 +52,7 @@ Each finding is tagged with:
   test checks.
 - **Suggested fix**: Call `get_story_base_commit "$sid"` first, then pass the
   resulting commit hash to the scoped functions:
+
   ```bash
   local base=$(get_story_base_commit "$sid")
   run_ruff_scoped "$base"

@@ -137,7 +137,7 @@ no package manager, no runtime.
   ```
 
 - `make ralph_init_loop` is multi-step (Claude skill + `generate_prd_json.py`
-  + `ralph init` + `ralph prd validate`), not a 1:1 delegation — see
+  - `ralph init` + `ralph prd validate`), not a 1:1 delegation — see
   Makefile integration section
 - Env var passthrough (`N_WT`, `ITERATIONS`, `DEBUG`, `RALPH_JUDGE_*`)
   maps to CLI flags via Makefile `$(if ...)` conditionals

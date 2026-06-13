@@ -5,7 +5,7 @@
 Language-agnostic project template using Ralph Loop autonomous development with plugin-based scaffold architecture
 
 ![Version](https://img.shields.io/badge/version-0.0.0-58f4c2.svg)
-[![License](https://img.shields.io/badge/license-BSD3Clause-58f4c2.svg)](LICENSE.md)
+[![License](https://img.shields.io/badge/license-Apache--2.0-58f4c2.svg)](LICENSE)
 [![CodeQL](https://github.com/YOUR-ORG/YOUR-PROJECT-NAME/actions/workflows/codeql.yaml/badge.svg)](https://github.com/YOUR-ORG/YOUR-PROJECT-NAME/actions/workflows/codeql.yaml)
 [![CodeFactor](https://www.codefactor.io/repository/github/YOUR-ORG/YOUR-PROJECT-NAME/badge)](https://www.codefactor.io/repository/github/YOUR-ORG/YOUR-PROJECT-NAME)
 [![ruff](https://github.com/YOUR-ORG/YOUR-PROJECT-NAME/actions/workflows/ruff.yaml/badge.svg)](https://github.com/YOUR-ORG/YOUR-PROJECT-NAME/actions/workflows/ruff.yaml)
@@ -57,7 +57,7 @@ Supported languages:
 | `embedded` | cmake, C compiler | cmake build |
 
 Language-specific Claude Code skills are **not** checked into the template.
-Install them from [claude-code-utils-plugin](https://github.com/qte77/claude-code-utils-plugin)
+Install them from [claude-code-plugins](https://github.com/qte77/claude-code-plugins)
 as needed for your language.
 
 ## Quick Start

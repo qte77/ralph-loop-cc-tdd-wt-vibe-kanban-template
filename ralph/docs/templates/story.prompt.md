@@ -104,6 +104,7 @@ Document learnings to make future work easier.
 **Step 1: Reflect and identify learning**
 
 Answer these questions:
+
 1. **What worked?** - Pattern/approach that succeeded
 2. **What failed initially?** - Mistake + how you fixed it
 3. **What should future iterations remember?** - Key learning
@@ -122,6 +123,7 @@ Add to appropriate section in `ralph/LEARNINGS.md`:
   - Format: `- Strategy description (from STORY-XXX)`
 
 **Guidelines:**
+
 - Keep entries concise (1 line each)
 - Focus on actionable insights that benefit future iterations
 - Avoid duplicating existing entries
