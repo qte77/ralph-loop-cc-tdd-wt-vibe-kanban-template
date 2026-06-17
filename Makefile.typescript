@@ -1,0 +1,61 @@
+# TypeScript-specific Makefile recipes.
+# Auto-included by main Makefile when .scaffold contains 'typescript'.
+# Run `make help` for available recipes.
+
+.PHONY: lint type_check duplication lint_hardcoded_paths test_all test_quick test_coverage validate validate_quick quick_validate
+
+# MARK: typescript sanity
+
+lint:  ## Lint: ESLint with --fix
+	npm exec eslint -- --fix .
+
+type_check:  ## Static type checking with tsc
+	npm exec tsc -- --noEmit
+
+duplication:  ## Check for code duplication with jscpd
+	jscpd src/ --reporters console --format typescript
+
+lint_hardcoded_paths:  ## GHA safety: check for /workspaces/ in test files
+	echo "Checking for hardcoded /workspaces/ paths in tests..."
+	if grep -rn --include='*.ts' --include='*.tsx' '/workspaces/' tests/ 2>/dev/null; then
+		echo "ERROR: Found hardcoded /workspaces/ paths in tests (breaks GHA)"
+		exit 1
+	fi
+	echo "No hardcoded paths found"
+
+# MARK: typescript test
+
+test_all:  ## Run all tests with vitest
+	npm exec vitest -- run
+
+test_quick:  ## Quick test - bail on first failure (use during fix iterations)
+	npm exec vitest -- run --bail 1
+
+test_coverage:  ## Run tests with coverage threshold (configure in vitest.config)
+	echo "Running tests with coverage gate (configure thresholds in vitest.config)..."
+	npm exec vitest -- run --coverage
+
+# MARK: typescript validate
+
+validate:  ## Complete pre-commit validation sequence
+	set -e
+	echo "Running complete validation sequence..."
+	$(MAKE) -s lint
+	$(MAKE) -s type_check
+	$(MAKE) -s test_coverage
+	echo "Validation completed successfully"
+
+validate_quick:  ## Quick validation for fix iterations (no coverage check)
+	set -e
+	echo "Running quick validation (no coverage check)..."
+	$(MAKE) -s lint
+	$(MAKE) -s type_check
+	$(MAKE) -s test_quick
+	echo "Quick validation completed"
+
+quick_validate:  ## Fast development cycle validation
+	echo "Running quick validation ..."
+	$(MAKE) -s lint
+	-$(MAKE) -s type_check
+	-$(MAKE) -s lint_hardcoded_paths
+	echo "Quick validation completed (check output for any failures)"

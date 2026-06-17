@@ -55,6 +55,7 @@ Supported languages:
 |--------|-----------|---------|
 | `python` | uv, ruff, pyright, pytest | ruff + pyright + complexipy + pytest |
 | `embedded` | cmake, C compiler | cmake build |
+| `typescript` | node, npm, eslint, tsc, vitest | eslint + tsc + vitest |
 
 Language-specific Claude Code skills are **not** checked into the template.
 Install them from [claude-code-plugins](https://github.com/qte77/claude-code-plugins)
