@@ -15,7 +15,7 @@ see `CONTRIBUTING.md`.
 When working on this project, agents must:
 
 1. **Use Ralph Loop skills** - Leverage specialized skills from
-   `.claude/skills/` for phase planning, implementation, and review tasks
+   `.agents/skills/` for phase planning, implementation, and review tasks
 
 ### Quality Thresholds
 
