@@ -4,6 +4,8 @@
 
 Language-agnostic project template using Ralph Loop autonomous development with plugin-based scaffold architecture
 
+**Write-up:** the autonomous loop at the center of an open agentic coding harness — [An Open Agentic Coding Harness](https://qte77.github.io/open-agentic-coding-harness/).
+
 ![Version](https://img.shields.io/badge/version-0.0.0-58f4c2.svg)
 [![License](https://img.shields.io/badge/license-Apache--2.0-58f4c2.svg)](LICENSE)
 [![CodeQL](https://github.com/YOUR-ORG/YOUR-PROJECT-NAME/actions/workflows/codeql.yaml/badge.svg)](https://github.com/YOUR-ORG/YOUR-PROJECT-NAME/actions/workflows/codeql.yaml)
