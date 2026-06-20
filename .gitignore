@@ -3,6 +3,9 @@
 # Scaffold adapter scripts (deployed by plugins)
 .scaffolds/
 
+# Claude Code local permission grants (never commit)
+.claude/settings.local.json
+
 # Python bytecode
 __pycache__/
 *.py[cod]
