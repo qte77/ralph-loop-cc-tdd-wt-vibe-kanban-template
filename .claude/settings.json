@@ -1,3 +1,15 @@
 {
-  "enabledPlugins": {}
+  "enabledPlugins": {},
+  "extraKnownMarketplaces": {
+    "qte77-claude-code-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "qte77/claude-code-plugins"
+      }
+    }
+  },
+  "attribution": {
+    "commit": "Co-Authored-By: Claude <noreply@anthropic.com>",
+    "pr": "Generated with Claude <noreply@anthropic.com>"
+  }
 }
