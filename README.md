@@ -10,11 +10,6 @@ Ship a TDD + Ralph-loop + Vibe-Kanban agent harness without writing boilerplate.
 [![License](https://img.shields.io/badge/license-Apache--2.0-58f4c2.svg)](LICENSE)
 [![CodeQL](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/actions/workflows/codeql.yaml/badge.svg)](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/actions/workflows/codeql.yaml)
 [![CodeFactor](https://www.codefactor.io/repository/github/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/badge)](https://www.codefactor.io/repository/github/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template)
-[![ruff](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/actions/workflows/ruff.yaml/badge.svg)](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/actions/workflows/ruff.yaml)
-[![pyright](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/actions/workflows/pyright.yaml/badge.svg)](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/actions/workflows/pyright.yaml)
-[![pytest](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/actions/workflows/pytest.yaml/badge.svg)](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/actions/workflows/pytest.yaml)
-[![Link Checker](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/actions/workflows/links-fail-fast.yaml/badge.svg)](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/actions/workflows/links-fail-fast.yaml)
-[![Deploy Docs](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/actions/workflows/generate-deploy-mkdocs-ghpages.yaml/badge.svg)](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/actions/workflows/generate-deploy-mkdocs-ghpages.yaml)
 
 ## What
 
