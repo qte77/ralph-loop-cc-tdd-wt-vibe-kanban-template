@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Standardized .claude (marketplace qte77-claude-code-plugins, estate rules incl. compound-learning, attribution); README to doc-structure canon; AGENTS.md Conventions section; documented the CodeQL pull_request-trigger estate exception.
 - `ralph_run`, `ralph_init_and_run`: added TIMEOUT, MODEL, TEAMS, DRY_RUN, INSTRUCTION, DESLOPIFY pass-through params
 - Removed unused `RALPH_TEAMS` env var passthrough from Makefile recipes (only `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` matters downstream)
 - `ralph_run_worktree`: expanded from worktree-only to full run-in-worktree with all params

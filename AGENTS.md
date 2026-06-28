@@ -64,3 +64,9 @@ Agents MUST NOT:
 3. **Update ralph/LEARNINGS.md** - Document discoveries and patterns
 4. **Follow existing patterns** - Study `src/` before implementing
 5. **Reference file:line** - Always cite evidence for claims
+
+## Conventions
+
+- Agent config is AGENTS.md-only; CLAUDE.md is a symlink to this file.
+- Claude Code plugins are configured in .claude/settings.json against the
+  qte77-claude-code-plugins marketplace; shared rules live in .claude/rules/.

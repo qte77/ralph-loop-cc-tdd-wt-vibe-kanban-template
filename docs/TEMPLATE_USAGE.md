@@ -59,10 +59,20 @@ make ralph_archive NEW_PRD=docs/PRD-v2.md VERSION=2
 Archives current PRD, prd.json, and progress to `ralph/docs/archive/`, then
 activates new PRD.
 
+## Substitutions Required After Generating From This Template
+
+After clicking "Use this template" on GitHub, update the following placeholders:
+
+- `mkdocs.yaml` — replace `[PROJECT NAME]`, `[PROJECT DESCRIPTION]`, and
+  `[GITHUB REPO]` with your project values.
+- `README.md` badges — replace `qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template`
+  with your org/repo slug in every badge URL.
+
 ## Optional: MCP Servers
 
-Template includes `context7` and `exa` MCP servers. Remove from
-`.claude/settings.json` if not needed.
+The `.claude/settings.json` uses the qte77-claude-code-plugins marketplace with
+an empty `enabledPlugins` list by default. Add or enable plugins as needed for
+your language or workflow; there are no MCP servers bundled with this template.
 
 ## Optional: Vibe Kanban UI
 
