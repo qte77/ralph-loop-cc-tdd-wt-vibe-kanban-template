@@ -16,7 +16,12 @@ Ship a TDD + Ralph-loop + Vibe-Kanban agent harness without writing boilerplate.
 - **Ralph Loop** - Autonomous agent development via a shell loop; write requirements, let Ralph implement
 - **Claude Code** - Pre-configured skills, rules, plugins, and model routing for AI-assisted development
 - **Language-agnostic scaffold** - Python, embedded C, and TypeScript toolchains installed on demand
-- **GitHub Actions CI/CD** - CodeQL, ruff, pyright, pytest, link checking, and docs deployment wired up
+- **GitHub Actions** - CodeQL, markdown and link linting, and `llms.txt` generation. ruff, pyright and pytest run
+  locally through the language Makefile, not in CI
+- **Self-improvement offspring** - [learnings-ralphy](https://github.com/qte77/learnings-ralphy) (our own
+  learnings) and [research-ralphy](https://github.com/qte77/research-ralphy) (external research) propose
+  improvements that are picked back into this template. Not yet running end to end; design in
+  [#32](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/issues/32)
 - **MkDocs** - Auto-generated documentation with GitHub Pages deployment
 - **DevContainers** - Template (Alpine ~10MB) and project (Python/Node/Docker ~1GB+) variants
 - **Vibe Kanban** - Real-time visual monitoring for Ralph task progress
