@@ -1,12 +1,14 @@
-# TEMPLATE: Replace [PLACEHOLDERS] with your project values after forking.
+# TEMPLATE: Replace the defaults (name, description, your_project_name, Python 3.13)
+# with your project values after forking. They are kept valid so uv and Dependabot
+# can resolve uv.lock in the template itself.
 # Run `make setup_scaffold LANG=python && make setup_toolchain` to initialize.
 [project]
-name = "[PROJECT NAME]"
+name = "your-project-name"
 version = "0.0.0"
-description = "[PROJECT DESCRIPTION]"
-requires-python = ">=[PYTHON VERSION]"
+description = "Project description"
+requires-python = ">=3.13"
 readme = "README.md"
-license = { file = "LICENSE.md" }
+license = { file = "LICENSE" }
 dependencies = [
     "pydantic>=2.10.6",
     "pydantic-settings>=2.9.1",
@@ -28,18 +30,13 @@ dev = [
     "pyright>=1.1.0",
     "complexipy>=0.6.0",
 ]
-observability = [
-    "logfire>=3.16",
-    "weave>=0.51",
-]
 
 [tool.uv]
 package = true
-exclude-newer = "2026-01-20T00:00:00Z"
 
 [tool.ruff]
 line-length = 100
-target-version = "py[PYTHON VERSION SHORT]"
+target-version = "py313"
 include = ["src/**/*.py", "tests/**/*.py"]
 
 [tool.ruff.lint]
@@ -47,7 +44,7 @@ select = ["E", "F", "I", "N", "W", "UP"]
 ignore = ["N999"]
 
 [tool.pyright]
-pythonVersion = "[PYTHON VERSION]"
+pythonVersion = "3.13"
 typeCheckingMode = "basic"
 reportMissingImports = true
 reportMissingTypeStubs = false
