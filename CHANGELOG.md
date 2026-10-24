@@ -44,3 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Main `Makefile` is now language-agnostic: ralph, scaffold, setup, lint, and vibe-kanban recipes only
 - `devcontainer.json` split `postCreateCommand` into `onCreateCommand` (toolchain) and `postCreateCommand` (CC/npm/lychee)
 - README updated with scaffold workflow documentation
+
+### Fixed
+
+- `make validate` no longer always exits 0: the root fallback recipe overrode `Makefile.<scaffold>`'s `validate`, so the Ralph quality gate never failed. The fallback is now defined only when no scaffold Makefile is included, and it exits non-zero (#90)
+- `parallel_ralph.sh` records each worker's real exit code from `.ralph_exit` in its worktree instead of hardcoding 0 (#90)

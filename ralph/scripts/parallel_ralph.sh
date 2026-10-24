@@ -64,6 +64,7 @@ source "$SCRIPT_DIR/lib/validate_json.sh"
 source "$SCRIPT_DIR/lib/vibe.sh"
 source "$SCRIPT_DIR/lib/cleanup_worktrees.sh"
 source "$SCRIPT_DIR/lib/stop_ralph_processes.sh"
+source "$SCRIPT_DIR/lib/worker_exit.sh"
 
 # Source judge library (conditional)
 [ "${RALPH_JUDGE_ENABLED:-false}" = "true" ] && source "$SCRIPT_DIR/lib/judge.sh"
@@ -232,11 +233,12 @@ start_parallel() {
 
     log_info "Starting ralph.sh in worktree $i (background)..."
 
+    rm -f "$worktree_path/$RALPH_EXIT_FILE"
     (
         cd "$worktree_path"
         export WORKTREE_NUM="$i"
         export RALPH_RUN_ID="$run_id"
-        ./ralph/scripts/ralph.sh "$MAX_ITERATIONS" > "$log_file" 2>&1
+        run_and_record_exit . ./ralph/scripts/ralph.sh "$MAX_ITERATIONS" > "$log_file" 2>&1
     ) &
 
     WORKTREE_PIDS[$i]=$!
@@ -260,9 +262,9 @@ wait_and_monitor() {
             if ps -p "$pid" > /dev/null 2>&1; then
                 all_done=false
             elif [ -z "${WORKTREE_EXIT_CODES[$i]:-}" ]; then
-                # Process finished, record exit code (can't get actual code from disowned process)
-                WORKTREE_EXIT_CODES[$i]=0
-                log_info "Worktree $i completed"
+                # Process finished: read the status the worker wrote (disowned PIDs can't be waited on)
+                WORKTREE_EXIT_CODES[$i]=$(read_worktree_exit_code "$(get_worktree_path "$i" "$RUN_ID" "$N_WT")")
+                log_info "Worktree $i completed (exit ${WORKTREE_EXIT_CODES[$i]})"
             fi
         done
 
