@@ -9,7 +9,8 @@
 .DEFAULT_GOAL := help
 
 # Auto-include language-specific Makefile when .scaffold exists
--include Makefile.$(shell cat .scaffold 2>/dev/null)
+SCAFFOLD := $(shell cat .scaffold 2>/dev/null)
+-include Makefile.$(SCAFFOLD)
 
 
 # MARK: scaffold
@@ -98,14 +99,17 @@ setup_lychee:  ## Install lychee link checker (Rust binary, requires sudo)
 	curl -sL https://github.com/lycheeverse/lychee/releases/latest/download/lychee-x86_64-unknown-linux-gnu.tar.gz | sudo tar xz -C /usr/local/bin lychee
 	echo "lychee version: $$(lychee --version)"
 
-validate:  ## Run validation (delegates to scaffold adapter, no-op without scaffold)
-	if [ -f .scaffold ] && type adapter_validate >/dev/null 2>&1; then \
-		adapter_validate; \
-	elif [ -f .scaffold ]; then \
-		echo "No adapter_validate found — source ralph/scripts/lib/adapter.sh first"; \
-	else \
-		echo "No scaffold set — skipping validation (run 'make setup_scaffold LANG=<lang>' first)"; \
+# Makefile.<scaffold> owns `validate`. This fallback is defined only when none is
+# included, and it fails so the Ralph quality gate never passes without real checks.
+ifeq ($(wildcard Makefile.$(SCAFFOLD)),)
+validate:  ## Run validation (defined by Makefile.<scaffold>; fails without a scaffold)
+	if [ -n "$(SCAFFOLD)" ]; then
+		echo "ERROR: Makefile.$(SCAFFOLD) not found for scaffold '$(SCAFFOLD)'"
+	else
+		echo "ERROR: No scaffold set — run 'make setup_scaffold LANG=<lang>' first"
 	fi
+	exit 1
+endif
 
 
 # MARK: run markdownlint

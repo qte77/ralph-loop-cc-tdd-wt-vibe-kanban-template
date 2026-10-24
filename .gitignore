@@ -2,6 +2,8 @@
 .scaffold
 # Scaffold adapter scripts (deployed by plugins)
 .scaffolds/
+# Parallel Ralph worker exit status (written per worktree)
+.ralph_exit
 
 # Claude Code local permission grants (never commit)
 .claude/settings.local.json
