@@ -65,6 +65,8 @@ After clicking "Use this template" on GitHub, update the following placeholders:
 
 - `mkdocs.yaml` — replace `[PROJECT NAME]`, `[PROJECT DESCRIPTION]`, and
   `[GITHUB REPO]` with your project values.
+- `pyproject.toml` — replace the defaults `your-project-name`, `Project description`,
+  `your_project_name` and Python `3.13` with your project values, then run `uv lock`.
 - `README.md` badges — replace `qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template`
   with your org/repo slug in every badge URL.
 

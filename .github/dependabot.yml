@@ -9,6 +9,10 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    # Supply-chain delay: skip releases younger than 7 days (replaces the
+    # fixed exclude-newer date in pyproject.toml, which froze uv.lock).
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: "chore(deps)"
     labels:
