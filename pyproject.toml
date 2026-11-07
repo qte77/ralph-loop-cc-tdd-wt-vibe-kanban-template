@@ -28,7 +28,7 @@ dev = [
     "pytest-cov>=7.0.0",
     "ruff>=0.8.0",
     "pyright>=1.1.0",
-    "complexipy>=0.6.0",
+    "complexipy>=8.2.0",
 ]
 
 [tool.uv]
