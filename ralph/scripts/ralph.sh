@@ -282,15 +282,20 @@ $(cat "$RALPH_LEARNINGS_FILE" 2>/dev/null || echo "(empty)")
 COMPRESS_EOF
     )
 
-    echo "$compress_prompt" | claude -p --model haiku --dangerously-skip-permissions \
+    local budget_flags=$(claude_budget_flags)
+    echo "$compress_prompt" | claude -p --model haiku --dangerously-skip-permissions $budget_flags \
         >> "$RALPH_TMP_DIR/compress_progress.log" 2>&1 || true
 }
 
-# Build extra claude CLI flags from config (RALPH_DESLOPIFY)
+# Build extra claude CLI flags from config (RALPH_DESLOPIFY, RALPH_COST_LIMIT)
 build_claude_extra_flags() {
     local flags=""
     if [ "${RALPH_DESLOPIFY}" = "true" ]; then
         flags='--append-system-prompt "Produce clean, production-quality code. No shortcuts, no placeholders, no TODOs. Every function must have proper error handling, types, and docstrings."'
+    fi
+    local budget_flags=$(claude_budget_flags)
+    if [ -n "$budget_flags" ]; then
+        flags="$flags $budget_flags"
     fi
     echo "$flags"
 }

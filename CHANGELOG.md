@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `RALPH_COST_LIMIT` config: USD cap per `claude -p` call, passed as `--max-budget-usd` via a new `claude_budget_flags()` helper in `ralph/scripts/lib/common.sh`; wired into every claude invocation in `ralph.sh`, `parallel_ralph.sh`, and `lib/judge.sh`. Unset means no cap (unchanged behavior). Per-story/per-run cumulative cost tracking is still open — logging `total_cost_usd` needs `--output-format json`, which would replace the human-readable stream the loop currently tees to its logs (#90)
+
 ### Security
 
 - `uv.lock` regenerated from the template `pyproject.toml` (it was left over from another project and pinned by a fixed `exclude-newer` date); unused `observability` group (logfire, weave) dropped. `pyproject.toml` now carries valid defaults so uv and Dependabot can resolve it; Dependabot uses a 7-day `cooldown` instead (#92)

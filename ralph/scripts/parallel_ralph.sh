@@ -890,7 +890,8 @@ complete_ralph_loop() {
             log_info "Reviewing LEARNINGS.md in worktree $i..."
             (
                 cd "$worktree_path"
-                if echo "/review-learnings" | claude -p --model "$RALPH_DEFAULT_MODEL" --dangerously-skip-permissions 2>&1 | tee "$RALPH_TMP_DIR/review_learnings_wt${i}.log"; then
+                local budget_flags=$(claude_budget_flags)
+                if echo "/review-learnings" | claude -p --model "$RALPH_DEFAULT_MODEL" --dangerously-skip-permissions $budget_flags 2>&1 | tee "$RALPH_TMP_DIR/review_learnings_wt${i}.log"; then
                     # Commit changes if any
                     if ! git diff --quiet "$RALPH_LEARNINGS_FILE" 2>/dev/null; then
                         git add "$RALPH_LEARNINGS_FILE"
@@ -935,7 +936,8 @@ complete_ralph_loop() {
     if [ "${RALPH_SECURITY_REVIEW:-false}" = "true" ]; then
         log_info "Running security review on worktree $best_wt..."
         local worktree_path=$(get_worktree_path "$best_wt" "$RUN_ID" "$N_WT")
-        (cd "$worktree_path" && claude -p '/security-review' --dangerously-skip-permissions 2>&1 | tee $RALPH_TMP_DIR/security_review.log) || \
+        local budget_flags=$(claude_budget_flags)
+        (cd "$worktree_path" && claude -p '/security-review' --dangerously-skip-permissions $budget_flags 2>&1 | tee $RALPH_TMP_DIR/security_review.log) || \
             log_warn "Security review completed with findings - check $RALPH_TMP_DIR/security_review.log"
     fi
 

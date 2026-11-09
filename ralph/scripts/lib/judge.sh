@@ -110,8 +110,9 @@ EOF
     local timeout_val="${RALPH_JUDGE_TIMEOUT:-120}"
     local model="${RALPH_JUDGE_MODEL:-sonnet}"
 
+    local budget_flags=$(claude_budget_flags)
     if timeout "$timeout_val" bash -c \
-        "cat \"$judge_prompt\" | claude -p --model \"$model\" --dangerously-skip-permissions" \
+        "cat \"$judge_prompt\" | claude -p --model \"$model\" --dangerously-skip-permissions $budget_flags" \
         > "$judge_output" 2>&1; then
 
         # Parse JSON response (extract from markdown code blocks if present)
