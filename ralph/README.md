@@ -294,6 +294,11 @@ Centralized in `ralph/scripts/lib/config.sh`:
 - `RALPH_MAX_FIX_ATTEMPTS=3` — Fix attempts
 - `RALPH_VALIDATION_TIMEOUT=300` — Validation timeout (5 min)
 - `RALPH_FIX_TIMEOUT=300` — Fix timeout (5 min)
+- `RALPH_COST_LIMIT` (unset by default) — USD cap per `claude -p` call, passed
+  as `--max-budget-usd`. Unset means no cap (today's behavior). Applies to
+  every claude invocation in `ralph.sh`, `parallel_ralph.sh`, and
+  `lib/judge.sh`. Tracks per-call spend only — see `ralph/TODO.md` for
+  per-story/per-run cumulative tracking (still open)
 
 **Models (Automatic Routing):**
 

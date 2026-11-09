@@ -104,6 +104,19 @@ require_command() {
 }
 
 # =================================================
+# Claude CLI Shared Flags
+# =================================================
+
+# Build the --max-budget-usd flag for a `claude -p` call from RALPH_COST_LIMIT
+# (USD per call). Echoes nothing when RALPH_COST_LIMIT is unset or blank, so
+# unset means no cap and behavior is unchanged.
+claude_budget_flags() {
+  if [ -n "${RALPH_COST_LIMIT:-}" ]; then
+    echo "--max-budget-usd ${RALPH_COST_LIMIT}"
+  fi
+}
+
+# =================================================
 # String Utilities
 # =================================================
 
