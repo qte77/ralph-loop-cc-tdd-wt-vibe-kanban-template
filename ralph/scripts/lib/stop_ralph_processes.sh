@@ -27,7 +27,7 @@ stop_ralph_processes() {
     fi
 
     # Kill any orphaned Claude processes spawned by Ralph
-    local claude_pids=$(ps aux | grep "claude -p.*dangerously-skip-permissions" | grep -v grep | awk '{print $2}' || true)
+    local claude_pids=$(ps aux | grep "claude -p.*permission-prompts none" | grep -v grep | awk '{print $2}' || true)
     if [ -n "$claude_pids" ]; then
         log_info "Cleaning up orphaned Claude processes: $claude_pids"
         kill $claude_pids 2>/dev/null || true

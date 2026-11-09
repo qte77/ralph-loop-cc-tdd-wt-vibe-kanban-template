@@ -112,7 +112,7 @@ EOF
 
     local budget_flags=$(claude_budget_flags)
     if timeout "$timeout_val" bash -c \
-        "cat \"$judge_prompt\" | claude -p --model \"$model\" --dangerously-skip-permissions $budget_flags" \
+        "cat \"$judge_prompt\" | claude -p --model \"$model\" $(claude_permission_flags) $budget_flags" \
         > "$judge_output" 2>&1; then
 
         # Parse JSON response (extract from markdown code blocks if present)
