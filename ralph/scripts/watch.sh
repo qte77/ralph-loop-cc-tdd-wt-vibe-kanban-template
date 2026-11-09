@@ -38,7 +38,7 @@ show_process_tree() {
         local ralph_procs
         ralph_procs=$(ps aux | grep -E "ralph/scripts/ralph.sh" | grep -v grep | grep -v "watch.sh" || true)
         local claude_procs
-        claude_procs=$(ps aux | grep "claude -p.*dangerously-skip-permissions" | grep -v grep || true)
+        claude_procs=$(ps aux | grep "claude -p.*permission-prompts none" | grep -v grep || true)
 
         if [ -n "$ralph_procs" ] || [ -n "$claude_procs" ]; then
             [ -n "$ralph_procs" ] && echo "$ralph_procs"

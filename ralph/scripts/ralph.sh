@@ -283,7 +283,7 @@ COMPRESS_EOF
     )
 
     local budget_flags=$(claude_budget_flags)
-    echo "$compress_prompt" | claude -p --model haiku --dangerously-skip-permissions $budget_flags \
+    echo "$compress_prompt" | claude -p --model haiku $(claude_permission_flags) $budget_flags \
         >> "$RALPH_TMP_DIR/compress_progress.log" 2>&1 || true
 }
 
@@ -374,7 +374,7 @@ execute_story() {
     adapter_env_setup
     local extra_flags=$(build_claude_extra_flags)
     log_info "Running Claude Code with story context..."
-    if cat "$iteration_prompt" | eval claude -p --model "$model" --dangerously-skip-permissions $extra_flags 2>&1 | tee "$RALPH_TMP_DIR/execute_${story_id}.log"; then
+    if cat "$iteration_prompt" | eval claude -p --model "$model" $(claude_permission_flags) $extra_flags 2>&1 | tee "$RALPH_TMP_DIR/execute_${story_id}.log"; then
         log_info "Execution log saved: $RALPH_TMP_DIR/execute_${story_id}.log"
         rm "$iteration_prompt"
         return 0
@@ -501,7 +501,7 @@ fix_validation_errors() {
         # Execute fix via Claude Code with timeout
         adapter_env_setup
         local extra_flags=$(build_claude_extra_flags)
-        if timeout "$FIX_TIMEOUT" bash -c "cat \"$fix_prompt\" | eval claude -p --model \"$model\" --dangerously-skip-permissions $extra_flags" 2>&1 | tee "$RALPH_TMP_DIR/fix_${story_id}_${attempt}.log"; then
+        if timeout "$FIX_TIMEOUT" bash -c "cat \"$fix_prompt\" | eval claude -p --model \"$model\" $(claude_permission_flags) $extra_flags" 2>&1 | tee "$RALPH_TMP_DIR/fix_${story_id}_${attempt}.log"; then
             log_info "Fix attempt log saved: $RALPH_TMP_DIR/fix_${story_id}_${attempt}.log"
             rm "$fix_prompt"
 

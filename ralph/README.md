@@ -150,7 +150,7 @@ parallel_ralph.sh (orchestrator - always used, even N_WT=1)
   |   +-> ralph.sh (worker):
   |       |-> reads prd.json (incomplete stories)
   |       |-> builds prompt from templates/story.prompt.md + story details
-  |       |-> invokes: claude -p --dangerously-skip-permissions
+  |       |-> invokes: claude -p --permission-mode auto --permission-prompts none
   |       |   +-> Agent follows TDD workflow:
   |       |       |- RED: write failing tests -> commit [RED]
   |       |       |- GREEN: implement code -> commit [GREEN]
@@ -600,8 +600,25 @@ git commit --amend --no-edit
 
 ## Security
 
-**Ralph runs with `--dangerously-skip-permissions`** — all operations
-execute without approval.
+**Ralph runs with `--permission-mode auto --permission-prompts none` by
+default** (`RALPH_PERMISSION_MODE`, default `auto`; see `claude --help`
+for the other `--permission-mode` choices). `--permission-prompts none`
+means anything that would otherwise prompt is denied automatically
+instead of hanging the unattended loop — the permission mode still
+decides everything else. This has not been exercised end-to-end against
+an unmodified scaffold; if a run fails because an action it needs gets
+auto-denied, override with `RALPH_PERMISSION_MODE=bypassPermissions`
+(equivalent to the previous `--dangerously-skip-permissions` default)
+while the policy is tuned.
+
+`.claude/settings.json` ships `permissions.deny` rules for actions Ralph
+must never take: `git push`, `gh pr merge`, `git reset --hard`,
+`git rebase`, and `git commit --amend` (amend would otherwise let a
+story's own commits mask RED/GREEN TDD verification). **Deny rules apply
+in every permission mode, including `bypassPermissions`** — they are the
+backstop, not a replacement for isolation. They are also not a full
+security boundary: an equivalent command invoked differently (e.g.
+`git -C . push`) is not matched by a prefix-based rule.
 
 **Only use in:** Isolated environments (DevContainers, VMs).
 
@@ -642,7 +659,8 @@ Skipped for STORY-001 (ramp-up).
 
 Runs without human approval:
 
-- `--dangerously-skip-permissions` flag on all Claude invocations
+- `--permission-mode auto --permission-prompts none` on all Claude
+  invocations (override via `RALPH_PERMISSION_MODE`)
 - Auto-commits state files
 - Auto-pushes to remote at completion
 - No interactive prompts

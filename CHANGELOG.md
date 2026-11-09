@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- Replaced `--dangerously-skip-permissions` on every `claude -p` call in `ralph.sh`, `parallel_ralph.sh`, and `lib/judge.sh` with `--permission-mode ${RALPH_PERMISSION_MODE:-auto} --permission-prompts none` (new `claude_permission_flags()` helper in `lib/common.sh`; `RALPH_PERMISSION_MODE` override, e.g. back to `bypassPermissions`). `.claude/settings.json` now ships `permissions.deny` for `git push`, `gh pr merge`, `git reset --hard`, `git rebase`, and `git commit --amend` — these apply in every permission mode, including bypass, but are not a full security boundary (#90)
+- `watch.sh` and `lib/stop_ralph_processes.sh` matched running claude processes via `ps aux | grep "...dangerously-skip-permissions"`; updated the sentinel to `--permission-prompts none` so `ralph_watch`/`ralph_stop` keep finding Ralph's claude processes after the flag swap (#90)
+
 - `uv.lock` regenerated from the template `pyproject.toml` (it was left over from another project and pinned by a fixed `exclude-newer` date); unused `observability` group (logfire, weave) dropped. `pyproject.toml` now carries valid defaults so uv and Dependabot can resolve it; Dependabot uses a 7-day `cooldown` instead (#92)
 
 ### Added

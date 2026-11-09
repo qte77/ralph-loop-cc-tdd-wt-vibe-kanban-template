@@ -85,6 +85,20 @@ log_cc_success() {
 }
 
 # =================================================
+# Claude CLI Shared Flags
+# =================================================
+
+# Build the permission flags for every `claude -p` call: --permission-mode
+# (RALPH_PERMISSION_MODE, default "auto") plus --permission-prompts none,
+# so anything that would otherwise prompt is denied automatically instead
+# of hanging the unattended loop. Deny rules in .claude/settings.json still
+# apply in every mode and are the backstop for actions the loop must never
+# take; this flag alone is not a security boundary.
+claude_permission_flags() {
+  echo "--permission-mode ${RALPH_PERMISSION_MODE:-auto} --permission-prompts none"
+}
+
+# =================================================
 # Command Checker
 # =================================================
 
