@@ -10,7 +10,10 @@
 # Run from project root: bats ralph/scripts/tests/test_resume.bats
 
 setup() {
-    export BATS_TEST_TMP_DIR="$(mktemp -d)"
+    BATS_TEST_TMP_DIR="$(mktemp -d)"
+    export BATS_TEST_TMP_DIR
+    # shellcheck source=ralph/scripts/lib/common.sh
+    source ralph/scripts/lib/common.sh
 }
 
 teardown() {
@@ -18,14 +21,12 @@ teardown() {
 }
 
 @test "ralph_new_session_id returns a well-formed UUID" {
-    source ralph/scripts/lib/common.sh
     run ralph_new_session_id
     [ "$status" -eq 0 ]
     [[ "$output" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]
 }
 
 @test "ralph_new_session_id returns a fresh id on each call" {
-    source ralph/scripts/lib/common.sh
     first=$(ralph_new_session_id)
     second=$(ralph_new_session_id)
     [ -n "$first" ]
@@ -43,7 +44,6 @@ teardown() {
 }
 
 @test "log_progress writes a Session line when given a session id" {
-    source ralph/scripts/lib/common.sh
     PROGRESS_FILE="$BATS_TEST_TMP_DIR/progress.txt"
 
     # Minimal stand-in for ralph.sh's log_progress (same body, isolated so we
