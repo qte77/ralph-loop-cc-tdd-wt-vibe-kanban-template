@@ -350,6 +350,24 @@ locked), `make ralph_run` automatically resumes them:
 make ralph_run                         # Auto-resumes existing worktrees
 ```
 
+**Story-level skip**: `get_next_story()` only considers stories whose
+`status` isn't `"passed"`, so a resumed loop skips every story already
+completed and continues from the next pending one — no flag needed.
+
+**Resuming an interrupted story's conversation**: Each story execution
+gets a fresh `--session-id <uuid>`, recorded as `Session: <uuid>` in
+`ralph/docs/progress.txt`. If that story's claude call crashed or timed
+out mid-run, continue the exact same conversation instead of starting
+the story over:
+
+```bash
+cd <worktree>  # the directory the session originally ran in
+claude -p --resume <uuid> "Continue the story"
+```
+
+This resumes the single story's conversation; it does not resume a
+whole `ralph_run` — use `make ralph_run` for that (see above).
+
 ### Monitoring
 
 ```bash

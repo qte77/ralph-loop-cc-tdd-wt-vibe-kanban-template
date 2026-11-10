@@ -131,6 +131,23 @@ claude_budget_flags() {
 }
 
 # =================================================
+# Session IDs
+# =================================================
+
+# Generate a fresh UUID for a `claude --session-id` call. Tries uuidgen
+# first, falls back to the kernel RNG, then python3 — one of the three is
+# present on every supported devcontainer/CI image.
+ralph_new_session_id() {
+  if command -v uuidgen &>/dev/null; then
+    uuidgen
+  elif [ -r /proc/sys/kernel/random/uuid ]; then
+    cat /proc/sys/kernel/random/uuid
+  else
+    python3 -c 'import uuid; print(uuid.uuid4())'
+  fi
+}
+
+# =================================================
 # String Utilities
 # =================================================
 

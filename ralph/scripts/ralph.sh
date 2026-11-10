@@ -241,15 +241,21 @@ verify_teammate_stories() {
 }
 
 # Append to progress log
+# $5 (optional): the story execution's --session-id, so an interrupted
+# story can be resumed with `claude -p --resume <uuid>`
 log_progress() {
     local iteration="$1"
     local story_id="$2"
     local status="$3"
     local notes="$4"
+    local session_id="${5:-}"
 
     {
         echo "## Iteration $iteration - $(date)"
         echo "Story: $story_id"
+        if [ -n "$session_id" ]; then
+            echo "Session: $session_id"
+        fi
         echo "Status: $status"
         echo "Notes: $notes"
         echo ""
@@ -309,6 +315,10 @@ execute_story() {
 
     log_info "Executing story: $story_id - $title"
     kanban_update "$story_id" "inprogress"
+
+    # Fresh session id for this story execution (not `local`: the caller
+    # reads it afterward to record it in progress.txt for resume)
+    STORY_SESSION_ID=$(ralph_new_session_id)
 
     # Model selection: explicit override or smart classification
     local model
@@ -374,7 +384,7 @@ execute_story() {
     adapter_env_setup
     local extra_flags=$(build_claude_extra_flags)
     log_info "Running Claude Code with story context..."
-    if cat "$iteration_prompt" | eval claude -p --model "$model" $(claude_permission_flags) $extra_flags 2>&1 | tee "$RALPH_TMP_DIR/execute_${story_id}.log"; then
+    if cat "$iteration_prompt" | eval claude -p --model "$model" --session-id "$STORY_SESSION_ID" $(claude_permission_flags) $extra_flags 2>&1 | tee "$RALPH_TMP_DIR/execute_${story_id}.log"; then
         log_info "Execution log saved: $RALPH_TMP_DIR/execute_${story_id}.log"
         rm "$iteration_prompt"
         return 0
@@ -714,7 +724,7 @@ main() {
                 log_info "DRY_RUN: skipping TDD verification and quality checks"
                 update_story_status "$story_id" "passed"
                 kanban_update "$story_id" "done"
-                log_progress "$iteration" "$story_id" "PASS" "Completed (dry-run, no validation)"
+                log_progress "$iteration" "$story_id" "PASS" "Completed (dry-run, no validation)" "$STORY_SESSION_ID"
                 commit_story_state "$story_id" "dry-run completion (no validation)"
             else
                 # Verify TDD commits were made (capture return code without triggering set -e)
@@ -727,7 +737,7 @@ main() {
                     if [ "$current_status" == "passed" ]; then
                         # Story was verified as complete (no new work needed)
                         kanban_update "$story_id" "done"
-                        log_progress "$iteration" "$story_id" "PASS" "Verified as already complete"
+                        log_progress "$iteration" "$story_id" "PASS" "Verified as already complete" "$STORY_SESSION_ID"
                         log_info "Story $story_id was already complete - marked as PASSING"
 
                         # Commit state files
@@ -736,13 +746,13 @@ main() {
                     else
                         # Story incomplete, retry
                         log_info "No commits - retrying story"
-                        log_progress "$iteration" "$story_id" "RETRY" "$TDD_ERROR_MSG"
+                        log_progress "$iteration" "$story_id" "RETRY" "$TDD_ERROR_MSG" "$STORY_SESSION_ID"
                         continue
                     fi
                 elif [ $tdd_check_result -ne 0 ]; then
                     # TDD verification failed
                     kanban_update "$story_id" "todo" "TDD verification failed: $TDD_ERROR_MSG"
-                    log_progress "$iteration" "$story_id" "FAIL" "TDD verification failed: $TDD_ERROR_MSG"
+                    log_progress "$iteration" "$story_id" "FAIL" "TDD verification failed: $TDD_ERROR_MSG" "$STORY_SESSION_ID"
                     continue
                 fi
 
@@ -753,7 +763,7 @@ main() {
                     # Mark as passing
                     update_story_status "$story_id" "passed"
                     kanban_update "$story_id" "done"
-                    log_progress "$iteration" "$story_id" "PASS" "Completed successfully with TDD commits"
+                    log_progress "$iteration" "$story_id" "PASS" "Completed successfully with TDD commits" "$STORY_SESSION_ID"
                     log_info "Story $story_id marked as PASSING"
 
                     # Commit state files with documentation
@@ -766,7 +776,7 @@ main() {
                         # Mark as passing after successful fixes
                         update_story_status "$story_id" "passed"
                         kanban_update "$story_id" "done"
-                        log_progress "$iteration" "$story_id" "PASS" "Completed after fixing validation errors"
+                        log_progress "$iteration" "$story_id" "PASS" "Completed after fixing validation errors" "$STORY_SESSION_ID"
                         log_info "Story $story_id marked as PASSING after fixes"
 
                         # Commit state files with documentation
@@ -774,14 +784,14 @@ main() {
                     else
                         kanban_update "$story_id" "todo" "Quality checks failed after $MAX_FIX_ATTEMPTS fix attempts"
                         log_error "Failed to fix validation errors"
-                        log_progress "$iteration" "$story_id" "FAIL" "Quality checks failed after $MAX_FIX_ATTEMPTS fix attempts"
+                        log_progress "$iteration" "$story_id" "FAIL" "Quality checks failed after $MAX_FIX_ATTEMPTS fix attempts" "$STORY_SESSION_ID"
                     fi
                 fi
             fi
         else
             kanban_update "$story_id" "todo" "Story execution failed - Claude returned error"
             log_error "Story execution failed"
-            log_progress "$iteration" "$story_id" "FAIL" "Execution error"
+            log_progress "$iteration" "$story_id" "FAIL" "Execution error" "$STORY_SESSION_ID"
         fi
 
         echo ""

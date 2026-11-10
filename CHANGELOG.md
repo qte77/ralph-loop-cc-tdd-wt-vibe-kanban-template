@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `RALPH_COST_LIMIT` config: USD cap per `claude -p` call, passed as `--max-budget-usd` via a new `claude_budget_flags()` helper in `ralph/scripts/lib/common.sh`; wired into every claude invocation in `ralph.sh`, `parallel_ralph.sh`, and `lib/judge.sh`. Unset means no cap (unchanged behavior). Per-story/per-run cumulative cost tracking is still open — logging `total_cost_usd` needs `--output-format json`, which would replace the human-readable stream the loop currently tees to its logs (#90)
+- Per-story `--session-id` for every `claude -p` story execution, recorded as `Session: <uuid>` in `ralph/docs/progress.txt`: an interrupted story's exact conversation can be continued with `claude -p --resume <uuid>` instead of starting over. `get_next_story()` already skipped stories marked `"passed"`, so a resumed `make ralph_run` already continued from the next pending story — documented in `ralph/README.md` (#90)
 
 ### Security
 
