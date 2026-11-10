@@ -653,7 +653,8 @@ Script enforces:
 - [GREEN] marker present (implementation committed second)
 - Correct commit order (RED before GREEN)
 
-Skipped for STORY-001 (ramp-up).
+Skipped for STORY-000 (foundation story — see `ralph.sh`'s
+`check_tdd_commits()`).
 
 ## Autonomous Operation
 
@@ -662,7 +663,9 @@ Runs without human approval:
 - `--permission-mode auto --permission-prompts none` on all Claude
   invocations (override via `RALPH_PERMISSION_MODE`)
 - Auto-commits state files
-- Auto-pushes to remote at completion
+- Merges the best worktree's result into the local branch at completion
+  (`merge_best()` in `parallel_ralph.sh`) — no `git push`; the merge
+  commit stays local until pushed
 - No interactive prompts
 
 ## Known Failure Modes
