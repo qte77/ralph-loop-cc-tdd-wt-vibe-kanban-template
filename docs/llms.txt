@@ -1,0 +1,31 @@
+# Ralph-Loop Template
+
+> Language-agnostic project template using Ralph Loop autonomous development with plugin-based scaffold architecture.
+
+## Getting Started
+
+- [README](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/blob/main/README.md): Project overview, scaffold workflow, quickstart
+- [Contributing](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/blob/main/CONTRIBUTING.md): Setup, quality commands, commit format
+- [Template usage](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/blob/main/docs/TEMPLATE_USAGE.md): DevContainer sizes, Makefile details, submodule consumption, Vibe Kanban setup
+
+## Ralph Loop
+
+- [Ralph README](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/blob/main/ralph/README.md): Autonomous agent development loop
+- [Ralph contributing](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/blob/main/ralph/CONTRIBUTING.md): Ralph-specific command reference
+
+## Governance
+
+- [Agent rules](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/blob/main/AGENTS.md): AI-agent behavioral rules and quality thresholds
+- [Agent learnings](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/blob/main/AGENT_LEARNINGS.md): Compound learnings across sessions
+- [Agent requests](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/blob/main/AGENT_REQUESTS.md): Open escalations from agents
+
+## Reference
+
+- [User story](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/blob/main/docs/UserStory.md)
+- [Naming conventions](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/blob/main/docs/NAMING.md)
+- [Changelog](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/blob/main/CHANGELOG.md)
+
+## Optional
+
+- [TODO](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/blob/main/TODO.md)
+- [License](https://github.com/qte77/ralph-loop-cc-tdd-wt-vibe-kanban-template/blob/main/LICENSE)
