@@ -22,8 +22,11 @@ jobs:
           persist-credentials: false
 
       - name: Install BATS
+        # sudo: npm's global prefix on GitHub-hosted ubuntu-latest runners
+        # requires root (matches qte77/gha-llms-txt-action's bats.yaml, which
+        # hit EACCES on /usr/local/share/man without it).
         run: |
-          npm install -g bats@1.13.0
+          sudo npm install -g bats@1.13.0
           command -v bats || { echo "bats install failed"; exit 1; }
 
       - name: Run BATS tests
