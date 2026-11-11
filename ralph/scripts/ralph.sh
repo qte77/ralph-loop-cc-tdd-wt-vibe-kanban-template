@@ -306,6 +306,48 @@ build_claude_extra_flags() {
     echo "$flags"
 }
 
+# Shared prompt sections appended by both execute_story() and
+# fix_validation_errors(): accumulated learnings, human requests, recent
+# run history, and an ad-hoc steering instruction. Call this inside a
+# `{ ... } >> file` group whose stdout is redirected to the prompt file.
+inject_shared_prompt_sections() {
+    # Inject accumulated learnings
+    if [[ -f "$RALPH_LEARNINGS_FILE" ]]; then
+        echo ""
+        echo "## Agent Learnings"
+        echo ""
+        cat "$RALPH_LEARNINGS_FILE"
+    fi
+
+    # Inject human requests
+    if [[ -f "$RALPH_REQUESTS_FILE" ]]; then
+        echo ""
+        echo "## Human Requests"
+        echo ""
+        cat "$RALPH_REQUESTS_FILE"
+    fi
+
+    # Inject recent run history for self-correction
+    if [[ -f "$PROGRESS_FILE" ]]; then
+        local recent_progress
+        recent_progress=$(tail -50 "$PROGRESS_FILE")
+        if [[ -n "$recent_progress" ]]; then
+            echo ""
+            echo "## Recent Run History"
+            echo ""
+            echo "$recent_progress"
+        fi
+    fi
+
+    # Inject ad-hoc steering instruction
+    if [ -n "${RALPH_INSTRUCTION}" ]; then
+        echo ""
+        echo "## Steering Instruction"
+        echo ""
+        echo "$RALPH_INSTRUCTION"
+    fi
+}
+
 # Execute single story via Claude Code
 execute_story() {
     local story_id="$1"
@@ -342,41 +384,7 @@ execute_story() {
         echo ""
         echo "Read prd.json for full acceptance criteria and expected files."
 
-        # Inject accumulated learnings
-        if [[ -f "$RALPH_LEARNINGS_FILE" ]]; then
-            echo ""
-            echo "## Agent Learnings"
-            echo ""
-            cat "$RALPH_LEARNINGS_FILE"
-        fi
-
-        # Inject human requests
-        if [[ -f "$RALPH_REQUESTS_FILE" ]]; then
-            echo ""
-            echo "## Human Requests"
-            echo ""
-            cat "$RALPH_REQUESTS_FILE"
-        fi
-
-        # Inject recent run history for self-correction
-        if [[ -f "$PROGRESS_FILE" ]]; then
-            local recent_progress
-            recent_progress=$(tail -50 "$PROGRESS_FILE")
-            if [[ -n "$recent_progress" ]]; then
-                echo ""
-                echo "## Recent Run History"
-                echo ""
-                echo "$recent_progress"
-            fi
-        fi
-
-        # Inject ad-hoc steering instruction
-        if [ -n "${RALPH_INSTRUCTION}" ]; then
-            echo ""
-            echo "## Steering Instruction"
-            echo ""
-            echo "$RALPH_INSTRUCTION"
-        fi
+        inject_shared_prompt_sections
     } >> "$iteration_prompt"
 
     # Execute via Claude Code with selected model
@@ -471,41 +479,7 @@ fix_validation_errors() {
             echo ""
             echo "Fix all errors and run \`make validate\` to verify."
 
-            # Inject accumulated learnings
-            if [[ -f "$RALPH_LEARNINGS_FILE" ]]; then
-                echo ""
-                echo "## Agent Learnings"
-                echo ""
-                cat "$RALPH_LEARNINGS_FILE"
-            fi
-
-            # Inject human requests
-            if [[ -f "$RALPH_REQUESTS_FILE" ]]; then
-                echo ""
-                echo "## Human Requests"
-                echo ""
-                cat "$RALPH_REQUESTS_FILE"
-            fi
-
-            # Inject recent run history for self-correction
-            if [[ -f "$PROGRESS_FILE" ]]; then
-                local recent_progress
-                recent_progress=$(tail -50 "$PROGRESS_FILE")
-                if [[ -n "$recent_progress" ]]; then
-                    echo ""
-                    echo "## Recent Run History"
-                    echo ""
-                    echo "$recent_progress"
-                fi
-            fi
-
-            # Inject ad-hoc steering instruction
-            if [ -n "${RALPH_INSTRUCTION}" ]; then
-                echo ""
-                echo "## Steering Instruction"
-                echo ""
-                echo "$RALPH_INSTRUCTION"
-            fi
+            inject_shared_prompt_sections
         } >> "$fix_prompt"
 
         # Execute fix via Claude Code with timeout
