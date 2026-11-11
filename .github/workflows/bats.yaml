@@ -1,0 +1,33 @@
+# Run the Ralph scripts' BATS test suites. make test_bats silently
+# reports success when `bats` is missing, so this job installs it
+# explicitly and verifies the install before delegating to the recipe.
+name: BATS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install BATS
+        # sudo: npm's global prefix on GitHub-hosted ubuntu-latest runners
+        # requires root (matches qte77/gha-llms-txt-action's bats.yaml, which
+        # hit EACCES on /usr/local/share/man without it).
+        run: |
+          sudo npm install -g bats@1.13.0
+          command -v bats || { echo "bats install failed"; exit 1; }
+
+      - name: Run BATS tests
+        run: make test_bats

@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `RALPH_COST_LIMIT` config: USD cap per `claude -p` call, passed as `--max-budget-usd` via a new `claude_budget_flags()` helper in `ralph/scripts/lib/common.sh`; wired into every claude invocation in `ralph.sh`, `parallel_ralph.sh`, and `lib/judge.sh`. Unset means no cap (unchanged behavior). Per-story/per-run cumulative cost tracking is still open — logging `total_cost_usd` needs `--output-format json`, which would replace the human-readable stream the loop currently tees to its logs (#90)
 - Per-story `--session-id` for every `claude -p` story execution, recorded as `Session: <uuid>` in `ralph/docs/progress.txt`: an interrupted story's exact conversation can be continued with `claude -p --resume <uuid>` instead of starting over. `get_next_story()` already skipped stories marked `"passed"`, so a resumed `make ralph_run` already continued from the next pending story — documented in `ralph/README.md` (#90)
+- `.github/workflows/bats.yaml`: CI job running the Ralph `ralph/scripts/tests/*.bats` suites via `make test_bats` on push/PR to `main`. Installs a pinned `bats@1.13.0` and verifies the install before running, since `make test_bats` otherwise silently reports success when `bats` is missing
 
 ### Security
 
@@ -62,4 +63,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ralph/README.md` docs drift (#90): TDD verification is skipped for `STORY-000` (`check_tdd_commits()` in `ralph.sh`), not `STORY-001` as previously documented; "Autonomous Operation" said the loop auto-pushes to remote at completion, but `merge_best()` only merges the best worktree into the local branch and commits — there is no `git push` anywhere under `ralph/scripts/`
 - `make validate` no longer always exits 0: the root fallback recipe overrode `Makefile.<scaffold>`'s `validate`, so the Ralph quality gate never failed. The fallback is now defined only when no scaffold Makefile is included, and it exits non-zero (#90)
 - `ralph.sh`: extracted the duplicated "Agent Learnings / Human Requests / Recent Run History / Steering Instruction" prompt-building code (previously built separately in `execute_story()` and `fix_validation_errors()`) into a single `inject_shared_prompt_sections()` function, fixing a CodeFactor-flagged duplication
+- `ralph/scripts/tests/test_helper/common-setup.bash`'s `_setup_git_config()` no longer writes to the machine's real global git config: it now redirects `GIT_CONFIG_GLOBAL` to a file inside the test's isolated tmp dir before calling `git config --global` (#90)
 - `parallel_ralph.sh` records each worker's real exit code from `.ralph_exit` in its worktree instead of hardcoding 0 (#90)
