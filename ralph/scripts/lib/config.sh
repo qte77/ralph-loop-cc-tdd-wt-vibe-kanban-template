@@ -56,6 +56,8 @@ RALPH_DRY_RUN=${RALPH_DRY_RUN:-false}  # Skip TDD verification and quality check
 RALPH_MODEL=${RALPH_MODEL:-}  # Override model for all story execution (bypasses classify_story)
 RALPH_INSTRUCTION=${RALPH_INSTRUCTION:-}  # Free-text steering injected into story prompt
 RALPH_DESLOPIFY=${RALPH_DESLOPIFY:-false}  # Append quality-enforcement system prompt to claude calls
+RALPH_COST_LIMIT=${RALPH_COST_LIMIT:-}  # USD cap per `claude -p` call (--max-budget-usd); unset = no cap
+RALPH_PERMISSION_MODE=${RALPH_PERMISSION_MODE:-auto}  # --permission-mode for all claude calls (see claude --help for other choices, e.g. bypassPermissions)
 
 # =================================================
 # GIT BRANCH CONFIGURATION

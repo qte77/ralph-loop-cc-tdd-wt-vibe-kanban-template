@@ -97,6 +97,39 @@ teardown() {
     ) || fail "git config user.name or user.email not set"
 }
 
+@test "common-setup.bash does not write to the machine's global git config" {
+    [ -f "ralph/scripts/tests/test_helper/common-setup.bash" ] || \
+        skip "common-setup.bash not found"
+
+    # Simulate "the machine's real global git config" with a sentinel file,
+    # and point GIT_CONFIG_GLOBAL at it the way a real session would have it
+    # already set. common-setup.bash must never write into this file.
+    local outer_gitconfig="$BATS_TEST_TMP_DIR/outer-gitconfig"
+    printf '[user]\n\tname = Outer Sentinel\n\temail = outer@example.com\n' \
+        > "$outer_gitconfig"
+    local before_hash
+    before_hash="$(sha256sum "$outer_gitconfig")"
+
+    (
+        export RALPH_TMP_DIR="$BATS_TEST_TMP_DIR"
+        export GIT_CONFIG_GLOBAL="$outer_gitconfig"
+        source ralph/scripts/tests/test_helper/common-setup.bash
+
+        # The helper must redirect GIT_CONFIG_GLOBAL to its own isolated
+        # file rather than writing into the inherited one.
+        [ "$GIT_CONFIG_GLOBAL" != "$outer_gitconfig" ] || exit 1
+
+        # It must still configure a usable identity for commits made
+        # during the test.
+        [ "$(git config --get user.name)" = "Test User" ] || exit 1
+    ) || fail "common-setup.bash did not isolate GIT_CONFIG_GLOBAL"
+
+    local after_hash
+    after_hash="$(sha256sum "$outer_gitconfig")"
+    [ "$before_hash" = "$after_hash" ] || \
+        fail "outer (machine) global git config was modified"
+}
+
 @test "test_parallel_ralph.sh still exists (not deleted)" {
     [ -f "ralph/scripts/tests/test_parallel_ralph.sh" ] || \
         fail "test_parallel_ralph.sh was deleted"

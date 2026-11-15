@@ -241,15 +241,21 @@ verify_teammate_stories() {
 }
 
 # Append to progress log
+# $5 (optional): the story execution's --session-id, so an interrupted
+# story can be resumed with `claude -p --resume <uuid>`
 log_progress() {
     local iteration="$1"
     local story_id="$2"
     local status="$3"
     local notes="$4"
+    local session_id="${5:-}"
 
     {
         echo "## Iteration $iteration - $(date)"
         echo "Story: $story_id"
+        if [ -n "$session_id" ]; then
+            echo "Session: $session_id"
+        fi
         echo "Status: $status"
         echo "Notes: $notes"
         echo ""
@@ -282,17 +288,64 @@ $(cat "$RALPH_LEARNINGS_FILE" 2>/dev/null || echo "(empty)")
 COMPRESS_EOF
     )
 
-    echo "$compress_prompt" | claude -p --model haiku --dangerously-skip-permissions \
+    local budget_flags=$(claude_budget_flags)
+    echo "$compress_prompt" | claude -p --model haiku $(claude_permission_flags) $budget_flags \
         >> "$RALPH_TMP_DIR/compress_progress.log" 2>&1 || true
 }
 
-# Build extra claude CLI flags from config (RALPH_DESLOPIFY)
+# Build extra claude CLI flags from config (RALPH_DESLOPIFY, RALPH_COST_LIMIT)
 build_claude_extra_flags() {
     local flags=""
     if [ "${RALPH_DESLOPIFY}" = "true" ]; then
         flags='--append-system-prompt "Produce clean, production-quality code. No shortcuts, no placeholders, no TODOs. Every function must have proper error handling, types, and docstrings."'
     fi
+    local budget_flags=$(claude_budget_flags)
+    if [ -n "$budget_flags" ]; then
+        flags="$flags $budget_flags"
+    fi
     echo "$flags"
+}
+
+# Shared prompt sections appended by both execute_story() and
+# fix_validation_errors(): accumulated learnings, human requests, recent
+# run history, and an ad-hoc steering instruction. Call this inside a
+# `{ ... } >> file` group whose stdout is redirected to the prompt file.
+inject_shared_prompt_sections() {
+    # Inject accumulated learnings
+    if [[ -f "$RALPH_LEARNINGS_FILE" ]]; then
+        echo ""
+        echo "## Agent Learnings"
+        echo ""
+        cat "$RALPH_LEARNINGS_FILE"
+    fi
+
+    # Inject human requests
+    if [[ -f "$RALPH_REQUESTS_FILE" ]]; then
+        echo ""
+        echo "## Human Requests"
+        echo ""
+        cat "$RALPH_REQUESTS_FILE"
+    fi
+
+    # Inject recent run history for self-correction
+    if [[ -f "$PROGRESS_FILE" ]]; then
+        local recent_progress
+        recent_progress=$(tail -50 "$PROGRESS_FILE")
+        if [[ -n "$recent_progress" ]]; then
+            echo ""
+            echo "## Recent Run History"
+            echo ""
+            echo "$recent_progress"
+        fi
+    fi
+
+    # Inject ad-hoc steering instruction
+    if [ -n "${RALPH_INSTRUCTION}" ]; then
+        echo ""
+        echo "## Steering Instruction"
+        echo ""
+        echo "$RALPH_INSTRUCTION"
+    fi
 }
 
 # Execute single story via Claude Code
@@ -304,6 +357,10 @@ execute_story() {
 
     log_info "Executing story: $story_id - $title"
     kanban_update "$story_id" "inprogress"
+
+    # Fresh session id for this story execution (not `local`: the caller
+    # reads it afterward to record it in progress.txt for resume)
+    STORY_SESSION_ID=$(ralph_new_session_id)
 
     # Model selection: explicit override or smart classification
     local model
@@ -327,41 +384,7 @@ execute_story() {
         echo ""
         echo "Read prd.json for full acceptance criteria and expected files."
 
-        # Inject accumulated learnings
-        if [[ -f "$RALPH_LEARNINGS_FILE" ]]; then
-            echo ""
-            echo "## Agent Learnings"
-            echo ""
-            cat "$RALPH_LEARNINGS_FILE"
-        fi
-
-        # Inject human requests
-        if [[ -f "$RALPH_REQUESTS_FILE" ]]; then
-            echo ""
-            echo "## Human Requests"
-            echo ""
-            cat "$RALPH_REQUESTS_FILE"
-        fi
-
-        # Inject recent run history for self-correction
-        if [[ -f "$PROGRESS_FILE" ]]; then
-            local recent_progress
-            recent_progress=$(tail -50 "$PROGRESS_FILE")
-            if [[ -n "$recent_progress" ]]; then
-                echo ""
-                echo "## Recent Run History"
-                echo ""
-                echo "$recent_progress"
-            fi
-        fi
-
-        # Inject ad-hoc steering instruction
-        if [ -n "${RALPH_INSTRUCTION}" ]; then
-            echo ""
-            echo "## Steering Instruction"
-            echo ""
-            echo "$RALPH_INSTRUCTION"
-        fi
+        inject_shared_prompt_sections
     } >> "$iteration_prompt"
 
     # Execute via Claude Code with selected model
@@ -369,7 +392,7 @@ execute_story() {
     adapter_env_setup
     local extra_flags=$(build_claude_extra_flags)
     log_info "Running Claude Code with story context..."
-    if cat "$iteration_prompt" | eval claude -p --model "$model" --dangerously-skip-permissions $extra_flags 2>&1 | tee "$RALPH_TMP_DIR/execute_${story_id}.log"; then
+    if cat "$iteration_prompt" | eval claude -p --model "$model" --session-id "$STORY_SESSION_ID" $(claude_permission_flags) $extra_flags 2>&1 | tee "$RALPH_TMP_DIR/execute_${story_id}.log"; then
         log_info "Execution log saved: $RALPH_TMP_DIR/execute_${story_id}.log"
         rm "$iteration_prompt"
         return 0
@@ -456,47 +479,13 @@ fix_validation_errors() {
             echo ""
             echo "Fix all errors and run \`make validate\` to verify."
 
-            # Inject accumulated learnings
-            if [[ -f "$RALPH_LEARNINGS_FILE" ]]; then
-                echo ""
-                echo "## Agent Learnings"
-                echo ""
-                cat "$RALPH_LEARNINGS_FILE"
-            fi
-
-            # Inject human requests
-            if [[ -f "$RALPH_REQUESTS_FILE" ]]; then
-                echo ""
-                echo "## Human Requests"
-                echo ""
-                cat "$RALPH_REQUESTS_FILE"
-            fi
-
-            # Inject recent run history for self-correction
-            if [[ -f "$PROGRESS_FILE" ]]; then
-                local recent_progress
-                recent_progress=$(tail -50 "$PROGRESS_FILE")
-                if [[ -n "$recent_progress" ]]; then
-                    echo ""
-                    echo "## Recent Run History"
-                    echo ""
-                    echo "$recent_progress"
-                fi
-            fi
-
-            # Inject ad-hoc steering instruction
-            if [ -n "${RALPH_INSTRUCTION}" ]; then
-                echo ""
-                echo "## Steering Instruction"
-                echo ""
-                echo "$RALPH_INSTRUCTION"
-            fi
+            inject_shared_prompt_sections
         } >> "$fix_prompt"
 
         # Execute fix via Claude Code with timeout
         adapter_env_setup
         local extra_flags=$(build_claude_extra_flags)
-        if timeout "$FIX_TIMEOUT" bash -c "cat \"$fix_prompt\" | eval claude -p --model \"$model\" --dangerously-skip-permissions $extra_flags" 2>&1 | tee "$RALPH_TMP_DIR/fix_${story_id}_${attempt}.log"; then
+        if timeout "$FIX_TIMEOUT" bash -c "cat \"$fix_prompt\" | eval claude -p --model \"$model\" $(claude_permission_flags) $extra_flags" 2>&1 | tee "$RALPH_TMP_DIR/fix_${story_id}_${attempt}.log"; then
             log_info "Fix attempt log saved: $RALPH_TMP_DIR/fix_${story_id}_${attempt}.log"
             rm "$fix_prompt"
 
@@ -709,7 +698,7 @@ main() {
                 log_info "DRY_RUN: skipping TDD verification and quality checks"
                 update_story_status "$story_id" "passed"
                 kanban_update "$story_id" "done"
-                log_progress "$iteration" "$story_id" "PASS" "Completed (dry-run, no validation)"
+                log_progress "$iteration" "$story_id" "PASS" "Completed (dry-run, no validation)" "$STORY_SESSION_ID"
                 commit_story_state "$story_id" "dry-run completion (no validation)"
             else
                 # Verify TDD commits were made (capture return code without triggering set -e)
@@ -722,7 +711,7 @@ main() {
                     if [ "$current_status" == "passed" ]; then
                         # Story was verified as complete (no new work needed)
                         kanban_update "$story_id" "done"
-                        log_progress "$iteration" "$story_id" "PASS" "Verified as already complete"
+                        log_progress "$iteration" "$story_id" "PASS" "Verified as already complete" "$STORY_SESSION_ID"
                         log_info "Story $story_id was already complete - marked as PASSING"
 
                         # Commit state files
@@ -731,13 +720,13 @@ main() {
                     else
                         # Story incomplete, retry
                         log_info "No commits - retrying story"
-                        log_progress "$iteration" "$story_id" "RETRY" "$TDD_ERROR_MSG"
+                        log_progress "$iteration" "$story_id" "RETRY" "$TDD_ERROR_MSG" "$STORY_SESSION_ID"
                         continue
                     fi
                 elif [ $tdd_check_result -ne 0 ]; then
                     # TDD verification failed
                     kanban_update "$story_id" "todo" "TDD verification failed: $TDD_ERROR_MSG"
-                    log_progress "$iteration" "$story_id" "FAIL" "TDD verification failed: $TDD_ERROR_MSG"
+                    log_progress "$iteration" "$story_id" "FAIL" "TDD verification failed: $TDD_ERROR_MSG" "$STORY_SESSION_ID"
                     continue
                 fi
 
@@ -748,7 +737,7 @@ main() {
                     # Mark as passing
                     update_story_status "$story_id" "passed"
                     kanban_update "$story_id" "done"
-                    log_progress "$iteration" "$story_id" "PASS" "Completed successfully with TDD commits"
+                    log_progress "$iteration" "$story_id" "PASS" "Completed successfully with TDD commits" "$STORY_SESSION_ID"
                     log_info "Story $story_id marked as PASSING"
 
                     # Commit state files with documentation
@@ -761,7 +750,7 @@ main() {
                         # Mark as passing after successful fixes
                         update_story_status "$story_id" "passed"
                         kanban_update "$story_id" "done"
-                        log_progress "$iteration" "$story_id" "PASS" "Completed after fixing validation errors"
+                        log_progress "$iteration" "$story_id" "PASS" "Completed after fixing validation errors" "$STORY_SESSION_ID"
                         log_info "Story $story_id marked as PASSING after fixes"
 
                         # Commit state files with documentation
@@ -769,14 +758,14 @@ main() {
                     else
                         kanban_update "$story_id" "todo" "Quality checks failed after $MAX_FIX_ATTEMPTS fix attempts"
                         log_error "Failed to fix validation errors"
-                        log_progress "$iteration" "$story_id" "FAIL" "Quality checks failed after $MAX_FIX_ATTEMPTS fix attempts"
+                        log_progress "$iteration" "$story_id" "FAIL" "Quality checks failed after $MAX_FIX_ATTEMPTS fix attempts" "$STORY_SESSION_ID"
                     fi
                 fi
             fi
         else
             kanban_update "$story_id" "todo" "Story execution failed - Claude returned error"
             log_error "Story execution failed"
-            log_progress "$iteration" "$story_id" "FAIL" "Execution error"
+            log_progress "$iteration" "$story_id" "FAIL" "Execution error" "$STORY_SESSION_ID"
         fi
 
         echo ""
