@@ -58,6 +58,11 @@ EOF
 
 # Set git config for tests that need to create commits
 _setup_git_config() {
+    # Reason: redirect the "global" git config to a file inside this test's
+    # isolated tmp dir so the suite never writes to the machine's real
+    # global git identity (GIT_CONFIG_GLOBAL overrides git's default global
+    # config path; supported since git 2.32).
+    export GIT_CONFIG_GLOBAL="${RALPH_TMP_DIR}/gitconfig"
     git config --global user.name "Test User" 2>/dev/null || true
     git config --global user.email "test@example.com" 2>/dev/null || true
 }

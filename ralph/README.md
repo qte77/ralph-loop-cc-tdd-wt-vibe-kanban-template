@@ -150,7 +150,7 @@ parallel_ralph.sh (orchestrator - always used, even N_WT=1)
   |   +-> ralph.sh (worker):
   |       |-> reads prd.json (incomplete stories)
   |       |-> builds prompt from templates/story.prompt.md + story details
-  |       |-> invokes: claude -p --dangerously-skip-permissions
+  |       |-> invokes: claude -p --permission-mode auto --permission-prompts none
   |       |   +-> Agent follows TDD workflow:
   |       |       |- RED: write failing tests -> commit [RED]
   |       |       |- GREEN: implement code -> commit [GREEN]
@@ -294,6 +294,11 @@ Centralized in `ralph/scripts/lib/config.sh`:
 - `RALPH_MAX_FIX_ATTEMPTS=3` — Fix attempts
 - `RALPH_VALIDATION_TIMEOUT=300` — Validation timeout (5 min)
 - `RALPH_FIX_TIMEOUT=300` — Fix timeout (5 min)
+- `RALPH_COST_LIMIT` (unset by default) — USD cap per `claude -p` call, passed
+  as `--max-budget-usd`. Unset means no cap (today's behavior). Applies to
+  every claude invocation in `ralph.sh`, `parallel_ralph.sh`, and
+  `lib/judge.sh`. Tracks per-call spend only — see `ralph/TODO.md` for
+  per-story/per-run cumulative tracking (still open)
 
 **Models (Automatic Routing):**
 
@@ -344,6 +349,24 @@ locked), `make ralph_run` automatically resumes them:
 ```bash
 make ralph_run                         # Auto-resumes existing worktrees
 ```
+
+**Story-level skip**: `get_next_story()` only considers stories whose
+`status` isn't `"passed"`, so a resumed loop skips every story already
+completed and continues from the next pending one — no flag needed.
+
+**Resuming an interrupted story's conversation**: Each story execution
+gets a fresh `--session-id <uuid>`, recorded as `Session: <uuid>` in
+`ralph/docs/progress.txt`. If that story's claude call crashed or timed
+out mid-run, continue the exact same conversation instead of starting
+the story over:
+
+```bash
+cd <worktree>  # the directory the session originally ran in
+claude -p --resume <uuid> "Continue the story"
+```
+
+This resumes the single story's conversation; it does not resume a
+whole `ralph_run` — use `make ralph_run` for that (see above).
 
 ### Monitoring
 
@@ -595,8 +618,25 @@ git commit --amend --no-edit
 
 ## Security
 
-**Ralph runs with `--dangerously-skip-permissions`** — all operations
-execute without approval.
+**Ralph runs with `--permission-mode auto --permission-prompts none` by
+default** (`RALPH_PERMISSION_MODE`, default `auto`; see `claude --help`
+for the other `--permission-mode` choices). `--permission-prompts none`
+means anything that would otherwise prompt is denied automatically
+instead of hanging the unattended loop — the permission mode still
+decides everything else. This has not been exercised end-to-end against
+an unmodified scaffold; if a run fails because an action it needs gets
+auto-denied, override with `RALPH_PERMISSION_MODE=bypassPermissions`
+(equivalent to the previous `--dangerously-skip-permissions` default)
+while the policy is tuned.
+
+`.claude/settings.json` ships `permissions.deny` rules for actions Ralph
+must never take: `git push`, `gh pr merge`, `git reset --hard`,
+`git rebase`, and `git commit --amend` (amend would otherwise let a
+story's own commits mask RED/GREEN TDD verification). **Deny rules apply
+in every permission mode, including `bypassPermissions`** — they are the
+backstop, not a replacement for isolation. They are also not a full
+security boundary: an equivalent command invoked differently (e.g.
+`git -C . push`) is not matched by a prefix-based rule.
 
 **Only use in:** Isolated environments (DevContainers, VMs).
 
@@ -631,15 +671,19 @@ Script enforces:
 - [GREEN] marker present (implementation committed second)
 - Correct commit order (RED before GREEN)
 
-Skipped for STORY-001 (ramp-up).
+Skipped for STORY-000 (foundation story — see `ralph.sh`'s
+`check_tdd_commits()`).
 
 ## Autonomous Operation
 
 Runs without human approval:
 
-- `--dangerously-skip-permissions` flag on all Claude invocations
+- `--permission-mode auto --permission-prompts none` on all Claude
+  invocations (override via `RALPH_PERMISSION_MODE`)
 - Auto-commits state files
-- Auto-pushes to remote at completion
+- Merges the best worktree's result into the local branch at completion
+  (`merge_best()` in `parallel_ralph.sh`) — no `git push`; the merge
+  commit stays local until pushed
 - No interactive prompts
 
 ## Known Failure Modes

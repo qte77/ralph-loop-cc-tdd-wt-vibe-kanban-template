@@ -85,6 +85,20 @@ log_cc_success() {
 }
 
 # =================================================
+# Claude CLI Shared Flags
+# =================================================
+
+# Build the permission flags for every `claude -p` call: --permission-mode
+# (RALPH_PERMISSION_MODE, default "auto") plus --permission-prompts none,
+# so anything that would otherwise prompt is denied automatically instead
+# of hanging the unattended loop. Deny rules in .claude/settings.json still
+# apply in every mode and are the backstop for actions the loop must never
+# take; this flag alone is not a security boundary.
+claude_permission_flags() {
+  echo "--permission-mode ${RALPH_PERMISSION_MODE:-auto} --permission-prompts none"
+}
+
+# =================================================
 # Command Checker
 # =================================================
 
@@ -100,6 +114,36 @@ require_command() {
       log_error "Install with: $install_hint"
     fi
     return 1
+  fi
+}
+
+# =================================================
+# Claude CLI Shared Flags
+# =================================================
+
+# Build the --max-budget-usd flag for a `claude -p` call from RALPH_COST_LIMIT
+# (USD per call). Echoes nothing when RALPH_COST_LIMIT is unset or blank, so
+# unset means no cap and behavior is unchanged.
+claude_budget_flags() {
+  if [ -n "${RALPH_COST_LIMIT:-}" ]; then
+    echo "--max-budget-usd ${RALPH_COST_LIMIT}"
+  fi
+}
+
+# =================================================
+# Session IDs
+# =================================================
+
+# Generate a fresh UUID for a `claude --session-id` call. Tries uuidgen
+# first, falls back to the kernel RNG, then python3 — one of the three is
+# present on every supported devcontainer/CI image.
+ralph_new_session_id() {
+  if command -v uuidgen &>/dev/null; then
+    uuidgen
+  elif [ -r /proc/sys/kernel/random/uuid ]; then
+    cat /proc/sys/kernel/random/uuid
+  else
+    python3 -c 'import uuid; print(uuid.uuid4())'
   fi
 }
 

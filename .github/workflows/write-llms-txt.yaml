@@ -1,55 +1,29 @@
-# Generate llms.txt - flattened repo text for LLM context
+# Generate llms.txt from .github/templates/llms.txt.tpl via the
+# qte77/gha-llms-txt-action composite action. The action opens a PR with
+# the regenerated file instead of pushing straight to main, since main's
+# branch rules reject direct pushes.
 # See: https://llmstxt.org/
 name: write-llms-txt
 
 on:
   push:
     branches: [main]
+    paths:
+      - ".github/templates/llms.txt.tpl"
+      - "README.md"
+      - "AGENTS.md"
   workflow_dispatch:
-    inputs:
-      LLMS_TXT_PATH:
-        description: "Output directory"
-        required: false
-        default: "docs"
-      LLMS_TXT_NAME:
-        description: "Output filename"
-        required: false
-        default: "llms.txt"
-      CONVERTER_URL:
-        description: "Converter service"
-        required: false
-        default: "uithub.com"
 
-env:
-  LLMS_TXT_PATH: ${{ inputs.LLMS_TXT_PATH || 'docs' }}
-  LLMS_TXT_NAME: ${{ inputs.LLMS_TXT_NAME || 'llms.txt' }}
-  CONVERTER_URL: ${{ inputs.CONVERTER_URL || 'uithub.com' }}
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   write-llms-txt:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
-      - name: Extract branch name
-        run: echo "BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
-
-      - name: Generate llms.txt
-        run: |
-          mkdir -p "${{ env.LLMS_TXT_PATH }}"
-          LLMS_TXT_FILE="${{ env.LLMS_TXT_PATH }}/${{ env.LLMS_TXT_NAME }}"
-          REPO_NAME="${{ github.repository }}"
-          URL="https://${{ env.CONVERTER_URL }}/${REPO_NAME}/tree/${BRANCH}"
-          curl -sL "${URL}" -o "${LLMS_TXT_FILE}"
-          echo "Generated ${LLMS_TXT_FILE} from ${URL}"
-
-      - name: Commit and push
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          LLMS_TXT_FILE="${{ env.LLMS_TXT_PATH }}/${{ env.LLMS_TXT_NAME }}"
-          git add "${LLMS_TXT_FILE}"
-          git diff --cached --quiet || git commit -m "docs: update ${LLMS_TXT_FILE} from ${CONVERTER_URL}"
-          git push
+      - uses: qte77/gha-llms-txt-action@7cb4f03bd69a23c0e561ce76e926cadc0d3d3b9f  # v0.1.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
