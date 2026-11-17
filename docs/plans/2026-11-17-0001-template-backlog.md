@@ -23,11 +23,13 @@ only point here. Line references were checked against `main` on 2026-11-17.
   (`.scaffold`, Makefile cleanup), Python scaffold in the plugin, Python files stripped from the template, embedded
   scaffold in the plugin.
 - Ralph engine: ad-hoc steering (`RALPH_INSTRUCTION`, `RALPH_MODEL`, `RALPH_DESLOPIFY`); live agent-log monitoring
-  without nested prefixes; scoped reset on validation failure; log-level deduplication; per-domain retry counters;
+  without nested prefixes; log-level deduplication (not confirmed in code on 2026-11-17);
   per-call cost cap `RALPH_COST_LIMIT` (#90); BATS test scaffold (`ralph/docs/prd.json` STORY-001).
 - Removed 2026-11-17 (owner decision, see Decisions): `lib/teams.sh`, `lib/baseline.sh`, `lib/snapshot.sh` and
   `lib/extract_signatures.py` (teams verification, scoped and baseline-aware checks, codebase snapshot, AST signatures),
-  which no script sourced or ran, and the uncalled `verify_teammate_stories()` in `ralph.sh`.
+  which no script sourced or ran, and the uncalled `verify_teammate_stories()` in `ralph.sh`. The list above used to
+  claim "scoped reset on validation failure" and "per-domain retry counters"; nothing on `main` does either
+  (`git grep -i reset` and `git grep -i domain` in `ralph/scripts`), so both were dropped.
 
 **What's next, in order:**
 
@@ -53,7 +55,7 @@ below.
 
 | Area | Files and refs |
 | --- | --- |
-| Adapter interface | Ralph scripts call `adapter_*` functions from `.scaffolds/<name>.sh`: `adapter_test`, `adapter_lint`, `adapter_typecheck`, `adapter_complexity`, `adapter_validate`, `adapter_coverage`, `adapter_signatures`, `adapter_file_pattern`, `adapter_env_setup`, `adapter_app_docs`. Plugin SessionStart hooks deploy scaffolds (copy if absent). Without `.scaffold/`, the calls fall back to no-ops and `make validate` still works. |
+| Adapter interface | Ralph scripts call `adapter_*` functions from `.scaffolds/<name>.sh`: `adapter_test`, `adapter_lint`, `adapter_typecheck`, `adapter_complexity`, `adapter_validate`, `adapter_coverage`, `adapter_signatures`, `adapter_file_pattern`, `adapter_env_setup`, `adapter_app_docs`. Plugin SessionStart hooks deploy scaffolds (copy if absent). Without `.scaffold/`, the calls fall back to no-ops and `make validate` still works. Since the teams libraries were deleted, nothing in this repo calls `adapter_signatures` (it stays as part of the scaffold interface). |
 | Engine bug evidence | `docs/audits/quality-audit-2026-03.md` (findings D1-D3, R5, K1, K2, Y1, C2); `ralph/docs/prd.json` (bug-fix sprint, STORY-001 passed, 002-003 and 006-010 pending; 004-005 dropped with the teams libraries) |
 | Row 3 | `ralph/scripts/lib/vibe.sh` `kanban_update()` (from line 105; JSON built by concatenation around lines 157-174, `sed` escapes only `"`); `kanban_init` in the same file already uses `jq --arg` |
 | Row 4 | `ralph/scripts/ralph.sh:377` and `:470` pipe the prompt into `eval claude -p ... $extra_flags` |

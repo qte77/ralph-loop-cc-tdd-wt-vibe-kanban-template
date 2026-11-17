@@ -296,13 +296,6 @@ Story complexity detection: checks title/description for patterns like
 "fix", "typo", "doc", "format". Judge uses specified model for worktree
 comparison (N_WT>1).
 
-**Snapshot:**
-
-- `SNAPSHOT_SIG_LIMIT=100` — Max signature lines per file in codebase map
-- `RALPH_SRC_PREFIX="src/"` — Source prefix for test path mapping
-  (e.g., `"src/app/"` for projects with a nested package)
-- `DOMAIN_RETRY_THRESHOLD=3` — Failures before suggesting skill creation
-
 **Override hierarchy:**
 
 1. CLI: `./ralph.sh 50`
