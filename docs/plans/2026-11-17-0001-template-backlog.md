@@ -29,7 +29,7 @@ only point here. Line references were checked against `main` on 2026-11-17.
 
 **What's next, in order:**
 
-1. **Engine bugs, rows 1-5.** Each has a story in `ralph/docs/prd.json` (STORY-002 to STORY-006) with BATS
+1. **Engine bugs, rows 3-5** (rows 1-2 wait on the row 31 decision). Each has a story in `ralph/docs/prd.json` (STORY-002 to STORY-006) with BATS
    acceptance criteria. Write the BATS test first (RED), then the fix (GREEN). Rows 4 and 5 are security-relevant
    and overlap #90, so they need the owner's go-ahead before work starts.
 2. **Engine cleanups, rows 6-11** (STORY-007 to STORY-010 cover four of them).
@@ -40,13 +40,13 @@ only point here. Line references were checked against `main` on 2026-11-17.
 set up; it fails without one); CI runs the BATS suites (`.github/workflows/bats.yaml`). Strike the row in the same PR that ships it and add a CHANGELOG entry.
 Merge once CI is green and the owner has approved.
 
-**Owner gates:** rows 4-5 (security, overlap #90), the CLI rewrite decision (row 15), and every row marked `owner`
+**Owner gates:** row 31 (wire or delete the unused teams libraries; holds rows 1-2), rows 4-5 (security, overlap #90), the CLI rewrite decision (row 15), and every row marked `owner`
 below.
 
 **Watch-outs:**
 
 - `ralph/scripts/lib/teams.sh` and `ralph/scripts/ralph.sh` both define `verify_teammate_stories()`; the one sourced
-  last wins (row 2). Check which one a test exercises.
+  last wins (row 2). Neither has a caller, and no script sources `teams.sh`, `baseline.sh` or `snapshot.sh` (row 31).
 - `make test_bats` reports success when `bats` is missing; the CI job installs a pinned `bats` first.
 
 ## Source map
@@ -67,8 +67,8 @@ below.
 
 | # | Section | Item | Gate | Done when |
 | --- | --- | --- | --- | --- |
-| 1 | Engine bugs | `teams.sh` scoped checks are silent no-ops: they get a story ID where a commit is expected, so `git diff` is empty and every check passes (STORY-005) | agent | BATS test fails on `main` and passes after the fix; `teams.sh` passes `get_story_base_commit "$sid"` |
-| 2 | Engine bugs | Two `verify_teammate_stories()` with different behaviour; rename the `ralph.sh` one to `verify_prd_isolation()` (STORY-004) | agent | One definition per name; callers updated; BATS green |
+| 1 | Engine bugs | `teams.sh` scoped checks are silent no-ops: they get a story ID where a commit is expected, so `git diff` is empty and every check passes (STORY-005). Held: the code has no caller (row 31) | owner (row 31; drop the row if the libraries are deleted) | BATS test fails on `main` and passes after the fix; `teams.sh` passes `get_story_base_commit "$sid"` |
+| 2 | Engine bugs | Two `verify_teammate_stories()` with different behaviour; rename the `ralph.sh` one to `verify_prd_isolation()` (STORY-004). Held: neither function has a caller (row 31) | owner (row 31; drop the row if the libraries are deleted) | One definition per name; callers updated; BATS green |
 | 3 | Engine bugs | `kanban_update` builds JSON by string concatenation; escaping misses backslashes and newlines. Use `jq --arg` like `kanban_init` (STORY-006) | agent | A reason containing `"`, `\` and a newline produces valid JSON in a BATS test |
 | 4 | Engine bugs | `eval` expands `$extra_flags` in both `claude -p` calls, so shell metacharacters in a `RALPH_*` value run as commands (STORY-002) | owner (security; overlaps #90) | No `eval` in the claude invocations; flags passed as an array; BATS test with a metacharacter value |
 | 5 | Engine bugs | Parallel runs report success when a worker fails: exit codes of disowned workers are not collected (STORY-003) | owner (overlaps #90) | A failing worker makes `parallel_ralph.sh` exit non-zero; BATS test |
@@ -97,6 +97,7 @@ below.
 | 28 | Deferred | Inline-snapshot drift detection (`pytest --inline-snapshot=review`) | data | Revisit when its output is stable for non-interactive use |
 | 29 | Deferred | Warn when a source module has tests in several directories | data | Revisit when it causes a real problem (YAGNI) |
 | 30 | Setup | Optional: RTK output compression for Claude Code sessions (user-level hook, no Ralph changes) | owner (machine setup) | Installed on the machine that runs the loop, or dropped |
+| 31 | Decision | `lib/teams.sh` / `lib/baseline.sh` scoped checks and both `verify_teammate_stories()` have no caller on `main`: wire them in or delete them. Evidence (`git grep` over `ralph/scripts` and the rest of the repo outside `docs/` and Markdown, `main` at `a0680a4`): no script sources `lib/baseline.sh`, `lib/teams.sh` or `lib/snapshot.sh` (the only `source` line is a usage comment at `baseline.sh:19`); `verify_teammate_stories()` is defined at `ralph.sh:226` and `teams.sh:195` and called nowhere; `run_*_scoped` and `get_story_base_commit` are called only inside those two files; `run_quality_checks_baseline` is called nowhere. `docs/audits/quality-audit-2026-03.md:287-288` says `parallel_ralph.sh` sources them; that is out of date. Default: delete | owner | Decision recorded under Decisions; then either the libraries are wired in (rows 1-2 proceed, with tests) or deleted (rows 1-2 dropped, row 7 rewritten without `get_unblocked_stories`, README and Shipped list updated) |
 
 ## Decisions
 
