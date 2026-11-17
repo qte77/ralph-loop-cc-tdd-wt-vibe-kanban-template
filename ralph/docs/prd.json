@@ -1,6 +1,6 @@
 {
   "project": "Ralph Bug-Fix Sprint: BATS TDD",
-  "description": "Fix 8 confirmed bugs from quality-audit-2026-03.md using BATS test-driven development. Critical security fixes first (eval injection, exit 0 masking), then teams.sh correctness, then medium/low improvements. Each story requires a BATS test written first (RED), then the minimal fix (GREEN), then optional refactor.",
+  "description": "Fix 6 confirmed bugs from quality-audit-2026-03.md using BATS test-driven development. Critical security fixes first (eval injection, exit 0 masking), then medium/low improvements. Each story requires a BATS test written first (RED), then the minimal fix (GREEN), then optional refactor.",
   "source": "ralph/TODO.md + docs/audits/quality-audit-2026-03.md",
   "generated": "2026-03-24T00:00:00Z",
   "stories": [
@@ -75,51 +75,6 @@
       "completed_at": null
     },
     {
-      "id": "STORY-004",
-      "title": "Rename verify_teammate_stories in ralph.sh to verify_prd_isolation",
-      "description": "HIGH. ralph.sh:226 and teams.sh:195 both define `verify_teammate_stories()` with completely different semantics. ralph.sh version checks that only the current story was modified in prd.json (isolation check). teams.sh version verifies TDD commits and scoped quality for teammate stories. Whichever is sourced last silently wins. Rename the ralph.sh version.",
-      "depends_on": [
-        "STORY-001"
-      ],
-      "acceptance": [
-        "[RED] BATS test `test_name_collision.bats` exists: (1) sources both ralph.sh and teams.sh, (2) asserts `type verify_teammate_stories` resolves to the teams.sh version, (3) asserts `type verify_prd_isolation` resolves to the ralph.sh version (currently fails because the function doesn't exist yet)",
-        "[GREEN] ralph.sh:226 function renamed from `verify_teammate_stories` to `verify_prd_isolation`",
-        "[GREEN] All call sites of the old name in ralph.sh updated to `verify_prd_isolation`",
-        "[GREEN] teams.sh `verify_teammate_stories` unchanged",
-        "No behavioral change in either function's logic"
-      ],
-      "files": [
-        "ralph/scripts/tests/test_name_collision.bats",
-        "ralph/scripts/ralph.sh"
-      ],
-      "status": "pending",
-      "wave": 2,
-      "completed_at": null
-    },
-    {
-      "id": "STORY-005",
-      "title": "Fix scoped checks passing story ID instead of commit hash in teams.sh",
-      "description": "HIGH. teams.sh:227-238 passes story ID (e.g., 'STORY-003') to `run_ruff_scoped`, `run_complexity_scoped`, `run_tests_scoped`. These functions expect a git commit hash for `git diff --name-only`. `git diff --name-only 'STORY-003' HEAD` silently returns nothing, so all scoped quality checks pass without checking anything.",
-      "depends_on": [
-        "STORY-001",
-        "STORY-004"
-      ],
-      "acceptance": [
-        "[RED] BATS test `test_scoped_checks.bats` exists: (1) creates a test git repo with a known commit, (2) calls `run_ruff_scoped` with a story ID string, (3) asserts the scoped check actually operates on changed files (currently returns empty/passes vacuously)",
-        "[GREEN] `verify_teammate_stories()` in teams.sh calls `get_story_base_commit \"$sid\"` before passing to scoped check functions",
-        "[GREEN] `get_story_base_commit` returns the commit hash before the story's first [RED] commit",
-        "[GREEN] `run_ruff_scoped`, `run_complexity_scoped`, `run_tests_scoped` receive a valid commit hash",
-        "Scoped checks actually detect lint/complexity/test failures in story-changed files"
-      ],
-      "files": [
-        "ralph/scripts/tests/test_scoped_checks.bats",
-        "ralph/scripts/lib/teams.sh"
-      ],
-      "status": "pending",
-      "wave": 3,
-      "completed_at": null
-    },
-    {
       "id": "STORY-006",
       "title": "Fix kanban_update JSON injection via jq --arg",
       "description": "MEDIUM. vibe.sh:158-175 builds JSON payload with string concatenation and sed-only escaping (misses backslashes, newlines). `kanban_init` in the same file already uses `jq --arg` correctly. Convert `kanban_update` to the same pattern.",
@@ -144,13 +99,13 @@
     {
       "id": "STORY-007",
       "title": "Replace get_next_story O(n*d) loop with single jq query",
-      "description": "MEDIUM. ralph.sh:168 spawns one jq per story plus one per dependency — O(n*d) subprocess invocations. teams.sh:15 already solves this with `get_unblocked_stories` (single jq query). Replace `get_next_story` with `get_unblocked_stories | head -1`.",
+      "description": "MEDIUM. ralph.sh:168 spawns one jq per story plus one per dependency — O(n*d) subprocess invocations. Replace the loop in `get_next_story` with a single jq query that returns the first story not yet passed whose dependencies have all passed.",
       "depends_on": [
         "STORY-001"
       ],
       "acceptance": [
         "[RED] BATS test `test_story_scheduling.bats` exists: (1) creates a prd.json with 10 stories and a dependency chain, (2) calls `get_next_story`, (3) asserts correct story returned, (4) counts jq subprocess invocations (instrument with wrapper) — currently O(n*d)",
-        "[GREEN] `get_next_story()` body replaced with: `get_unblocked_stories | head -1`",
+        "[GREEN] `get_next_story()` body replaced with one jq query over `.stories` (dependencies resolved inside jq)",
         "[GREEN] Output is identical: returns the first unblocked story ID",
         "[GREEN] jq invocations reduced from O(n*d) to O(1) per call",
         "Dependency resolution correctness preserved: blocked stories are never returned"

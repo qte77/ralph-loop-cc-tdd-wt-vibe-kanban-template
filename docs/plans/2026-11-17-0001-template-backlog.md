@@ -23,13 +23,15 @@ only point here. Line references were checked against `main` on 2026-11-17.
   (`.scaffold`, Makefile cleanup), Python scaffold in the plugin, Python files stripped from the template, embedded
   scaffold in the plugin.
 - Ralph engine: ad-hoc steering (`RALPH_INSTRUCTION`, `RALPH_MODEL`, `RALPH_DESLOPIFY`); live agent-log monitoring
-  without nested prefixes; inter-story Agent Teams; scoped reset on validation failure; log-level deduplication;
-  AST-based signature extraction; codebase snapshot and context-drift detection; per-domain retry counters;
+  without nested prefixes; scoped reset on validation failure; log-level deduplication; per-domain retry counters;
   per-call cost cap `RALPH_COST_LIMIT` (#90); BATS test scaffold (`ralph/docs/prd.json` STORY-001).
+- Removed 2026-11-17 (owner decision, see Decisions): `lib/teams.sh`, `lib/baseline.sh`, `lib/snapshot.sh` and
+  `lib/extract_signatures.py` (teams verification, scoped and baseline-aware checks, codebase snapshot, AST signatures),
+  which no script sourced or ran, and the uncalled `verify_teammate_stories()` in `ralph.sh`.
 
 **What's next, in order:**
 
-1. **Engine bugs, rows 1-5.** Each has a story in `ralph/docs/prd.json` (STORY-002 to STORY-006) with BATS
+1. **Engine bugs, rows 3-5.** Each has a story in `ralph/docs/prd.json` (STORY-002, -003, -006) with BATS
    acceptance criteria. Write the BATS test first (RED), then the fix (GREEN). Rows 4 and 5 are security-relevant
    and overlap #90, so they need the owner's go-ahead before work starts.
 2. **Engine cleanups, rows 6-11** (STORY-007 to STORY-010 cover four of them).
@@ -45,8 +47,6 @@ below.
 
 **Watch-outs:**
 
-- `ralph/scripts/lib/teams.sh` and `ralph/scripts/ralph.sh` both define `verify_teammate_stories()`; the one sourced
-  last wins (row 2). Check which one a test exercises.
 - `make test_bats` reports success when `bats` is missing; the CI job installs a pinned `bats` first.
 
 ## Source map
@@ -54,26 +54,24 @@ below.
 | Area | Files and refs |
 | --- | --- |
 | Adapter interface | Ralph scripts call `adapter_*` functions from `.scaffolds/<name>.sh`: `adapter_test`, `adapter_lint`, `adapter_typecheck`, `adapter_complexity`, `adapter_validate`, `adapter_coverage`, `adapter_signatures`, `adapter_file_pattern`, `adapter_env_setup`, `adapter_app_docs`. Plugin SessionStart hooks deploy scaffolds (copy if absent). Without `.scaffold/`, the calls fall back to no-ops and `make validate` still works. |
-| Engine bug evidence | `docs/audits/quality-audit-2026-03.md` (findings D1-D3, R5, K1, K2, Y1, C2); `ralph/docs/prd.json` (bug-fix sprint, STORY-001 passed, 002-010 pending) |
-| Row 1 | `ralph/scripts/lib/teams.sh:227`, `:232`, `:238` pass the story ID to `run_ruff_scoped`, `run_complexity_scoped`, `run_tests_scoped`; `ralph/scripts/lib/baseline.sh` expects a base commit for `git diff --name-only`; `get_story_base_commit()` is at `baseline.sh:29` (used at `baseline.sh:261`, not by `teams.sh`) |
-| Row 2 | `ralph/scripts/ralph.sh:226` and `ralph/scripts/lib/teams.sh:195`, both `verify_teammate_stories()` |
+| Engine bug evidence | `docs/audits/quality-audit-2026-03.md` (findings D1-D3, R5, K1, K2, Y1, C2); `ralph/docs/prd.json` (bug-fix sprint, STORY-001 passed, 002-003 and 006-010 pending; 004-005 dropped with the teams libraries) |
 | Row 3 | `ralph/scripts/lib/vibe.sh` `kanban_update()` (from line 105; JSON built by concatenation around lines 157-174, `sed` escapes only `"`); `kanban_init` in the same file already uses `jq --arg` |
-| Row 4 | `ralph/scripts/ralph.sh:395` and `:488` pipe the prompt into `eval claude -p ... $extra_flags` |
+| Row 4 | `ralph/scripts/ralph.sh:377` and `:470` pipe the prompt into `eval claude -p ... $extra_flags` |
 | Row 5 | `ralph/scripts/parallel_ralph.sh` worker exit codes (prd.json STORY-003) |
-| Rows 6-11 | `ralph/scripts/ralph.sh` `get_next_story()` (line 168), `execute_story()` (352), `fix_validation_errors()` (430), quick-then-full validation (around 494-498); `ralph/scripts/lib/common.sh:71-85` `log_cc*`; `ralph/scripts/lib/vibe.sh` bare `echo "[DEBUG]"` at 112, 116, 126, 131, 133; `ralph/scripts/vibe.sh:22-23` unpinned `npx vibe-kanban` |
+| Rows 6-11 | `ralph/scripts/ralph.sh` `get_next_story()` (line 168), `execute_story()` (334), `fix_validation_errors()` (412), quick-then-full validation (around 476-480); `ralph/scripts/lib/common.sh:71-85` `log_cc*`; `ralph/scripts/lib/vibe.sh` bare `echo "[DEBUG]"` at 112, 116, 126, 131, 133; `ralph/scripts/vibe.sh:22-23` unpinned `npx vibe-kanban` |
 | Rows 14-20 | `docs/research/ralph-cli-rewrite.md` (CLI rewrite options; recommends Go), `docs/UserStory.md`, `docs/research/engine-model-ui-adapter-contracts.md`, `ralph/README.md` |
 
 ## Remaining work
 
 | # | Section | Item | Gate | Done when |
 | --- | --- | --- | --- | --- |
-| 1 | Engine bugs | `teams.sh` scoped checks are silent no-ops: they get a story ID where a commit is expected, so `git diff` is empty and every check passes (STORY-005) | agent | BATS test fails on `main` and passes after the fix; `teams.sh` passes `get_story_base_commit "$sid"` |
-| 2 | Engine bugs | Two `verify_teammate_stories()` with different behaviour; rename the `ralph.sh` one to `verify_prd_isolation()` (STORY-004) | agent | One definition per name; callers updated; BATS green |
+| 1 | Engine bugs | ~~`teams.sh` scoped checks are silent no-ops: they get a story ID where a commit is expected, so `git diff` is empty and every check passes (STORY-005)~~ — dropped: the code was deleted (owner decision 2026-11-17, see Decisions) | — | — |
+| 2 | Engine bugs | ~~Two `verify_teammate_stories()` with different behaviour; rename the `ralph.sh` one to `verify_prd_isolation()` (STORY-004)~~ — dropped: the code was deleted (owner decision 2026-11-17, see Decisions) | — | — |
 | 3 | Engine bugs | `kanban_update` builds JSON by string concatenation; escaping misses backslashes and newlines. Use `jq --arg` like `kanban_init` (STORY-006) | agent | A reason containing `"`, `\` and a newline produces valid JSON in a BATS test |
 | 4 | Engine bugs | `eval` expands `$extra_flags` in both `claude -p` calls, so shell metacharacters in a `RALPH_*` value run as commands (STORY-002) | owner (security; overlaps #90) | No `eval` in the claude invocations; flags passed as an array; BATS test with a metacharacter value |
 | 5 | Engine bugs | Parallel runs report success when a worker fails: exit codes of disowned workers are not collected (STORY-003) | owner (overlaps #90) | A failing worker makes `parallel_ralph.sh` exit non-zero; BATS test |
 | 6 | Engine cleanup | Prompt block duplicated in `execute_story()` and `fix_validation_errors()`; extract `build_story_prompt()` (STORY-010) | agent | One builder used by both; BATS green |
-| 7 | Engine cleanup | `get_next_story()` spawns one `jq` per story and dependency; use the single-query `get_unblocked_stories \| head -1` (STORY-007) | agent | One `jq` call per lookup; same story order in a BATS test |
+| 7 | Engine cleanup | `get_next_story()` spawns one `jq` per story and dependency; replace the loop with one `jq` query that resolves dependencies (STORY-007) | agent | One `jq` call per lookup; same story order in a BATS test |
 | 8 | Engine cleanup | Intermediate fix attempts run quick validation, then full validation again on success (STORY-008) | agent | Intermediate attempts run quick validation only; the last attempt runs full |
 | 9 | Engine cleanup | Delete the four unused `log_cc*` functions in `common.sh` (STORY-009) | agent | Functions removed after a repo-wide search confirms no callers; BATS green |
 | 10 | Engine cleanup | `vibe.sh` debug lines bypass the `log_*` functions and always print; route them through `log_*` or gate them behind `DEBUG=1` (STORY-009) | agent | No unconditional `[DEBUG]` output |
@@ -104,6 +102,7 @@ below.
 | --- | --- | --- |
 | AST over grep for codebase-map signatures | AST captures return types, decorators and full argument annotations; grep misses them. Speed difference negligible (1.2x). Complexipy stays as a quality gate only. | 2026-03-08 |
 | One plan file replaces both TODO files | One backlog with one remaining-work table can't drift between two files. | 2026-11-17 |
+| Delete the unused teams libraries (owner: "Delete it") | `lib/teams.sh`, `lib/baseline.sh` and `lib/snapshot.sh` were sourced by no script, and neither `verify_teammate_stories()` had a caller (`git grep` on `main` at `a0680a4`, outside `docs/` and Markdown). Fixing them (old rows 1-2) would have fixed dead code. Deleted with `lib/extract_signatures.py`, which only `snapshot.sh` ran. Agent Teams (row 16) starts from scratch if picked up | 2026-11-17 |
 
 ## Sources
 
