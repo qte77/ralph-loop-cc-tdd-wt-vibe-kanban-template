@@ -45,8 +45,9 @@ below.
 
 **Watch-outs:**
 
-- `ralph/scripts/lib/teams.sh` and `ralph/scripts/ralph.sh` both define `verify_teammate_stories()`; the one sourced
-  last wins (row 2). Check which one a test exercises.
+- `ralph/scripts/lib/teams.sh` and `ralph/scripts/lib/baseline.sh` are not sourced by any script on `main`, and
+  `verify_teammate_stories()` / `verify_prd_isolation()` have no callers: teams mode is not wired yet (row 16).
+  Tests source these files directly.
 - `make test_bats` reports success when `bats` is missing; the CI job installs a pinned `bats` first.
 
 ## Source map
@@ -56,7 +57,7 @@ below.
 | Adapter interface | Ralph scripts call `adapter_*` functions from `.scaffolds/<name>.sh`: `adapter_test`, `adapter_lint`, `adapter_typecheck`, `adapter_complexity`, `adapter_validate`, `adapter_coverage`, `adapter_signatures`, `adapter_file_pattern`, `adapter_env_setup`, `adapter_app_docs`. Plugin SessionStart hooks deploy scaffolds (copy if absent). Without `.scaffold/`, the calls fall back to no-ops and `make validate` still works. |
 | Engine bug evidence | `docs/audits/quality-audit-2026-03.md` (findings D1-D3, R5, K1, K2, Y1, C2); `ralph/docs/prd.json` (bug-fix sprint, STORY-001 passed, 002-010 pending) |
 | Row 1 | `ralph/scripts/lib/teams.sh:227`, `:232`, `:238` pass the story ID to `run_ruff_scoped`, `run_complexity_scoped`, `run_tests_scoped`; `ralph/scripts/lib/baseline.sh` expects a base commit for `git diff --name-only`; `get_story_base_commit()` is at `baseline.sh:29` (used at `baseline.sh:261`, not by `teams.sh`) |
-| Row 2 | `ralph/scripts/ralph.sh:226` and `ralph/scripts/lib/teams.sh:195`, both `verify_teammate_stories()` |
+| Row 2 (shipped) | `ralph/scripts/ralph.sh:226` `verify_prd_isolation()` (was a second `verify_teammate_stories()`); `ralph/scripts/lib/teams.sh:195` `verify_teammate_stories()` |
 | Row 3 | `ralph/scripts/lib/vibe.sh` `kanban_update()` (from line 105; JSON built by concatenation around lines 157-174, `sed` escapes only `"`); `kanban_init` in the same file already uses `jq --arg` |
 | Row 4 | `ralph/scripts/ralph.sh:395` and `:488` pipe the prompt into `eval claude -p ... $extra_flags` |
 | Row 5 | `ralph/scripts/parallel_ralph.sh` worker exit codes (prd.json STORY-003) |
@@ -68,7 +69,7 @@ below.
 | # | Section | Item | Gate | Done when |
 | --- | --- | --- | --- | --- |
 | 1 | Engine bugs | `teams.sh` scoped checks are silent no-ops: they get a story ID where a commit is expected, so `git diff` is empty and every check passes (STORY-005) | agent | BATS test fails on `main` and passes after the fix; `teams.sh` passes `get_story_base_commit "$sid"` |
-| 2 | Engine bugs | Two `verify_teammate_stories()` with different behaviour; rename the `ralph.sh` one to `verify_prd_isolation()` (STORY-004) | agent | One definition per name; callers updated; BATS green |
+| 2 | Engine bugs | ~~Two `verify_teammate_stories()` with different behaviour; rename the `ralph.sh` one to `verify_prd_isolation()` (STORY-004)~~ — shipped in the STORY-004 PR (neither function has a caller on `main`; see row 16) | — | — |
 | 3 | Engine bugs | `kanban_update` builds JSON by string concatenation; escaping misses backslashes and newlines. Use `jq --arg` like `kanban_init` (STORY-006) | agent | A reason containing `"`, `\` and a newline produces valid JSON in a BATS test |
 | 4 | Engine bugs | `eval` expands `$extra_flags` in both `claude -p` calls, so shell metacharacters in a `RALPH_*` value run as commands (STORY-002) | owner (security; overlaps #90) | No `eval` in the claude invocations; flags passed as an array; BATS test with a metacharacter value |
 | 5 | Engine bugs | Parallel runs report success when a worker fails: exit codes of disowned workers are not collected (STORY-003) | owner (overlaps #90) | A failing worker makes `parallel_ralph.sh` exit non-zero; BATS test |
@@ -82,7 +83,7 @@ below.
 | 13 | Ecosystem | Phase 7, GTM market-research plugin: skills, rules, hook, config (in the plugin repo) | agent | Plugin published in the plugin marketplace |
 | 14 | Ecosystem | Phase 8, improve `research-compare.py` and its feedback loop | owner (scope not set) | Scope written into this plan, then shipped |
 | 15 | Engine future | Rewrite the engine as a standalone CLI (Go recommended in `docs/research/ralph-cli-rewrite.md`); Makefile calls `ralph <subcommand>` | owner (go/no-go) | Decision recorded under Decisions; if go, its own plan |
-| 16 | Engine future | Agent Teams for parallel story execution (`make ralph_run TEAMS=true`), incl. the alternative where Claude Code's own team tools orchestrate (stories as tasks with `blockedBy` dependencies) | owner (experimental feature) | A wave of independent stories runs in parallel end to end on a sample PRD |
+| 16 | Engine future | Agent Teams for parallel story execution (`make ralph_run TEAMS=true`), incl. the alternative where Claude Code's own team tools orchestrate (stories as tasks with `blockedBy` dependencies). Wiring it means sourcing `lib/baseline.sh` and `lib/teams.sh` (not sourced anywhere today) and calling `verify_teammate_stories()` and `verify_prd_isolation()` (no callers today). The isolation check then needs rework: it greps the whole `git diff` of prd.json, so context lines from neighbouring stories count as changes, while a status change in a multi-line story often carries no `id` line at all | owner (experimental feature) | A wave of independent stories runs in parallel end to end on a sample PRD |
 | 17 | Engine future | Cumulative cost tracking per story and run (per-call cap shipped in #90); needs `--output-format json` without losing the live log stream | agent | Total cost per story and run recorded in progress output; live tailing still works |
 | 18 | Engine future | Optional PR per worktree (`RALPH_CREATE_PR=true`) instead of auto-merge; with judge mode, a PR for the best worktree | agent | Flag documented; a run with it opens a PR and leaves the branch unmerged |
 | 19 | Engine future | Diff stats (`git diff --stat`) per worktree in `ralph_status` and in scoring output (display only) | agent | `ralph_status` shows insertions and deletions per worktree |

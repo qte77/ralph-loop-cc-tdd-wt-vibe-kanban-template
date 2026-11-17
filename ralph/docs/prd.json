@@ -92,9 +92,9 @@
         "ralph/scripts/tests/test_name_collision.bats",
         "ralph/scripts/ralph.sh"
       ],
-      "status": "pending",
+      "status": "passed",
       "wave": 2,
-      "completed_at": null
+      "completed_at": "2026-11-17T21:40:00Z"
     },
     {
       "id": "STORY-005",

@@ -25,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `uv.lock` regenerated from the template `pyproject.toml` (it was left over from another project and pinned by a fixed `exclude-newer` date); unused `observability` group (logfire, weave) dropped. `pyproject.toml` now carries valid defaults so uv and Dependabot can resolve it; Dependabot uses a 7-day `cooldown` instead (#92)
 
+### Fixed
+
+- `ralph.sh` and `ralph/scripts/lib/teams.sh` both defined `verify_teammate_stories()` with different behaviour, so whichever was sourced last won. The `ralph.sh` one (the prd.json isolation check) is now `verify_prd_isolation()`; `test_name_collision.bats` checks one definition per name. Neither function has a caller on `main` yet, and no script sources `teams.sh`; see plan row 16 (STORY-004)
+
 ### Added
 
 - `RALPH_DRY_RUN` config + one-shot mode in `ralph.sh`: skip TDD verification and quality checks (`DRY_RUN=true` via Makefile)
