@@ -2,7 +2,7 @@
 
 ## What
 
-Fix 8 confirmed bugs from quality-audit-2026-03.md using BATS test-driven development. Critical security fixes first (eval injection, exit 0 masking), then teams.sh correctness, then medium/low improvements. Each story requires a BATS test written first (RED), then the minimal fix (GREEN), then optional refactor.
+Fix 6 confirmed bugs from quality-audit-2026-03.md using BATS test-driven development. Critical security fixes first (eval injection, exit 0 masking), then medium/low improvements. Each story requires a BATS test written first (RED), then the minimal fix (GREEN), then optional refactor.
 
 ## Why
 

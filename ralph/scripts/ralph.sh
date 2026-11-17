@@ -222,24 +222,6 @@ update_story_status() {
     mv "${PRD_JSON}.tmp" "$PRD_JSON"
 }
 
-# Verify that only the current story was modified in prd.json
-verify_teammate_stories() {
-    local story_id="$1"
-    local base_commit="$2"
-    # Diff prd.json between base_commit and HEAD
-    # Extract changed story IDs — only $story_id should appear
-    local changed_ids=$(git diff "$base_commit" HEAD -- "$PRD_JSON" | \
-        grep -oE '"id":\s*"STORY-[0-9a-z]+"' | \
-        grep -oE 'STORY-[0-9a-z]+' | sort -u)
-    for cid in $changed_ids; do
-        if [ "$cid" != "$story_id" ]; then
-            log_warn "Story $cid was modified during $story_id execution"
-            return 1
-        fi
-    done
-    return 0
-}
-
 # Append to progress log
 # $5 (optional): the story execution's --session-id, so an interrupted
 # story can be resumed with `claude -p --resume <uuid>`

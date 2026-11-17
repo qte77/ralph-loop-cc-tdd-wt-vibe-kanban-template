@@ -19,8 +19,7 @@ while stories remain:
   3. Run typecheck + tests
   4. If passing: mark "passed", commit, log learnings
   5. On max retries: mark "failed"
-  6. In teams mode: verify teammate stories in same wave
-  7. Repeat until all pass (or context limit)
+  6. Repeat until all pass (or context limit)
 ```
 
 **Memory persists only through:**
@@ -238,10 +237,6 @@ ralph/
     └── lib/
         ├── config.sh              # Centralized configuration
         ├── common.sh              # Shared utilities (logging, colors)
-        ├── baseline.sh            # Baseline-aware test validation
-        ├── snapshot.sh            # Codebase map + story context
-        ├── teams.sh               # Teams-mode orchestration
-        ├── extract_signatures.py  # AST-based Python signature extraction
         ├── judge.sh               # Claude-as-Judge evaluation
         ├── vibe.sh                # Vibe Kanban REST API
         ├── validate_json.sh       # JSON validation utilities
@@ -274,16 +269,6 @@ progress.
    - Continues until pass or max attempts
 3. **If passes**: Mark story complete, generate docs, commit state
 
-### Baseline-Aware Validation
-
-Ralph uses baseline-aware test validation (`baseline.sh`):
-
-- **Baseline capture**: Failing tests snapshot before each story
-- **Regression detection**: Only NEW failures block progress
-- **Teams scoping**: Checks scoped to story files in teams mode
-- **Wave checkpoints**: Full `make validate` at wave boundaries
-- **Auto-refresh**: Baseline updated after each successful validation
-
 ## Configuration
 
 Centralized in `ralph/scripts/lib/config.sh`:
@@ -310,13 +295,6 @@ Centralized in `ralph/scripts/lib/config.sh`:
 Story complexity detection: checks title/description for patterns like
 "fix", "typo", "doc", "format". Judge uses specified model for worktree
 comparison (N_WT>1).
-
-**Snapshot:**
-
-- `SNAPSHOT_SIG_LIMIT=100` — Max signature lines per file in codebase map
-- `RALPH_SRC_PREFIX="src/"` — Source prefix for test path mapping
-  (e.g., `"src/app/"` for projects with a nested package)
-- `DOMAIN_RETRY_THRESHOLD=3` — Failures before suggesting skill creation
 
 **Override hierarchy:**
 

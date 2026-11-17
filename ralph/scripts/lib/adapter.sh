@@ -6,7 +6,7 @@
 # (deployed by scaffold plugin hooks). Provides no-op fallbacks when
 # no adapter is present, so Ralph scripts work regardless of scaffold.
 #
-# Source order: common.sh → config.sh → adapter.sh (before baseline.sh, snapshot.sh)
+# Source order: common.sh → config.sh → adapter.sh
 #
 # Adapter interface:
 #   adapter_test [files...]          - Run tests (output must include "FAILED <name>" lines)

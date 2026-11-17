@@ -25,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `uv.lock` regenerated from the template `pyproject.toml` (it was left over from another project and pinned by a fixed `exclude-newer` date); unused `observability` group (logfire, weave) dropped. `pyproject.toml` now carries valid defaults so uv and Dependabot can resolve it; Dependabot uses a 7-day `cooldown` instead (#92)
 
+### Removed
+
+- `ralph/scripts/lib/teams.sh`, `lib/baseline.sh`, `lib/snapshot.sh` and `lib/extract_signatures.py`, and the uncalled `verify_teammate_stories()` in `ralph/scripts/ralph.sh` (owner decision 2026-11-17). No script sourced these libraries or called the function, so teams verification, scoped and baseline-aware checks, the codebase snapshot and AST signature extraction never ran. `ralph/README.md` no longer describes them; prd.json drops STORY-004 and STORY-005, and STORY-007 no longer relies on `get_unblocked_stories`
+
 ### Added
 
 - `RALPH_DRY_RUN` config + one-shot mode in `ralph.sh`: skip TDD verification and quality checks (`DRY_RUN=true` via Makefile)
