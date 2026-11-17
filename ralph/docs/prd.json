@@ -92,9 +92,9 @@
         "ralph/scripts/tests/test_vibe_json.bats",
         "ralph/scripts/lib/vibe.sh"
       ],
-      "status": "pending",
+      "status": "passed",
       "wave": 2,
-      "completed_at": null
+      "completed_at": "2026-11-17T22:00:00Z"
     },
     {
       "id": "STORY-007",

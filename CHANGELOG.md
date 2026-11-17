@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `ralph/scripts/lib/teams.sh`, `lib/baseline.sh`, `lib/snapshot.sh` and `lib/extract_signatures.py`, and the uncalled `verify_teammate_stories()` in `ralph/scripts/ralph.sh` (owner decision 2026-11-17). No script sourced these libraries or called the function, so teams verification, scoped and baseline-aware checks, the codebase snapshot and AST signature extraction never ran. `ralph/README.md` no longer describes them; prd.json drops STORY-004 and STORY-005, and STORY-007 no longer relies on `get_unblocked_stories`
 
+### Fixed
+
+- `kanban_update` (`ralph/scripts/lib/vibe.sh`) built its JSON payload by string concatenation and escaped only `"`, so a failure reason with a backslash or a newline produced invalid JSON and the Vibe Kanban update failed. It now builds the payload with `jq --arg`, like `kanban_init`; same keys and values. Tested in `ralph/scripts/tests/test_vibe_json.bats` (STORY-006)
+
 ### Added
 
 - `RALPH_DRY_RUN` config + one-shot mode in `ralph.sh`: skip TDD verification and quality checks (`DRY_RUN=true` via Makefile)
