@@ -297,7 +297,7 @@ Centralized in `ralph/scripts/lib/config.sh`:
 - `RALPH_COST_LIMIT` (unset by default) — USD cap per `claude -p` call, passed
   as `--max-budget-usd`. Unset means no cap (today's behavior). Applies to
   every claude invocation in `ralph.sh`, `parallel_ralph.sh`, and
-  `lib/judge.sh`. Tracks per-call spend only — see `ralph/TODO.md` for
+  `lib/judge.sh`. Tracks per-call spend only — see the [backlog plan](../docs/plans/2026-11-17-0001-template-backlog.md) for
   per-story/per-run cumulative tracking (still open)
 
 **Models (Automatic Routing):**
@@ -705,8 +705,8 @@ Additional worktree-related failure modes:
 
 ## TODO / Future Work
 
-See [TODO.md](TODO.md) for the consolidated backlog (bugs,
-enhancements, deferred items, and done).
+See the [backlog plan](../docs/plans/2026-11-17-0001-template-backlog.md) for the
+consolidated backlog (bugs, cleanups, future work, monitored and deferred items).
 
 ## Troubleshooting
 

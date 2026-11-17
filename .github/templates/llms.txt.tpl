@@ -27,5 +27,5 @@
 
 ## Optional
 
-- [TODO](${BLOB}/TODO.md)
+- [Backlog](${BLOB}/docs/plans/2026-11-17-0001-template-backlog.md)
 - [License](${BLOB}/LICENSE)
