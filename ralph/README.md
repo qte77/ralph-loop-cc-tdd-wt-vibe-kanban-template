@@ -312,8 +312,11 @@ comparison (N_WT>1).
 - `COMPOUND_WRITEBACK_ENABLED=false` — opt-in: every
   `COMPOUND_WRITEBACK_INTERVAL=5` passed stories, `COMPOUND_MODEL` (default
   `RALPH_SIMPLE_MODEL`) extracts new patterns from `ralph/LEARNINGS.md` and
-  appends them to `<COMPOUND_WRITEBACK_TARGET>/<repo-name>.md`. Uses the same
-  permission and budget flags as every other `claude -p` call
+  appends them to `<COMPOUND_WRITEBACK_TARGET>/<repo-name>.md`. The extraction
+  runs with no tools (`--tools ""`, `--strict-mcp-config`) plus the usual
+  permission and budget flags. Its output is appended unreviewed, and other
+  repos may read that directory as their `COMPOUND_LEARNINGS_PATH`, so review
+  the target before relying on it
 
 **Override hierarchy:**
 
