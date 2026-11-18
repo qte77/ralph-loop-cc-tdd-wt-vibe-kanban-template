@@ -296,6 +296,25 @@ Story complexity detection: checks title/description for patterns like
 "fix", "typo", "doc", "format". Judge uses specified model for worktree
 comparison (N_WT>1).
 
+**Compound learning (cross-repo context, off until a path is set):**
+
+- `COMPOUND_LEARNINGS_PATH`, `COMPOUND_MEMORY_PATH`, `COMPOUND_PLANS_PATH`
+  (unset by default) — directories of `*.md` notes from other projects (the
+  first two searched recursively, plans top level only). Before each story,
+  `lib/compound.sh` keeps the lines that match any of up to 20 words of 4+
+  characters from the story title and description (with 2 lines of context) and appends them to
+  the prompt under `## Compound Learnings`, labelled as reference data, not
+  instructions. Any matching line in these directories can reach the agent's
+  prompt, so point them only at notes you trust and that hold nothing private
+- `COMPOUND_MAX_LINES=50` — cap on injected lines per story (a line cap, not a
+  byte cap)
+- `COMPOUND_ENABLED=true` — set `false` to skip aggregation entirely
+- `COMPOUND_WRITEBACK_ENABLED=false` — opt-in: every
+  `COMPOUND_WRITEBACK_INTERVAL=5` passed stories, `COMPOUND_MODEL` (default
+  `RALPH_SIMPLE_MODEL`) extracts new patterns from `ralph/LEARNINGS.md` and
+  appends them to `<COMPOUND_WRITEBACK_TARGET>/<repo-name>.md`. Uses the same
+  permission and budget flags as every other `claude -p` call
+
 **Override hierarchy:**
 
 1. CLI: `./ralph.sh 50`
