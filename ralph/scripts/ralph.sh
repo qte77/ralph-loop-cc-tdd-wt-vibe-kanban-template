@@ -43,6 +43,7 @@ if [ -n "${RALPH_RUN_ID:-}" ] && [ -f "$RALPH_TMP_DIR/vibe-${RALPH_RUN_ID}.env" 
 fi
 
 source "$SCRIPT_DIR/lib/vibe.sh"
+source "$SCRIPT_DIR/lib/compound.sh"
 
 # Configuration (import from config.sh with CLI/env overrides)
 MAX_ITERATIONS=${1:-$RALPH_MAX_ITERATIONS}
@@ -301,6 +302,12 @@ inject_shared_prompt_sections() {
         cat "$RALPH_LEARNINGS_FILE"
     fi
 
+    # Inject cross-repo compound learning context (written by compound_aggregate)
+    if [[ -f "$COMPOUND_CONTEXT_FILE" ]]; then
+        echo ""
+        cat "$COMPOUND_CONTEXT_FILE"
+    fi
+
     # Inject human requests
     if [[ -f "$RALPH_REQUESTS_FILE" ]]; then
         echo ""
@@ -339,6 +346,9 @@ execute_story() {
 
     log_info "Executing story: $story_id - $title"
     kanban_update "$story_id" "inprogress"
+
+    # Aggregate cross-repo compound learning context for this story
+    compound_aggregate "$story_id" "$title" "$description"
 
     # Fresh session id for this story execution (not `local`: the caller
     # reads it afterward to record it in progress.txt for resume)
@@ -721,6 +731,7 @@ main() {
                     kanban_update "$story_id" "done"
                     log_progress "$iteration" "$story_id" "PASS" "Completed successfully with TDD commits" "$STORY_SESSION_ID"
                     log_info "Story $story_id marked as PASSING"
+                    compound_writeback_if_due "$PRD_JSON"
 
                     # Commit state files with documentation
                     commit_story_state "$story_id" "update state and documentation after completion"
@@ -734,6 +745,7 @@ main() {
                         kanban_update "$story_id" "done"
                         log_progress "$iteration" "$story_id" "PASS" "Completed after fixing validation errors" "$STORY_SESSION_ID"
                         log_info "Story $story_id marked as PASSING after fixes"
+                        compound_writeback_if_due "$PRD_JSON"
 
                         # Commit state files with documentation
                         commit_story_state "$story_id" "update state and documentation after fixing validation errors"

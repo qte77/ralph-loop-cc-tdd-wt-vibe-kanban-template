@@ -99,7 +99,7 @@ teardown() {
     )
 
     [[ "$output" == *"compound-marker"* ]] || fail "missing compound context"
-    order=$(echo "$output" | grep -nE '^## (Agent Learnings|Compound Learnings)' | cut -d: -f2 | cut -c1-20)
-    expected=$'## Agent Learnings\n## Compound Learnin'
+    order=$(echo "$output" | grep -oE '^## (Agent|Compound) Learnings')
+    expected=$'## Agent Learnings\n## Compound Learnings'
     [ "$order" = "$expected" ]
 }
