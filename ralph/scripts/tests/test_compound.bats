@@ -13,7 +13,10 @@ setup() {
     BATS_TEST_TMP_DIR="$(mktemp -d)"
     export BATS_TEST_TMP_DIR
     export RALPH_TMP_DIR="$BATS_TEST_TMP_DIR/tmp"
-    mkdir -p "$RALPH_TMP_DIR" "$BATS_TEST_TMP_DIR/learnings"
+    mkdir -p "$RALPH_TMP_DIR" "$BATS_TEST_TMP_DIR/learnings" "$BATS_TEST_TMP_DIR/bin" \
+        "$BATS_TEST_TMP_DIR/hub"
+    # claude stubs written by a test go here and shadow any real claude
+    export PATH="$BATS_TEST_TMP_DIR/bin:$PATH"
     unset COMPOUND_ENABLED COMPOUND_LEARNINGS_PATH COMPOUND_MEMORY_PATH COMPOUND_PLANS_PATH \
         COMPOUND_MAX_LINES COMPOUND_WRITEBACK_ENABLED COMPOUND_WRITEBACK_TARGET
     source ralph/scripts/lib/common.sh
@@ -70,15 +73,34 @@ teardown() {
 }
 
 @test "write-back is off by default and never calls claude" {
-    mkdir -p "$BATS_TEST_TMP_DIR/bin" "$BATS_TEST_TMP_DIR/hub"
     printf '#!/usr/bin/env bash\ntouch "%s/claude-called"\n' "$BATS_TEST_TMP_DIR" \
         > "$BATS_TEST_TMP_DIR/bin/claude"
     chmod +x "$BATS_TEST_TMP_DIR/bin/claude"
-    PATH="$BATS_TEST_TMP_DIR/bin:$PATH"
     COMPOUND_WRITEBACK_TARGET="$BATS_TEST_TMP_DIR/hub"
 
     run compound_writeback 5
     [ "$status" -eq 0 ]
     [ ! -e "$BATS_TEST_TMP_DIR/claude-called" ]
     [ -z "$(ls -A "$BATS_TEST_TMP_DIR/hub")" ]
+}
+
+@test "write-back runs the extraction with no tools and appends its output to the target" {
+    cat > "$BATS_TEST_TMP_DIR/bin/claude" <<STUB
+#!/usr/bin/env bash
+printf '%s\n' "\$@" > "$BATS_TEST_TMP_DIR/claude-args"
+echo "novel pattern line"
+STUB
+    chmod +x "$BATS_TEST_TMP_DIR/bin/claude"
+    COMPOUND_WRITEBACK_ENABLED=true
+    COMPOUND_WRITEBACK_TARGET="$BATS_TEST_TMP_DIR/hub"
+    RALPH_LEARNINGS_FILE="$BATS_TEST_TMP_DIR/LEARNINGS.md"
+    echo "- a learning" > "$RALPH_LEARNINGS_FILE"
+
+    run compound_writeback 5
+    [ "$status" -eq 0 ]
+
+    # "--tools" followed by an empty argument means no built-in tools
+    grep -qxF -- '--tools' "$BATS_TEST_TMP_DIR/claude-args" || fail "no --tools flag"
+    [ "$(grep -A1 -xF -- '--tools' "$BATS_TEST_TMP_DIR/claude-args" | tail -1)" = "" ]
+    grep -q "novel pattern line" "$BATS_TEST_TMP_DIR"/hub/*.md
 }
