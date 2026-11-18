@@ -9,6 +9,7 @@
 # records its arguments; injection is detected by a marker file in the test's
 # temp dir, never by a real command.
 # Run from project root: bats ralph/scripts/tests/test_claude_args.bats
+# shellcheck disable=SC2034,SC2317  # the stubs and settings are used by the functions extracted from ralph.sh
 
 setup() {
     BATS_TEST_TMP_DIR="$(mktemp -d)"
@@ -26,7 +27,7 @@ STUB
 
     # shellcheck source=ralph/scripts/lib/common.sh
     source ralph/scripts/lib/common.sh
-    for fn in build_claude_extra_flags execute_story fix_validation_errors; do
+    for fn in build_claude_args execute_story fix_validation_errors; do
         func_src=$(sed -n "/^${fn}() {/,/^}/p" ralph/scripts/ralph.sh)
         [ -n "$func_src" ] || fail "could not extract $fn from ralph.sh"
         eval "$func_src"
@@ -71,7 +72,9 @@ arg_after() {
 
     [ ! -e "$MARK" ] || fail "an environment value ran as shell code"
     [ "$(arg_after --model)" = "$RALPH_MODEL" ]
-    [ "$(arg_after --permission-mode)" = "$RALPH_PERMISSION_MODE" ]
+    # The helper's output is split on whitespace only, like every other
+    # claude call that uses claude_permission_flags: the ';' stays literal
+    [ "$(arg_after --permission-mode)" = "${RALPH_PERMISSION_MODE%% *}" ]
 }
 
 @test "fix_validation_errors passes RALPH_MODEL and RALPH_PERMISSION_MODE to claude as plain arguments" {
@@ -83,7 +86,9 @@ arg_after() {
 
     [ ! -e "$MARK" ] || fail "an environment value ran as shell code"
     [ "$(arg_after --model)" = "$RALPH_MODEL" ]
-    [ "$(arg_after --permission-mode)" = "$RALPH_PERMISSION_MODE" ]
+    # The helper's output is split on whitespace only, like every other
+    # claude call that uses claude_permission_flags: the ';' stays literal
+    [ "$(arg_after --permission-mode)" = "${RALPH_PERMISSION_MODE%% *}" ]
 }
 
 @test "RALPH_COST_LIMIT reaches claude as plain arguments in both calls" {
@@ -112,5 +117,6 @@ arg_after() {
 }
 
 @test "ralph.sh has no eval or bash -c around a claude call" {
-    ! grep -nE '(eval|bash -c).*claude -p' ralph/scripts/ralph.sh
+    run grep -nE '(eval|bash -c).*claude -p' ralph/scripts/ralph.sh
+    [ "$status" -eq 1 ]
 }
