@@ -33,7 +33,7 @@ only point here. Line references were checked against `main` on 2026-11-17.
 
 **What's next, in order:**
 
-1. **Engine bugs, rows 3-5.** Each has a story in `ralph/docs/prd.json` (STORY-002, -003, -006) with BATS
+1. **Engine bugs, rows 4-5.** Each has a story in `ralph/docs/prd.json` (STORY-002, -003) with BATS
    acceptance criteria. Write the BATS test first (RED), then the fix (GREEN). Rows 4 and 5 are security-relevant
    and overlap #90, so they need the owner's go-ahead before work starts.
 2. **Engine cleanups, rows 6-11** (STORY-007 to STORY-010 cover four of them).
@@ -56,8 +56,8 @@ below.
 | Area | Files and refs |
 | --- | --- |
 | Adapter interface | Ralph scripts call `adapter_*` functions from `.scaffolds/<name>.sh`: `adapter_test`, `adapter_lint`, `adapter_typecheck`, `adapter_complexity`, `adapter_validate`, `adapter_coverage`, `adapter_signatures`, `adapter_file_pattern`, `adapter_env_setup`, `adapter_app_docs`. Plugin SessionStart hooks deploy scaffolds (copy if absent). Without `.scaffold/`, the calls fall back to no-ops and `make validate` still works. Since the teams libraries were deleted, nothing in this repo calls `adapter_signatures` (it stays as part of the scaffold interface). |
-| Engine bug evidence | `docs/audits/quality-audit-2026-03.md` (findings D1-D3, R5, K1, K2, Y1, C2); `ralph/docs/prd.json` (bug-fix sprint, STORY-001 passed, 002-003 and 006-010 pending; 004-005 dropped with the teams libraries) |
-| Row 3 | `ralph/scripts/lib/vibe.sh` `kanban_update()` (from line 105; JSON built by concatenation around lines 157-174, `sed` escapes only `"`); `kanban_init` in the same file already uses `jq --arg` |
+| Engine bug evidence | `docs/audits/quality-audit-2026-03.md` (findings D1-D3, R5, K1, K2, Y1, C2); `ralph/docs/prd.json` (bug-fix sprint, STORY-001 and 006 passed, 002-003 and 007-010 pending; 004-005 dropped with the teams libraries) |
+| Row 3 (shipped) | `ralph/scripts/lib/vibe.sh` `kanban_update()` now builds its payload with `jq -n --arg`; `ralph/scripts/tests/test_vibe_json.bats` |
 | Row 4 | `ralph/scripts/ralph.sh:377` and `:470` pipe the prompt into `eval claude -p ... $extra_flags` |
 | Row 5 | `ralph/scripts/parallel_ralph.sh` worker exit codes (prd.json STORY-003) |
 | Rows 6-11 | `ralph/scripts/ralph.sh` `get_next_story()` (line 168), `execute_story()` (334), `fix_validation_errors()` (412), quick-then-full validation (around 476-480); `ralph/scripts/lib/common.sh:71-85` `log_cc*`; `ralph/scripts/lib/vibe.sh` bare `echo "[DEBUG]"` at 112, 116, 126, 131, 133; `ralph/scripts/vibe.sh:22-23` unpinned `npx vibe-kanban` |
@@ -69,7 +69,7 @@ below.
 | --- | --- | --- | --- | --- |
 | 1 | Engine bugs | ~~`teams.sh` scoped checks are silent no-ops: they get a story ID where a commit is expected, so `git diff` is empty and every check passes (STORY-005)~~ — dropped: the code was deleted (owner decision 2026-11-17, see Decisions) | — | — |
 | 2 | Engine bugs | ~~Two `verify_teammate_stories()` with different behaviour; rename the `ralph.sh` one to `verify_prd_isolation()` (STORY-004)~~ — dropped: the code was deleted (owner decision 2026-11-17, see Decisions) | — | — |
-| 3 | Engine bugs | `kanban_update` builds JSON by string concatenation; escaping misses backslashes and newlines. Use `jq --arg` like `kanban_init` (STORY-006) | agent | A reason containing `"`, `\` and a newline produces valid JSON in a BATS test |
+| 3 | Engine bugs | ~~`kanban_update` builds JSON by string concatenation; escaping misses backslashes and newlines. Use `jq --arg` like `kanban_init` (STORY-006)~~ — shipped in the STORY-006 PR (`test_vibe_json.bats`) | — | — |
 | 4 | Engine bugs | `eval` expands `$extra_flags` in both `claude -p` calls, so shell metacharacters in a `RALPH_*` value run as commands (STORY-002) | owner (security; overlaps #90) | No `eval` in the claude invocations; flags passed as an array; BATS test with a metacharacter value |
 | 5 | Engine bugs | Parallel runs report success when a worker fails: exit codes of disowned workers are not collected (STORY-003) | owner (overlaps #90) | A failing worker makes `parallel_ralph.sh` exit non-zero; BATS test |
 | 6 | Engine cleanup | Prompt block duplicated in `execute_story()` and `fix_validation_errors()`; extract `build_story_prompt()` (STORY-010) | agent | One builder used by both; BATS green |
