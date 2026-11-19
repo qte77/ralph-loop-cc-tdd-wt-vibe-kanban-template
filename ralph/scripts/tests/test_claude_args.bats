@@ -38,6 +38,7 @@ STUB
     log_warn() { :; }
     log_error() { :; }
     kanban_update() { :; }
+    compound_aggregate() { :; }
     classify_story() { echo "sonnet"; }
     inject_shared_prompt_sections() { :; }
     adapter_env_setup() { :; }
@@ -96,10 +97,13 @@ arg_after() {
 
     execute_story "STORY-001" "Title|Description" >/dev/null 2>&1 || true
     [ ! -e "$MARK" ] || fail "execute_story ran RALPH_COST_LIMIT as shell code"
+    [ "$(arg_after --max-budget-usd)" = "1;touch" ]
 
+    rm -f "$ARGS_FILE"
     fix_validation_errors "STORY-001" "Title|Description" "$BATS_TEST_TMP_DIR/validate.log" 1 \
         >/dev/null 2>&1 || true
     [ ! -e "$MARK" ] || fail "fix_validation_errors ran RALPH_COST_LIMIT as shell code"
+    [ "$(arg_after --max-budget-usd)" = "1;touch" ]
 }
 
 @test "RALPH_DESLOPIFY system prompt reaches claude as one argument in both calls" {
@@ -116,7 +120,46 @@ arg_after() {
     [ "$(arg_after --max-budget-usd)" = "2" ]
 }
 
-@test "ralph.sh has no eval or bash -c around a claude call" {
-    run grep -nE '(eval|bash -c).*claude -p' ralph/scripts/ralph.sh
+@test "judge_worktrees passes RALPH_JUDGE_MODEL, RALPH_PERMISSION_MODE and RALPH_COST_LIMIT to claude as plain arguments" {
+    # shellcheck source=ralph/scripts/lib/judge.sh
+    source ralph/scripts/lib/judge.sh
+    log_info() { :; }
+    log_warn() { :; }
+    get_worktree_path() { echo "$BATS_TEST_TMP_DIR/no-such-worktree"; }
+    RALPH_JUDGE_ENABLED=true
+    RALPH_JUDGE_TEMPLATE="$BATS_TEST_TMP_DIR/judge.md"
+    echo "template" > "$RALPH_JUDGE_TEMPLATE"
+    RALPH_JUDGE_MODEL="sonnet\$(touch $MARK)"
+    RALPH_PERMISSION_MODE="auto;touch $MARK;true"
+    RALPH_COST_LIMIT="1;touch $MARK;true"
+
+    judge_worktrees "run1" 1 >/dev/null 2>&1 || true
+
+    [ ! -e "$MARK" ] || fail "an environment value ran as shell code"
+    [ "$(arg_after --model)" = "$RALPH_JUDGE_MODEL" ]
+    [ "$(arg_after --permission-mode)" = "${RALPH_PERMISSION_MODE%% *}" ]
+    [ "$(arg_after --max-budget-usd)" = "1;touch" ]
+}
+
+# The scripts that call claude: ralph.sh, parallel_ralph.sh and the libraries
+claude_scripts=(ralph/scripts/ralph.sh ralph/scripts/parallel_ralph.sh ralph/scripts/lib/*.sh)
+
+# eval lines in those scripts, minus comments and the one known eval: the
+# find command in generate_app_docs.sh, which builds no claude call
+unexpected_eval_lines() {
+    grep -nwE 'eval' "${claude_scripts[@]}" \
+        | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#' \
+        | grep -vF 'generate_app_docs.sh:49:'
+}
+
+@test "no claude-calling script runs a command string through bash -c" {
+    # A bash -c string can span lines, so any use fails, not only one that
+    # names claude on the same line
+    run grep -nwF -- 'bash -c' "${claude_scripts[@]}"
+    [ "$status" -eq 1 ]
+}
+
+@test "no claude-calling script uses eval, apart from the find in generate_app_docs.sh" {
+    run unexpected_eval_lines
     [ "$status" -eq 1 ]
 }
