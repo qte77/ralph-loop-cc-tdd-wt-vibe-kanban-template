@@ -46,8 +46,13 @@ teardown() {
 }
 
 @test "ralph.sh claude calls route through claude_permission_flags" {
+    # compress_progress uses it directly; execute_story and
+    # fix_validation_errors get it through build_claude_args
     count=$(grep -c 'claude_permission_flags' ralph/scripts/ralph.sh)
-    [ "$count" -ge 3 ]
+    [ "$count" -ge 2 ]
+    for fn in execute_story fix_validation_errors; do
+        sed -n "/^${fn}() {/,/^}/p" ralph/scripts/ralph.sh | grep -q 'build_claude_args'
+    done
 }
 
 @test "parallel_ralph.sh claude calls route through claude_permission_flags" {

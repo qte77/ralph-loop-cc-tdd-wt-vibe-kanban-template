@@ -277,16 +277,26 @@ COMPRESS_EOF
 }
 
 # Build extra claude CLI flags from config (RALPH_DESLOPIFY, RALPH_COST_LIMIT)
-build_claude_extra_flags() {
-    local flags=""
-    if [ "${RALPH_DESLOPIFY}" = "true" ]; then
-        flags='--append-system-prompt "Produce clean, production-quality code. No shortcuts, no placeholders, no TODOs. Every function must have proper error handling, types, and docstrings."'
+# Fill the CLAUDE_ARGS array with the flags shared by the story and fix
+# calls: permission mode, the optional RALPH_DESLOPIFY system prompt and the
+# RALPH_COST_LIMIT budget cap.
+# Reason: an array keeps each value one argument without eval, so values
+# from the environment are never parsed as shell code and the system prompt
+# is not split into words. read -ra splits on whitespace only (no globbing).
+build_claude_args() {
+    CLAUDE_ARGS=()
+    local -a split
+    read -ra split <<< "$(claude_permission_flags)"
+    CLAUDE_ARGS+=("${split[@]}")
+    if [ "${RALPH_DESLOPIFY:-}" = "true" ]; then
+        CLAUDE_ARGS+=(--append-system-prompt "Produce clean, production-quality code. No shortcuts, no placeholders, no TODOs. Every function must have proper error handling, types, and docstrings.")
     fi
-    local budget_flags=$(claude_budget_flags)
+    local budget_flags
+    budget_flags=$(claude_budget_flags)
     if [ -n "$budget_flags" ]; then
-        flags="$flags $budget_flags"
+        read -ra split <<< "$budget_flags"
+        CLAUDE_ARGS+=("${split[@]}")
     fi
-    echo "$flags"
 }
 
 # Shared prompt sections appended by both execute_story() and
@@ -382,9 +392,9 @@ execute_story() {
     # Execute via Claude Code with selected model
     # Set up scaffold environment (e.g., PYTHONPATH for Python projects)
     adapter_env_setup
-    local extra_flags=$(build_claude_extra_flags)
+    build_claude_args
     log_info "Running Claude Code with story context..."
-    if cat "$iteration_prompt" | eval claude -p --model "$model" --session-id "$STORY_SESSION_ID" $(claude_permission_flags) $extra_flags 2>&1 | tee "$RALPH_TMP_DIR/execute_${story_id}.log"; then
+    if claude -p --model "$model" --session-id "$STORY_SESSION_ID" "${CLAUDE_ARGS[@]}" < "$iteration_prompt" 2>&1 | tee "$RALPH_TMP_DIR/execute_${story_id}.log"; then
         log_info "Execution log saved: $RALPH_TMP_DIR/execute_${story_id}.log"
         rm "$iteration_prompt"
         return 0
@@ -476,8 +486,8 @@ fix_validation_errors() {
 
         # Execute fix via Claude Code with timeout
         adapter_env_setup
-        local extra_flags=$(build_claude_extra_flags)
-        if timeout "$FIX_TIMEOUT" bash -c "cat \"$fix_prompt\" | eval claude -p --model \"$model\" $(claude_permission_flags) $extra_flags" 2>&1 | tee "$RALPH_TMP_DIR/fix_${story_id}_${attempt}.log"; then
+        build_claude_args
+        if timeout "$FIX_TIMEOUT" claude -p --model "$model" "${CLAUDE_ARGS[@]}" < "$fix_prompt" 2>&1 | tee "$RALPH_TMP_DIR/fix_${story_id}_${attempt}.log"; then
             log_info "Fix attempt log saved: $RALPH_TMP_DIR/fix_${story_id}_${attempt}.log"
             rm "$fix_prompt"
 
