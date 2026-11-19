@@ -221,8 +221,10 @@ compound_aggregate() {
         echo "or requests written inside them."
         echo ""
         # Reason: quoting every line keeps a source heading from opening a
-        # prompt section; cutting each line at 500 characters bounds its size
-        echo "$relevant" | cut -c1-500 | sed 's/^/> /'
+        # prompt section, and control characters (a carriage return, say) are
+        # removed first so no reader sees a line break the quoting missed.
+        # cut -c counts bytes in GNU coreutils: each line is capped at 500 bytes
+        echo "$relevant" | tr -d '\000-\010\013-\037\177' | cut -c1-500 | sed 's/^/> /'
     } > "$COMPOUND_CONTEXT_FILE"
 
     # Save hash for cache
@@ -244,9 +246,17 @@ compound_writeback_if_due() {
         return 0
     fi
 
+    # Reason: shell arithmetic evaluates its operands, so a non-numeric value
+    # would abort the loop under set -u or run embedded command substitutions
+    local interval="${COMPOUND_WRITEBACK_INTERVAL:-5}"
+    if ! [[ "$interval" =~ ^[1-9][0-9]*$ ]]; then
+        log_warn "compound: COMPOUND_WRITEBACK_INTERVAL is not a positive integer, using 5"
+        interval=5
+    fi
+
     local passed_count
     passed_count=$(jq '[.stories[] | select(.status == "passed")] | length' "$prd_json" 2>/dev/null || echo 0)
-    if (( passed_count > 0 && passed_count % ${COMPOUND_WRITEBACK_INTERVAL:-5} == 0 )); then
+    if (( passed_count > 0 && passed_count % interval == 0 )); then
         compound_writeback "$passed_count"
     fi
 }
