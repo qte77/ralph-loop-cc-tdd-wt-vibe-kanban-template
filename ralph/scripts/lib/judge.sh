@@ -110,10 +110,13 @@ EOF
     local timeout_val="${RALPH_JUDGE_TIMEOUT:-120}"
     local model="${RALPH_JUDGE_MODEL:-sonnet}"
 
-    local budget_flags=$(claude_budget_flags)
-    if timeout "$timeout_val" bash -c \
-        "cat \"$judge_prompt\" | claude -p --model \"$model\" $(claude_permission_flags) $budget_flags" \
-        > "$judge_output" 2>&1; then
+    # Reason: an argument array keeps each value one argument; a command
+    # string would run shell syntax in the model, permission or budget values.
+    # read -ra splits on whitespace only, with no globbing and no evaluation.
+    local -a judge_args
+    read -ra judge_args <<< "$(claude_permission_flags) $(claude_budget_flags)"
+    if timeout "$timeout_val" claude -p --model "$model" "${judge_args[@]}" \
+        < "$judge_prompt" > "$judge_output" 2>&1; then
 
         # Parse JSON response (extract from markdown code blocks if present)
         local json_content=$(sed -n '/^```json/,/^```/p' "$judge_output" | sed '1d;$d' 2>/dev/null)
