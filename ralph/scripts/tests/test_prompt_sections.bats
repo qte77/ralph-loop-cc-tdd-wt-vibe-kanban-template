@@ -82,3 +82,24 @@ teardown() {
     expected=$'## Agent Learnings\n## Human Requests\n## Recent Run History\n## Steering Instruction'
     [ "$order" = "$expected" ]
 }
+
+@test "inject_shared_prompt_sections appends compound context after the learnings when present" {
+    func_src=$(sed -n '/^inject_shared_prompt_sections() {/,/^}/p' ralph/scripts/ralph.sh)
+    [ -n "$func_src" ] || fail "could not extract inject_shared_prompt_sections from ralph.sh"
+
+    RALPH_LEARNINGS_FILE="$BATS_TEST_TMP_DIR/LEARNINGS.md"
+    COMPOUND_CONTEXT_FILE="$BATS_TEST_TMP_DIR/compound-context.md"
+    echo "learning-marker" > "$RALPH_LEARNINGS_FILE"
+    printf '## Compound Learnings (cross-repo, read-only)\ncompound-marker\n' > "$COMPOUND_CONTEXT_FILE"
+
+    output=$(
+        export RALPH_LEARNINGS_FILE COMPOUND_CONTEXT_FILE
+        eval "$func_src"
+        inject_shared_prompt_sections
+    )
+
+    [[ "$output" == *"compound-marker"* ]] || fail "missing compound context"
+    order=$(echo "$output" | grep -oE '^## (Agent|Compound) Learnings')
+    expected=$'## Agent Learnings\n## Compound Learnings'
+    [ "$order" = "$expected" ]
+}

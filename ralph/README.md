@@ -296,6 +296,34 @@ Story complexity detection: checks title/description for patterns like
 "fix", "typo", "doc", "format". Judge uses specified model for worktree
 comparison (N_WT>1).
 
+**Compound learning (cross-repo context, off until a path is set):**
+
+- `COMPOUND_LEARNINGS_PATH`, `COMPOUND_MEMORY_PATH`, `COMPOUND_PLANS_PATH`
+  (unset by default) — directories of `*.md` notes from other projects (the
+  first two searched recursively, plans top level only). Before each story,
+  `lib/compound.sh` keeps the lines that match any of up to 20 words of 4+
+  characters from the story title and description (with 2 lines of context) and appends them to
+  the prompt under `## Compound Learnings`, labelled as reference data, not
+  instructions. Each line is quoted with a leading `>` (so a heading in a note cannot
+  open a prompt section) and cut at 500 bytes, after control characters are removed. Any matching line in these directories can reach the agent's
+  prompt, so point them only at notes you trust and that hold nothing private
+- `COMPOUND_MAX_LINES=50` — cap on injected lines per story (each line is
+  also cut at 500 bytes)
+- `COMPOUND_ENABLED=true` — set `false` to skip aggregation entirely; this also
+  removes the context file an earlier run left in `RALPH_TMP_DIR`
+- `COMPOUND_WRITEBACK_ENABLED=false` — opt-in: every
+  `COMPOUND_WRITEBACK_INTERVAL=5` passed stories (a value that is not a
+  positive integer is logged and replaced by 5), `COMPOUND_MODEL` (default
+  `RALPH_SIMPLE_MODEL`) extracts new patterns from `ralph/LEARNINGS.md` and
+  appends them to `<COMPOUND_WRITEBACK_TARGET>/<repo-name>.md`, named after the
+  main repository even when Ralph runs in a linked worktree. Nothing is
+  appended when the call fails, and a failed append is logged without stopping
+  the loop. The extraction
+  runs with no tools (`--tools ""`, `--strict-mcp-config`) plus the usual
+  permission and budget flags. Its output is appended unreviewed, and other
+  repos may read that directory as their `COMPOUND_LEARNINGS_PATH`, so review
+  the target before relying on it
+
 **Override hierarchy:**
 
 1. CLI: `./ralph.sh 50`

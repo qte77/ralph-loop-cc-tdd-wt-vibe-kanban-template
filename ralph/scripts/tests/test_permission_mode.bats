@@ -39,9 +39,10 @@ teardown() {
     [ "$RALPH_PERMISSION_MODE" = "auto" ]
 }
 
-@test "no --dangerously-skip-permissions left in ralph.sh, parallel_ralph.sh, or judge.sh" {
+@test "no --dangerously-skip-permissions left in ralph.sh, parallel_ralph.sh, judge.sh, or compound.sh" {
     ! grep -rn 'dangerously-skip-permissions' \
-        ralph/scripts/ralph.sh ralph/scripts/parallel_ralph.sh ralph/scripts/lib/judge.sh
+        ralph/scripts/ralph.sh ralph/scripts/parallel_ralph.sh ralph/scripts/lib/judge.sh \
+        ralph/scripts/lib/compound.sh
 }
 
 @test "ralph.sh claude calls route through claude_permission_flags" {
@@ -57,6 +58,10 @@ teardown() {
 @test "parallel_ralph.sh claude calls route through claude_permission_flags" {
     count=$(grep -c 'claude_permission_flags' ralph/scripts/parallel_ralph.sh)
     [ "$count" -ge 2 ]
+}
+
+@test "compound.sh write-back claude call routes through claude_permission_flags" {
+    grep -q 'claude_permission_flags' ralph/scripts/lib/compound.sh
 }
 
 @test "judge.sh claude call routes through claude_permission_flags" {

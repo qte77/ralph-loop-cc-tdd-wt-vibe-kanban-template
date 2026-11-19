@@ -126,6 +126,24 @@ RALPH_METRICS_FILE="metrics.json"
 RALPH_TMP_DIR="${RALPH_TMP_DIR:-/tmp/ralph}"
 
 # =================================================
+# COMPOUND LEARNING CONFIGURATION
+# Cross-repo context for story prompts (lib/compound.sh).
+# All source paths are optional; unset or missing paths are skipped,
+# so nothing is read until an operator sets at least one of them.
+# =================================================
+COMPOUND_ENABLED=${COMPOUND_ENABLED:-true}
+COMPOUND_LEARNINGS_PATH="${COMPOUND_LEARNINGS_PATH:-}"          # directory of learnings *.md (searched recursively)
+COMPOUND_MEMORY_PATH="${COMPOUND_MEMORY_PATH:-}"                # Claude Code auto-memory directory (*.md, recursive)
+COMPOUND_PLANS_PATH="${COMPOUND_PLANS_PATH:-}"                  # plans directory (*.md, top level only)
+COMPOUND_CONTEXT_FILE="$RALPH_TMP_DIR/compound-context.md"
+COMPOUND_CONTEXT_SHA="$RALPH_TMP_DIR/.compound-context.sha"
+COMPOUND_MAX_LINES=${COMPOUND_MAX_LINES:-50}                    # cap on lines injected per story
+COMPOUND_WRITEBACK_ENABLED=${COMPOUND_WRITEBACK_ENABLED:-false} # opt-in write-back of new learnings
+COMPOUND_WRITEBACK_INTERVAL=${COMPOUND_WRITEBACK_INTERVAL:-5}   # write back every N passed stories
+COMPOUND_WRITEBACK_TARGET="${COMPOUND_WRITEBACK_TARGET:-}"      # directory that receives <repo-name>.md
+COMPOUND_MODEL="${COMPOUND_MODEL:-$RALPH_SIMPLE_MODEL}"
+
+# =================================================
 # TEMPLATE PATHS
 # Derived from Ralph templates directory
 # =================================================
