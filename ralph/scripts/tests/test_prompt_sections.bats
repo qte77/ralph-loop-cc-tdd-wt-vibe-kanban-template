@@ -11,6 +11,8 @@
 #     ralph.sh has no main guard and cannot be sourced directly)
 # Run from project root: bats ralph/scripts/tests/test_prompt_sections.bats
 
+load test_helper/fail
+
 setup() {
     BATS_TEST_TMP_DIR="$(mktemp -d)"
     export BATS_TEST_TMP_DIR

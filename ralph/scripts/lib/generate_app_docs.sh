@@ -40,13 +40,18 @@ generate_app_readme() {
     if command -v tree &> /dev/null; then
         architecture=$(tree -L 3 --noreport "$src_dir" "$TESTS_BASE_DIR/" 2>/dev/null || echo "$src_dir/ and $TESTS_BASE_DIR/")
     else
-        # Fallback: list source files matching scaffold pattern
-        local _find_args=""
-        for _pat in $_file_pattern; do
-            [ -n "$_find_args" ] && _find_args="$_find_args -o"
-            _find_args="$_find_args -name $_pat"
+        # Fallback: list source files matching scaffold pattern.
+        # Reason: find gets its arguments as an array, so the directory name
+        # is never run as shell code; read -ra splits the patterns without
+        # globbing them against the current directory.
+        local -a _pats _find_args=()
+        read -ra _pats <<< "$_file_pattern"
+        for _pat in "${_pats[@]}"; do
+            [ "${#_find_args[@]}" -gt 0 ] && _find_args+=(-o)
+            _find_args+=(-name "$_pat")
         done
-        architecture=$(eval "find \"$src_dir\" \"$TESTS_BASE_DIR/\" -type f \( $_find_args \)" 2>/dev/null | sort | sed 's|^|  |' || echo "No files found")
+        [ "${#_find_args[@]}" -gt 0 ] || _find_args=(-name '*')
+        architecture=$(find "$src_dir" "$TESTS_BASE_DIR/" -type f \( "${_find_args[@]}" \) 2>/dev/null | sort | sed 's|^|  |' || echo "No files found")
     fi
 
     # Generate concise README with actual information

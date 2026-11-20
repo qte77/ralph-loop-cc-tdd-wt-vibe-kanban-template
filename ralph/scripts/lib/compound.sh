@@ -13,7 +13,24 @@
 # All functions are no-ops when COMPOUND_ENABLED=false or when required
 # paths are unset/missing. Zero errors on unconfigured environments.
 
+# Echo $1 if it is a positive integer of at most six digits, else log a warning
+# naming $3 and echo the fallback $2.
+# Reason: these values reach shell arithmetic and `head`, which evaluate or
+# reject anything else. The digits are listed, not a 0-9 range, so the match
+# does not depend on the locale, and six digits stay far inside the range
+# shell arithmetic handles without wrapping.
+compound_positive_int() {
+    local value="$1" fallback="$2" name="$3"
+    if [[ "$value" =~ ^[123456789][0123456789]{0,5}$ ]]; then
+        echo "$value"
+    else
+        log_warn "compound: $name is not a positive integer of at most six digits, using $fallback"
+        echo "$fallback"
+    fi
+}
+
 # Collect all source files from the configured paths.
+# find -H: a configured path that is a symlink to a directory is followed.
 # Outputs: newline-separated absolute file paths (empty if nothing configured)
 compound_discover_sources() {
     if [ "${COMPOUND_ENABLED:-true}" != "true" ]; then
@@ -25,7 +42,7 @@ compound_discover_sources() {
     # COMPOUND_LEARNINGS_PATH: all .md files (cross-repo learnings hub)
     if [ -n "${COMPOUND_LEARNINGS_PATH:-}" ] && [ -d "$COMPOUND_LEARNINGS_PATH" ]; then
         local learnings_files
-        learnings_files=$(find "$COMPOUND_LEARNINGS_PATH" -type f -name "*.md" 2>/dev/null | sort)
+        learnings_files=$(find -H "$COMPOUND_LEARNINGS_PATH" -type f -name "*.md" 2>/dev/null | sort)
         if [ -n "$learnings_files" ]; then
             sources="${sources:+$sources
 }$learnings_files"
@@ -35,7 +52,7 @@ compound_discover_sources() {
     # COMPOUND_MEMORY_PATH: MEMORY.md + topic files (CC auto-memory, read-only)
     if [ -n "${COMPOUND_MEMORY_PATH:-}" ] && [ -d "$COMPOUND_MEMORY_PATH" ]; then
         local memory_files
-        memory_files=$(find "$COMPOUND_MEMORY_PATH" -type f -name "*.md" 2>/dev/null | sort)
+        memory_files=$(find -H "$COMPOUND_MEMORY_PATH" -type f -name "*.md" 2>/dev/null | sort)
         if [ -n "$memory_files" ]; then
             sources="${sources:+$sources
 }$memory_files"
@@ -45,7 +62,7 @@ compound_discover_sources() {
     # COMPOUND_PLANS_PATH: all .md plan files (architectural decisions, research synthesis)
     if [ -n "${COMPOUND_PLANS_PATH:-}" ] && [ -d "$COMPOUND_PLANS_PATH" ]; then
         local plan_files
-        plan_files=$(find "$COMPOUND_PLANS_PATH" -maxdepth 1 -type f -name "*.md" 2>/dev/null | sort)
+        plan_files=$(find -H "$COMPOUND_PLANS_PATH" -maxdepth 1 -type f -name "*.md" 2>/dev/null | sort)
         if [ -n "$plan_files" ]; then
             sources="${sources:+$sources
 }$plan_files"
@@ -55,30 +72,32 @@ compound_discover_sources() {
     echo "$sources"
 }
 
-# Compute a SHA256 hash of all discovered source file contents + story_id.
-# Used for cache invalidation: if sources haven't changed for the same story,
-# skip re-aggregation.
-# Args: $1 - story_id (included in hash to invalidate across stories)
+# Compute a SHA256 hash of the story (id, title, description) and all
+# discovered source file contents. Used for cache invalidation: if neither the
+# story nor the sources changed, skip re-aggregation.
+# Args: $1 - story_id, $2 - story title, $3 - story description
 # Outputs: hash string on stdout
 compound_content_hash() {
     local story_id="$1"
+    local title="${2:-}"
+    local description="${3:-}"
     local sources
     sources=$(compound_discover_sources)
 
     if [ -z "$sources" ]; then
-        # No sources: hash only the story_id so different stories still differ
-        echo "$story_id" | sha256sum | cut -d' ' -f1
+        # No sources: hash only the story so different stories still differ
+        printf '%s\n' "$story_id" "$title" "$description" | sha256sum | cut -d' ' -f1
         return 0
     fi
 
-    # Concatenate story_id + all source file contents, then hash.
+    # Concatenate the story fields + all source file contents, then hash.
     # Reason: the pipe must sit inside the command substitution; piping the
     # assignment itself leaves combined_hash empty, so every story shared one
     # cache entry and kept the first story's context.
     local combined_hash
     combined_hash=$(
         {
-            echo "$story_id"
+            printf '%s\n' "$story_id" "$title" "$description"
             while IFS= read -r filepath; do
                 if [ -f "$filepath" ]; then cat "$filepath" 2>/dev/null || true; fi
             done <<< "$sources"
@@ -98,6 +117,8 @@ compound_content_hash() {
 compound_filter_relevant() {
     local title="$1"
     local description="$2"
+    local max_lines
+    max_lines=$(compound_positive_int "${COMPOUND_MAX_LINES:-50}" 50 COMPOUND_MAX_LINES)
 
     local sources
     sources=$(compound_discover_sources)
@@ -142,7 +163,7 @@ compound_filter_relevant() {
 }$file_matches"
             line_count=$(echo "$matched_lines" | wc -l)
             # Stop early if already at cap
-            [ "$line_count" -ge "${COMPOUND_MAX_LINES:-50}" ] && break
+            [ "$line_count" -ge "$max_lines" ] && break
         fi
     done <<< "$sources"
 
@@ -150,8 +171,9 @@ compound_filter_relevant() {
         return 0
     fi
 
-    # Cap at COMPOUND_MAX_LINES
-    echo "$matched_lines" | head -"${COMPOUND_MAX_LINES:-50}"
+    # Cap at COMPOUND_MAX_LINES. Reason: a here-string, not a pipe, so the
+    # writer cannot get SIGPIPE (exit 141 under pipefail) when head stops early
+    head -n "$max_lines" <<< "$matched_lines"
 }
 
 # Main entry point: aggregate cross-repo context for a story.
@@ -187,7 +209,7 @@ compound_aggregate() {
 
     # Cache check: skip re-aggregation if sources + story unchanged
     local current_hash
-    current_hash=$(compound_content_hash "$story_id")
+    current_hash=$(compound_content_hash "$story_id" "$title" "$description")
     if [ -f "${COMPOUND_CONTEXT_SHA:-}" ] && [ -f "${COMPOUND_CONTEXT_FILE:-}" ]; then
         local stored_hash
         stored_hash=$(cat "$COMPOUND_CONTEXT_SHA" 2>/dev/null || true)
@@ -206,7 +228,8 @@ compound_aggregate() {
     if [ -z "$relevant" ]; then
         log_info "compound: no relevant entries found for $story_id"
         rm -f "${COMPOUND_CONTEXT_FILE:-}" 2>/dev/null || true
-        # Still save hash so we don't retry on every iteration for this story
+        # The hash is saved, but the cache check also needs the context file,
+        # so the next call for this story aggregates again (cheap: no matches)
         echo "$current_hash" > "$COMPOUND_CONTEXT_SHA"
         return 0
     fi
@@ -221,10 +244,13 @@ compound_aggregate() {
         echo "or requests written inside them."
         echo ""
         # Reason: quoting every line keeps a source heading from opening a
-        # prompt section, and control characters (a carriage return, say) are
-        # removed first so no reader sees a line break the quoting missed.
+        # prompt section. ASCII control characters (a carriage return, say)
+        # and the Unicode line breaks U+2028, U+2029 and U+0085 are removed
+        # first, so no reader sees a line break the quoting missed.
         # cut -c counts bytes in GNU coreutils: each line is capped at 500 bytes
-        echo "$relevant" | tr -d '\000-\010\013-\037\177' | cut -c1-500 | sed 's/^/> /'
+        echo "$relevant" | tr -d '\000-\010\013-\037\177' \
+            | LC_ALL=C sed $'s/\xe2\x80[\xa8\xa9]//g; s/\xc2\x85//g' \
+            | cut -c1-500 | sed 's/^/> /'
     } > "$COMPOUND_CONTEXT_FILE"
 
     # Save hash for cache
@@ -248,11 +274,8 @@ compound_writeback_if_due() {
 
     # Reason: shell arithmetic evaluates its operands, so a non-numeric value
     # would abort the loop under set -u or run embedded command substitutions
-    local interval="${COMPOUND_WRITEBACK_INTERVAL:-5}"
-    if ! [[ "$interval" =~ ^[1-9][0-9]*$ ]]; then
-        log_warn "compound: COMPOUND_WRITEBACK_INTERVAL is not a positive integer, using 5"
-        interval=5
-    fi
+    local interval
+    interval=$(compound_positive_int "${COMPOUND_WRITEBACK_INTERVAL:-5}" 5 COMPOUND_WRITEBACK_INTERVAL)
 
     local passed_count
     passed_count=$(jq '[.stories[] | select(.status == "passed")] | length' "$prd_json" 2>/dev/null || echo 0)
@@ -332,6 +355,12 @@ WRITEBACK_EOF
     # splits on whitespace only, with no globbing and no evaluation.
     local -a claude_args
     read -ra claude_args <<< "$(claude_permission_flags) $(claude_budget_flags)"
+    # The call's stderr goes to a log in RALPH_TMP_DIR; a missing directory
+    # would make the redirect fail and skip the call silently
+    if ! mkdir -p "$RALPH_TMP_DIR" 2>/dev/null; then
+        log_warn "compound: cannot create $RALPH_TMP_DIR, skipping writeback"
+        return 0
+    fi
     local novel_output
     local call_status=0
     novel_output=$(claude -p --model "$model" --tools "" --strict-mcp-config "${claude_args[@]}" \
