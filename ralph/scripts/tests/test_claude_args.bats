@@ -9,7 +9,8 @@
 # records its arguments; injection is detected by a marker file in the test's
 # temp dir, never by a real command.
 # Run from project root: bats ralph/scripts/tests/test_claude_args.bats
-# shellcheck disable=SC2034,SC2317  # the stubs and settings are used by the functions extracted from ralph.sh
+# shellcheck disable=SC2034,SC2317,SC2016  # the stubs and settings are used by the functions extracted from ralph.sh; the guard regexes hold a literal $
+load test_helper/fail
 
 setup() {
     BATS_TEST_TMP_DIR="$(mktemp -d)"
@@ -27,7 +28,7 @@ STUB
 
     # shellcheck source=ralph/scripts/lib/common.sh
     source ralph/scripts/lib/common.sh
-    for fn in build_claude_args execute_story fix_validation_errors; do
+    for fn in build_claude_args execute_story fix_validation_errors compress_progress; do
         func_src=$(sed -n "/^${fn}() {/,/^}/p" ralph/scripts/ralph.sh)
         [ -n "$func_src" ] || fail "could not extract $fn from ralph.sh"
         eval "$func_src"
@@ -141,25 +142,51 @@ arg_after() {
     [ "$(arg_after --max-budget-usd)" = "1;touch" ]
 }
 
-# The scripts that call claude: ralph.sh, parallel_ralph.sh and the libraries
-claude_scripts=(ralph/scripts/ralph.sh ralph/scripts/parallel_ralph.sh ralph/scripts/lib/*.sh)
+@test "compress_progress passes RALPH_COST_LIMIT to claude unglobbed" {
+    PRD_JSON="$BATS_TEST_TMP_DIR/prd.json"
+    echo '{"stories":[{"status":"passed"},{"status":"passed"},{"status":"passed"}]}' > "$PRD_JSON"
+    PROGRESS_FILE="$BATS_TEST_TMP_DIR/progress.txt"
+    echo "run log" > "$PROGRESS_FILE"
+    RALPH_LEARNINGS_FILE="$BATS_TEST_TMP_DIR/LEARNINGS.md"
+    RALPH_COST_LIMIT='*'
+    mkdir "$BATS_TEST_TMP_DIR/cwd" && touch "$BATS_TEST_TMP_DIR/cwd/a-file"
 
-# eval lines in those scripts, minus comments and the one known eval: the
-# find command in generate_app_docs.sh, which builds no claude call
-unexpected_eval_lines() {
-    grep -nwE 'eval' "${claude_scripts[@]}" \
+    (cd "$BATS_TEST_TMP_DIR/cwd" && compress_progress) >/dev/null 2>&1
+
+    [ "$(arg_after --max-budget-usd)" = '*' ] || fail "the budget value was globbed: $(arg_after --max-budget-usd)"
+    [ "$(arg_after --permission-mode)" = auto ]
+}
+
+# Every script under ralph/scripts: the entry points and the libraries
+ralph_scripts=(ralph/scripts/*.sh ralph/scripts/lib/*.sh)
+
+# Code lines (comments dropped) that hand a string to a shell: eval, or a
+# sh/bash/zsh/dash call with c in its option cluster (sh -c, bash -lc)
+shell_string_lines() {
+    grep -nE '(^|[^[:alnum:]_-])(eval|(ba|z|da)?sh[[:space:]]+-[[:alpha:]]*c[[:alpha:]]*)([^[:alnum:]_-]|$)' \
+        "${ralph_scripts[@]}" \
+        | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#'
+}
+
+# Code lines that expand a claude flag helper, or a variable holding its
+# output, unquoted: word-split and globbed. Allowed: plain assignments and
+# the quoted here-string that feeds read -ra.
+unquoted_flag_lines() {
+    grep -nE '(^|[^"])\$(\(claude_(permission|budget)_flags\)|\{?budget_flags([^[:alnum:]_]|$))' \
+        "${ralph_scripts[@]}" \
         | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#' \
-        | grep -vF 'generate_app_docs.sh:49:'
+        | grep -vF '<<< "' \
+        | grep -vE 'budget_flags=\$\(claude_budget_flags\)[[:space:]]*$'
 }
 
-@test "no claude-calling script runs a command string through bash -c" {
-    # A bash -c string can span lines, so any use fails, not only one that
+@test "no script under ralph/scripts hands a command string to eval or a shell -c" {
+    # A command string can span lines, so any use fails, not only one that
     # names claude on the same line
-    run grep -nwF -- 'bash -c' "${claude_scripts[@]}"
-    [ "$status" -eq 1 ]
+    run shell_string_lines
+    [ "$status" -eq 1 ] || fail "$output"
 }
 
-@test "no claude-calling script uses eval, apart from the find in generate_app_docs.sh" {
-    run unexpected_eval_lines
-    [ "$status" -eq 1 ]
+@test "no script under ralph/scripts expands the claude flag helpers unquoted" {
+    run unquoted_flag_lines
+    [ "$status" -eq 1 ] || fail "$output"
 }

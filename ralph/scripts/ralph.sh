@@ -271,8 +271,11 @@ $(cat "$RALPH_LEARNINGS_FILE" 2>/dev/null || echo "(empty)")
 COMPRESS_EOF
     )
 
-    local budget_flags=$(claude_budget_flags)
-    echo "$compress_prompt" | claude -p --model haiku $(claude_permission_flags) $budget_flags \
+    # Flags in an array, as in build_claude_args: no word splitting on
+    # expansion and no globbing
+    local -a claude_args
+    read -ra claude_args <<< "$(claude_permission_flags) $(claude_budget_flags)"
+    echo "$compress_prompt" | claude -p --model haiku "${claude_args[@]}" \
         >> "$RALPH_TMP_DIR/compress_progress.log" 2>&1 || true
 }
 

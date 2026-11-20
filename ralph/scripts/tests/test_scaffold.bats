@@ -2,6 +2,8 @@
 # BATS test infrastructure smoke tests for Ralph scripts
 # Tests acceptance criteria for STORY-001
 
+load test_helper/fail
+
 setup() {
     # Each test gets a fresh tmp directory
     export BATS_TEST_TMP_DIR="$(mktemp -d)"
@@ -148,4 +150,18 @@ teardown() {
 @test "Makefile has test_bats recipe" {
     grep -q "^test_bats:" Makefile || \
         skip "Makefile test_bats recipe not found"
+}
+
+@test "fail prints its message and returns 1" {
+    run fail "a reason"
+    [ "$status" -eq 1 ]
+    [ "$output" = "a reason" ]
+}
+
+@test "every bats file that calls fail loads test_helper/fail" {
+    for f in ralph/scripts/tests/*.bats; do
+        if grep -qE '(\|\||^)[[:space:]]*fail ' "$f"; then
+            grep -qxF 'load test_helper/fail' "$f" || { echo "$f calls fail without loading it" >&2; return 1; }
+        fi
+    done
 }
