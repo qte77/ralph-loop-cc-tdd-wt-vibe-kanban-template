@@ -301,3 +301,63 @@ arg_after() {
     [ "$status" -eq 0 ] || fail "status $status"
     grep -q "novel pattern line" "$BATS_TEST_TMP_DIR"/hub/*.md || fail "write-back appended nothing"
 }
+
+# R36 (a1): parallel worktrees share RALPH_TMP_DIR, so each gets its own context
+# file and cache hash, named after its worktree directory
+@test "parallel worktrees get their own compound context and hash files" {
+    local root="$PWD"
+    git init -q "$BATS_TEST_TMP_DIR/repo"
+    git -C "$BATS_TEST_TMP_DIR/repo" -c user.name=t -c user.email=t@example.com \
+        -c commit.gpgsign=false commit -q --allow-empty -m init
+    git -C "$BATS_TEST_TMP_DIR/repo" worktree add -q --detach "$BATS_TEST_TMP_DIR/wt 1"
+    git -C "$BATS_TEST_TMP_DIR/repo" worktree add -q --detach "$BATS_TEST_TMP_DIR/wt-2"
+
+    paths_in() {
+        (cd "$1" && SRC_PACKAGE_DIR="test" source "$root/ralph/scripts/lib/config.sh" \
+            && echo "$COMPOUND_CONTEXT_FILE" && echo "$COMPOUND_CONTEXT_SHA")
+    }
+    one=$(paths_in "$BATS_TEST_TMP_DIR/wt 1")
+    two=$(paths_in "$BATS_TEST_TMP_DIR/wt-2")
+
+    [ "$one" != "$two" ] || fail "both worktrees use $one"
+    [ "$(sed -n 1p <<< "$one")" = "$RALPH_TMP_DIR/compound-context-wt_1.md" ] || fail "got: $one"
+    [ "$(sed -n 2p <<< "$two")" = "$RALPH_TMP_DIR/.compound-context-wt-2.sha" ] || fail "got: $two"
+}
+
+# R36 (a2): write-back input is bounded, keeping the newest entries
+@test "write-back sends only the last 32 KB of LEARNINGS.md and of the target file" {
+    writeback_setup
+    cat > "$BATS_TEST_TMP_DIR/bin/claude" <<STUB
+#!/usr/bin/env bash
+cat > "$BATS_TEST_TMP_DIR/claude-stdin"
+exit 0
+STUB
+    chmod +x "$BATS_TEST_TMP_DIR/bin/claude"
+    big() { echo "$1"; head -c 40000 /dev/zero | tr '\0' 'x'; echo; echo "$2"; }
+    big "OLDEST-LEARNING" "NEWEST-LEARNING" > "$RALPH_LEARNINGS_FILE"
+    git init -q "$BATS_TEST_TMP_DIR/myrepo"
+    big "OLDEST-TARGET" "NEWEST-TARGET" > "$BATS_TEST_TMP_DIR/hub/myrepo.md"
+
+    (cd "$BATS_TEST_TMP_DIR/myrepo" && compound_writeback 5 >/dev/null 2>&1)
+
+    grep -q "NEWEST-LEARNING" "$BATS_TEST_TMP_DIR/claude-stdin" || fail "newest learning missing"
+    grep -q "NEWEST-TARGET" "$BATS_TEST_TMP_DIR/claude-stdin" || fail "newest target entry missing"
+    ! grep -q "OLDEST-LEARNING" "$BATS_TEST_TMP_DIR/claude-stdin" || fail "whole LEARNINGS.md was sent"
+    ! grep -q "OLDEST-TARGET" "$BATS_TEST_TMP_DIR/claude-stdin" || fail "whole target file was sent"
+    [ "$(wc -c < "$BATS_TEST_TMP_DIR/claude-stdin")" -lt 70000 ] || fail "prompt not bounded"
+}
+
+# R36 (a3): with an origin remote, the hub file is named after the remote
+# repository, so two checkouts in differently named directories agree
+@test "write-back names the target after remote.origin.url when it is set" {
+    writeback_setup
+    for spec in "checkout-a|https://github.com/acme/real-name.git|real-name" \
+                "checkout-b|git@github.com:acme/other-repo.git|other-repo" \
+                "checkout-c|https://example.com/x/plain|plain"; do
+        IFS='|' read -r dir url want <<< "$spec"
+        git init -q "$BATS_TEST_TMP_DIR/$dir"
+        git -C "$BATS_TEST_TMP_DIR/$dir" remote add origin "$url"
+        (cd "$BATS_TEST_TMP_DIR/$dir" && compound_writeback 5 >/dev/null 2>&1)
+        [ -f "$BATS_TEST_TMP_DIR/hub/$want.md" ] || fail "$url: wrote $(ls "$BATS_TEST_TMP_DIR/hub")"
+    done
+}
