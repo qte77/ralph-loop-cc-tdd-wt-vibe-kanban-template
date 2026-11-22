@@ -313,13 +313,24 @@ comparison (N_WT>1).
   also cut at 500 bytes; a value that is not a positive integer of at most six
   digits is logged and replaced by 50)
 - `COMPOUND_ENABLED=true` — set `false` to skip aggregation entirely; this also
-  removes the context file an earlier run left in `RALPH_TMP_DIR`
+  removes the context file an earlier run left in `RALPH_TMP_DIR`. The context
+  file and its cache hash are named per worktree
+  (`compound-context-<worktree-dir>.md`), so parallel workers (`N_WT` > 1) never
+  read each other's context. Each run's worktrees leave one small pair of
+  files behind; they stay in `RALPH_TMP_DIR` until it is cleared
 - `COMPOUND_WRITEBACK_ENABLED=false` — opt-in: every
   `COMPOUND_WRITEBACK_INTERVAL=5` passed stories (a value that is not a
   positive integer of at most six digits is logged and replaced by 5), `COMPOUND_MODEL` (default
   `RALPH_SIMPLE_MODEL`) extracts new patterns from `ralph/LEARNINGS.md` and
-  appends them to `<COMPOUND_WRITEBACK_TARGET>/<repo-name>.md`, named after the
-  main repository even when Ralph runs in a linked worktree. Nothing is
+  appends them to `<COMPOUND_WRITEBACK_TARGET>/<repo-name>.md`. `<repo-name>` is
+  the last path part of `remote.origin.url` (without `.git`) when it is set,
+  otherwise the main repository's directory name (needs git 2.31+), even when
+  Ralph runs in a linked worktree. Two repositories with the same name share
+  one hub file. Each of `LEARNINGS.md` and the hub file goes into the extraction
+  prompt whole when it is at most 32 KB. A larger file keeps its headings, the
+  first line of every entry and the newest lines of each section, within 32 KB,
+  so new entries in any section and the titles already in the hub stay
+  visible. Nothing is
   appended when the call fails, and a failed append is logged without stopping
   the loop. The extraction
   runs with no tools (`--tools ""`, `--strict-mcp-config`) plus the usual

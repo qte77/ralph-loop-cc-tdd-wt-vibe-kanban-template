@@ -12,6 +12,10 @@
 #   - write-back stays off unless COMPOUND_WRITEBACK_ENABLED=true; when on, it
 #     appends only output from a successful call, never fails the caller, and
 #     names the target file after the repository, not the worktree directory
+#   - write-back input is bounded per file; each section keeps its newest lines
+#     and every heading and entry title stays in, so new entries in early
+#     sections and titles already in the hub are not dropped
+#   - parallel worktrees get their own context and hash files
 # Run from project root: bats ralph/scripts/tests/test_compound.bats
 
 load test_helper/fail
@@ -24,6 +28,8 @@ setup() {
         "$BATS_TEST_TMP_DIR/hub"
     # claude stubs written by a test go here and shadow any real claude
     export PATH="$BATS_TEST_TMP_DIR/bin:$PATH"
+    # git in these tests reads no user or system config
+    export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
     unset COMPOUND_ENABLED COMPOUND_LEARNINGS_PATH COMPOUND_MEMORY_PATH COMPOUND_PLANS_PATH \
         COMPOUND_MAX_LINES COMPOUND_WRITEBACK_ENABLED COMPOUND_WRITEBACK_TARGET
     source ralph/scripts/lib/common.sh
@@ -50,6 +56,24 @@ STUB
     COMPOUND_WRITEBACK_TARGET="$BATS_TEST_TMP_DIR/hub"
     RALPH_LEARNINGS_FILE="$BATS_TEST_TMP_DIR/LEARNINGS.md"
     echo "- a learning" > "$RALPH_LEARNINGS_FILE"
+}
+
+# Replace the claude stub with one that saves its prompt (stdin) to claude-stdin
+stdin_stub() {
+    cat > "$BATS_TEST_TMP_DIR/bin/claude" <<STUB
+#!/usr/bin/env bash
+cat > "$BATS_TEST_TMP_DIR/claude-stdin"
+exit 0
+STUB
+    chmod +x "$BATS_TEST_TMP_DIR/bin/claude"
+}
+
+# Print about $1 bytes of filler as 100-byte lines, the first one marked
+filler() {
+    local i line
+    line=$(printf '%099d' 0 | tr 0 x)
+    echo "FILLER-START"
+    for ((i = 0; i < $1 / 100; i++)); do echo "$line"; done
 }
 
 # Run a compound.sh call ("$@") from a separate script with ralph.sh's shell
@@ -300,4 +324,133 @@ arg_after() {
 
     [ "$status" -eq 0 ] || fail "status $status"
     grep -q "novel pattern line" "$BATS_TEST_TMP_DIR"/hub/*.md || fail "write-back appended nothing"
+}
+
+# Parallel worktrees share RALPH_TMP_DIR, so each gets its own context
+# file and cache hash, named after its worktree directory
+@test "parallel worktrees get their own compound context and hash files" {
+    local root="$PWD"
+    git init -q "$BATS_TEST_TMP_DIR/repo"
+    git -C "$BATS_TEST_TMP_DIR/repo" -c user.name=t -c user.email=t@example.com \
+        -c commit.gpgsign=false commit -q --allow-empty -m init
+    git -C "$BATS_TEST_TMP_DIR/repo" worktree add -q --detach "$BATS_TEST_TMP_DIR/wt 1"
+    git -C "$BATS_TEST_TMP_DIR/repo" worktree add -q --detach "$BATS_TEST_TMP_DIR/wt-2"
+
+    paths_in() {
+        (cd "$1" && SRC_PACKAGE_DIR="test" source "$root/ralph/scripts/lib/config.sh" \
+            && echo "$COMPOUND_CONTEXT_FILE" && echo "$COMPOUND_CONTEXT_SHA")
+    }
+    one=$(paths_in "$BATS_TEST_TMP_DIR/wt 1")
+    two=$(paths_in "$BATS_TEST_TMP_DIR/wt-2")
+
+    [ "$one" != "$two" ] || fail "both worktrees use $one"
+    [ "$(sed -n 1p <<< "$one")" = "$RALPH_TMP_DIR/compound-context-wt_1.md" ] || fail "got: $one"
+    [ "$(sed -n 2p <<< "$two")" = "$RALPH_TMP_DIR/.compound-context-wt-2.sha" ] || fail "got: $two"
+}
+
+# Write-back input is bounded. LEARNINGS.md is sectioned and new entries go to
+# the end of their own section, so each section keeps its newest lines
+@test "write-back keeps a new entry in an early section of a LEARNINGS.md over 32 KB" {
+    writeback_setup
+    stdin_stub
+    {
+        echo "# Agent Learnings"
+        echo ""
+        echo "## Validation Fixes"
+        echo ""
+        echo "- OLD-ENTRY"
+        filler 20000
+        echo "- NEW-EARLY-SECTION-ENTRY"
+        echo ""
+        echo "## Testing Strategies"
+        echo ""
+        echo "- OLD-ENTRY-2"
+        filler 40000
+        echo "- NEW-LAST-SECTION-ENTRY"
+    } > "$RALPH_LEARNINGS_FILE"
+    git init -q "$BATS_TEST_TMP_DIR/myrepo"
+
+    (cd "$BATS_TEST_TMP_DIR/myrepo" && compound_writeback 5 >/dev/null 2>&1)
+
+    grep -q "NEW-EARLY-SECTION-ENTRY" "$BATS_TEST_TMP_DIR/claude-stdin" || fail "early-section entry missing"
+    grep -q "NEW-LAST-SECTION-ENTRY" "$BATS_TEST_TMP_DIR/claude-stdin" || fail "last-section entry missing"
+    grep -qx "## Validation Fixes" "$BATS_TEST_TMP_DIR/claude-stdin" || fail "section heading missing"
+    ! grep -q "^x*FILLER-START" "$BATS_TEST_TMP_DIR/claude-stdin" || fail "whole sections were sent"
+    [ "$(wc -c < "$BATS_TEST_TMP_DIR/claude-stdin")" -lt 34000 ] || fail "prompt not bounded"
+}
+
+# The extraction may only emit patterns not already in the hub file, so every
+# entry title (the first line of each paragraph) and heading stays visible
+@test "write-back keeps every entry title of a hub file over 32 KB" {
+    writeback_setup
+    stdin_stub
+    git init -q "$BATS_TEST_TMP_DIR/myrepo"
+    {
+        echo "### From Ralph (2026-01-01)"
+        echo ""
+        echo "Context: OLD-HUB-TITLE"
+        echo "Problem: an old problem"
+        echo "Solution: an old solution"
+        echo ""
+        echo "### From Ralph (2026-02-01)"
+        echo ""
+        echo "Context: NEWER-HUB-TITLE"
+        filler 40000
+        echo "Solution: NEWEST-HUB-LINE"
+    } > "$BATS_TEST_TMP_DIR/hub/myrepo.md"
+
+    (cd "$BATS_TEST_TMP_DIR/myrepo" && compound_writeback 5 >/dev/null 2>&1)
+
+    grep -q "OLD-HUB-TITLE" "$BATS_TEST_TMP_DIR/claude-stdin" || fail "old hub title missing"
+    grep -q "NEWER-HUB-TITLE" "$BATS_TEST_TMP_DIR/claude-stdin" || fail "newer hub title missing"
+    grep -q "NEWEST-HUB-LINE" "$BATS_TEST_TMP_DIR/claude-stdin" || fail "newest hub line missing"
+    grep -qx "### From Ralph (2026-01-01)" "$BATS_TEST_TMP_DIR/claude-stdin" || fail "hub heading missing"
+    ! grep -q "^x*FILLER-START" "$BATS_TEST_TMP_DIR/claude-stdin" || fail "whole hub file was sent"
+    [ "$(wc -c < "$BATS_TEST_TMP_DIR/claude-stdin")" -lt 34000 ] || fail "prompt not bounded"
+}
+
+# When the titles alone exceed the bound, the newest titles that fit are sent
+@test "write-back stays bounded when a hub file holds more titles than fit" {
+    writeback_setup
+    stdin_stub
+    git init -q "$BATS_TEST_TMP_DIR/myrepo"
+    local i pad
+    pad=$(printf '%060d' 0 | tr 0 t)
+    for ((i = 1; i <= 500; i++)); do printf 'Context: TITLE-%04d %s\n\n' "$i" "$pad"; done \
+        > "$BATS_TEST_TMP_DIR/hub/myrepo.md"
+
+    (cd "$BATS_TEST_TMP_DIR/myrepo" && compound_writeback 5 >/dev/null 2>&1)
+
+    grep -q "TITLE-0500" "$BATS_TEST_TMP_DIR/claude-stdin" || fail "newest title missing"
+    ! grep -q "TITLE-0001" "$BATS_TEST_TMP_DIR/claude-stdin" || fail "oldest title kept past the bound"
+    [ "$(wc -c < "$BATS_TEST_TMP_DIR/claude-stdin")" -lt 34000 ] || fail "prompt not bounded"
+}
+
+# A file within the bound goes into the prompt whole, unchanged
+@test "write-back sends a LEARNINGS.md within 32 KB whole" {
+    writeback_setup
+    stdin_stub
+    printf '# Agent Learnings\n\n## Code Patterns\n\n- FIRST-ENTRY\n%s\n- LAST-ENTRY\n' "$(filler 20000)" \
+        > "$RALPH_LEARNINGS_FILE"
+    git init -q "$BATS_TEST_TMP_DIR/myrepo"
+
+    (cd "$BATS_TEST_TMP_DIR/myrepo" && compound_writeback 5 >/dev/null 2>&1)
+
+    grep -q "FIRST-ENTRY" "$BATS_TEST_TMP_DIR/claude-stdin" || fail "first entry missing"
+    grep -q "^x*FILLER-START" "$BATS_TEST_TMP_DIR/claude-stdin" || fail "file was cut"
+}
+
+# With an origin remote, the hub file is named after the remote
+# repository, so two checkouts in differently named directories agree
+@test "write-back names the target after remote.origin.url when it is set" {
+    writeback_setup
+    for spec in "checkout-a|https://github.com/acme/real-name.git|real-name" \
+                "checkout-b|git@github.com:acme/other-repo.git|other-repo" \
+                "checkout-c|https://example.com/x/plain|plain"; do
+        IFS='|' read -r dir url want <<< "$spec"
+        git init -q "$BATS_TEST_TMP_DIR/$dir"
+        git -C "$BATS_TEST_TMP_DIR/$dir" remote add origin "$url"
+        (cd "$BATS_TEST_TMP_DIR/$dir" && compound_writeback 5 >/dev/null 2>&1)
+        [ -f "$BATS_TEST_TMP_DIR/hub/$want.md" ] || fail "$url: wrote $(ls "$BATS_TEST_TMP_DIR/hub")"
+    done
 }

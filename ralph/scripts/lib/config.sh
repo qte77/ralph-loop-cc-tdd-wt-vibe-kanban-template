@@ -135,8 +135,14 @@ COMPOUND_ENABLED=${COMPOUND_ENABLED:-true}
 COMPOUND_LEARNINGS_PATH="${COMPOUND_LEARNINGS_PATH:-}"          # directory of learnings *.md (searched recursively)
 COMPOUND_MEMORY_PATH="${COMPOUND_MEMORY_PATH:-}"                # Claude Code auto-memory directory (*.md, recursive)
 COMPOUND_PLANS_PATH="${COMPOUND_PLANS_PATH:-}"                  # plans directory (*.md, top level only)
-COMPOUND_CONTEXT_FILE="$RALPH_TMP_DIR/compound-context.md"
-COMPOUND_CONTEXT_SHA="$RALPH_TMP_DIR/.compound-context.sha"
+# Reason: parallel worktrees (N_WT > 1) share RALPH_TMP_DIR, so the context file
+# and its cache hash carry the worktree directory name (unsafe characters
+# replaced); otherwise one worker could inject another worker's context
+_compound_wt=$(basename "$(git rev-parse --show-toplevel 2>/dev/null || pwd)")
+_compound_wt=${_compound_wt//[^A-Za-z0-9._-]/_}
+COMPOUND_CONTEXT_FILE="$RALPH_TMP_DIR/compound-context-${_compound_wt}.md"
+COMPOUND_CONTEXT_SHA="$RALPH_TMP_DIR/.compound-context-${_compound_wt}.sha"
+unset _compound_wt
 COMPOUND_MAX_LINES=${COMPOUND_MAX_LINES:-50}                    # cap on lines injected per story
 COMPOUND_WRITEBACK_ENABLED=${COMPOUND_WRITEBACK_ENABLED:-false} # opt-in write-back of new learnings
 COMPOUND_WRITEBACK_INTERVAL=${COMPOUND_WRITEBACK_INTERVAL:-5}   # write back every N passed stories
