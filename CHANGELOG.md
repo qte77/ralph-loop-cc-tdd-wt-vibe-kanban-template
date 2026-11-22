@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Claude Code `.claude/settings.json` sets `BASH_MAX_OUTPUT_LENGTH` to `15000` and
+  `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` to `50` ([env vars](https://code.claude.com/docs/en/env-vars));
+  `.claude/scripts/statusline.sh` is refreshed from claude-code-plugins 60388b9e: it shows context
+  used and the autocompact point, and guards non-numeric input
 - Compound learning (`ralph/scripts/lib/config.sh`, `ralph/scripts/lib/compound.sh`), the deferred design items from #115: the context file and its cache hash in `RALPH_TMP_DIR` are named per worktree (`compound-context-<worktree-dir>.md`), so parallel workers no longer share them; write-back bounds each of `ralph/LEARNINGS.md` and the hub file to 32 KB in the extraction prompt, keeping every heading and entry title plus the newest lines of each section (a file within 32 KB goes in whole); the hub file is named after `remote.origin.url` when it is set (falling back to the main repository's directory name), so checkouts in differently named directories agree. Documented in `ralph/README.md` (git 2.31+ for the fallback; two repositories with the same name share one hub file); tests in `ralph/scripts/tests/test_compound.bats`
 
 ### Security
