@@ -10,9 +10,9 @@ requires-python = ">=3.13"
 readme = "README.md"
 license = { file = "LICENSE" }
 dependencies = [
-    "pydantic>=2.14.2",
-    "pydantic-settings>=2.16.2",
-    "loguru>=0.7",
+    "pydantic>=2.14.3",
+    "pydantic-settings>=2.16.3",
+    "loguru>=0.8.0",
 ]
 
 [build-system]
@@ -26,9 +26,9 @@ packages = ["src/your_project_name"]
 dev = [
     "pytest>=9.2.0",
     "pytest-cov>=7.0.0",
-    "ruff>=0.17.3",
+    "ruff>=0.17.5",
     "pyright>=1.1.0",
-    "complexipy>=8.3.0",
+    "complexipy>=9.0.0",
 ]
 
 [tool.uv]
