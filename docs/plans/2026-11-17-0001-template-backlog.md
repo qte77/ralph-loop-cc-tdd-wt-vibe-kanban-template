@@ -97,6 +97,7 @@ below.
 | 28 | Deferred | Inline-snapshot drift detection (`pytest --inline-snapshot=review`) | data | Revisit when its output is stable for non-interactive use |
 | 29 | Deferred | Warn when a source module has tests in several directories | data | Revisit when it causes a real problem (YAGNI) |
 | 30 | Setup | Optional: RTK output compression for Claude Code sessions (user-level hook, no Ralph changes) | owner (machine setup) | Installed on the machine that runs the loop, or dropped |
+| 31 | Engine cleanup | `ralph/scripts/parallel_ralph.sh` (around line 358) loops `for _pat in $_file_pattern` unquoted, so the scaffold's file patterns are word-split and globbed against the current directory; the values only become `find -name` arguments, nothing is evaluated (decision (d) in #118) | agent (next change to `parallel_ralph.sh`) | The loop reads the patterns into an array; BATS green |
 
 ## Decisions
 
