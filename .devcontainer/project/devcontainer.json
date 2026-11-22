@@ -2,7 +2,7 @@
   "name": "Project DevEnv",
   "image": "mcr.microsoft.com/vscode/devcontainers/python:3.13",
   "features": {
-    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/devcontainers/features/node:1": { "version": "24" },
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
       "version": "latest",
       "moby": false
