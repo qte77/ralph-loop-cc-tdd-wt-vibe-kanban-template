@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Devcontainer Node feature pinned to `"version": "24"` (was the feature default, `lts`), so the dev environment matches the Node 24 estate target.
+
 - Claude Code `.claude/settings.json` sets `BASH_MAX_OUTPUT_LENGTH` to `15000` and
   `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` to `50` ([env vars](https://code.claude.com/docs/en/env-vars));
   `.claude/scripts/statusline.sh` is refreshed from claude-code-plugins 60388b9e: it shows context
