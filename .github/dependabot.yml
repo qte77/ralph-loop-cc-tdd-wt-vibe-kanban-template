@@ -1,16 +1,19 @@
 ---
-# Dependabot — uv + github-actions, grouped per ecosystem.
-# Mirrors qte77/analyze-stock-kpi (the baseline's uv exemplar): one group per
-# ecosystem so weekly updates land as a single reviewable PR each. Shell scripts
-# have no Dependabot ecosystem; use shellcheck in CI.
+# Dependabot — uv ecosystem variant.
+# Drop into .github/dependabot.yml of a repo that ships uv.lock.
+# Grouped per ecosystem (patterns: ["*"]) so each ecosystem's weekly updates
+# land as one reviewable PR — matches the exemplars qte77/analyze-stock-kpi and
+# qte77/gha-sec-feed. Note: Dependabot groups are per-ecosystem; uv and
+# github-actions remain separate PRs.
+# Cooldown: version updates skip releases younger than 7 days (a supply-chain
+# delay). Security updates are never delayed: cooldown applies to version
+# updates only (Dependabot options reference, `cooldown`).
 version: 2
 updates:
   - package-ecosystem: "uv"
     directory: "/"
     schedule:
       interval: "weekly"
-    # Supply-chain delay: skip releases younger than 7 days (replaces the
-    # fixed exclude-newer date in pyproject.toml, which froze uv.lock).
     cooldown:
       default-days: 7
     commit-message:
@@ -21,11 +24,12 @@ updates:
     groups:
       python-deps:
         patterns: ["*"]
-
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: "chore(ci)"
     labels:
