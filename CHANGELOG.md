@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `.github/dependabot.yml` now matches the estate baseline's uv variant byte for byte. That variant took this repo's 7-day `cooldown` and now applies it to both entries, so `github-actions` version updates also wait 7 days. Security updates are not delayed: "The `cooldown` option is only available for *version* updates, not *security* updates" ([Dependabot options reference](https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference)). The local header comments are replaced by the baseline's
 - Devcontainer Node feature pinned to `"version": "24"` (was the feature default, `lts`), so the dev environment matches the Node 24 estate target.
 
 - Claude Code `.claude/settings.json` sets `BASH_MAX_OUTPUT_LENGTH` to `15000` and
